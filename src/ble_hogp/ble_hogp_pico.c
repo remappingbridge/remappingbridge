@@ -1138,7 +1138,7 @@ static void sm_packet_handler(uint8_t packet_type, uint16_t channel,
 
         if (handle == g_connection_handle &&
             g_state == BLE_HOGP_STATE_SECURING) {
-            if (success) connect_hid_service();
+            if (success) read_current_mouse_name();
             else disconnect_and_rescan();
         }
         break;
