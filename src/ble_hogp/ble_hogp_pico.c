@@ -303,6 +303,37 @@ static void reconnect_timeout_handler(btstack_timer_source_t *timer)
     }
 }
 
+static void pair_new_timeout_handler(btstack_timer_source_t *timer)
+{
+    (void)timer;
+    g_pair_new_timer_active = false;
+    if (!g_pair_new_active) return;
+
+    g_pair_new_active = false;
+    (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_TIMEOUT);
+
+    if (g_pair_new_state == BLE_PAIR_NEW_SCANNING) {
+        gap_stop_scan();
+        pair_new_clear_candidate();
+        return;
+    }
+
+    if (g_pair_new_state == BLE_PAIR_NEW_CONNECTING) {
+        g_pair_new_cancel_pending = true;
+        if (gap_connect_cancel() != ERROR_CODE_SUCCESS) {
+            g_pair_new_cancel_pending = false;
+            pair_new_clear_candidate();
+        }
+        return;
+    }
+
+    if (g_pair_new_connection_handle != HCI_CON_HANDLE_INVALID) {
+        pair_new_disconnect_candidate(true, false);
+    } else {
+        pair_new_clear_candidate();
+    }
+}
+
 static bool start_bonded_reconnect(void)
 {
     const int count = le_device_db_count();
@@ -345,6 +376,58 @@ static bool start_bonded_reconnect(void)
 static void reconnect_or_scan(void)
 {
     if (!start_bonded_reconnect()) start_scan();
+}
+
+static bool start_pair_new(void)
+{
+    if (g_pair_new_active || g_pair_new_handoff_pending) return false;
+
+    if (g_state == BLE_HOGP_STATE_SCANNING) {
+        gap_stop_scan();
+        g_state = BLE_HOGP_STATE_IDLE;
+    }
+
+    pair_new_clear_candidate();
+    g_pair_new_active = true;
+    g_pair_new_state = BLE_PAIR_NEW_SCANNING;
+    g_pair_new_bond_count_before = le_device_db_count();
+
+    btstack_run_loop_set_timer(&g_pair_new_timer, BLE_HOGP_PAIR_NEW_TIMEOUT_MS);
+    btstack_run_loop_add_timer(&g_pair_new_timer);
+    g_pair_new_timer_active = true;
+
+    gap_set_scan_parameters(0u, 48u, 48u);
+    gap_start_scan();
+    (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_STARTED);
+    return true;
+}
+
+static void cancel_pair_new(void)
+{
+    if (!g_pair_new_active && !g_pair_new_handoff_pending) return;
+
+    stop_pair_new_timer();
+    g_pair_new_active = false;
+
+    if (g_pair_new_state == BLE_PAIR_NEW_SCANNING) {
+        gap_stop_scan();
+        pair_new_clear_candidate();
+        return;
+    }
+
+    if (g_pair_new_state == BLE_PAIR_NEW_CONNECTING) {
+        g_pair_new_cancel_pending = true;
+        if (gap_connect_cancel() != ERROR_CODE_SUCCESS) {
+            g_pair_new_cancel_pending = false;
+            pair_new_clear_candidate();
+        }
+        return;
+    }
+
+    if (!g_pair_new_handoff_pending &&
+        g_pair_new_connection_handle != HCI_CON_HANDLE_INVALID) {
+        pair_new_disconnect_candidate(true, false);
+    }
 }
 
 static void disconnect_current(bool reconnect_bonded)
@@ -428,10 +511,20 @@ static void service_saved_search_requests(void)
     }
 }
 
+static void service_pair_new_requests(void)
+{
+    if (atomic_exchange_explicit(&g_pair_new_cancel, false, memory_order_acq_rel))
+        cancel_pair_new();
+
+    if (atomic_exchange_explicit(&g_pair_new_request, false, memory_order_acq_rel))
+        (void)start_pair_new();
+}
+
 static void vendor_timer_handler(btstack_timer_source_t *timer)
 {
     (void)timer;
     service_saved_search_requests();
+    service_pair_new_requests();
     service_vendor_output();
     btstack_run_loop_set_timer(&g_vendor_timer, BLE_HOGP_VENDOR_SERVICE_MS);
     btstack_run_loop_add_timer(&g_vendor_timer);
