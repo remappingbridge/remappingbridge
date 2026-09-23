@@ -4,7 +4,7 @@ root = Path(__file__).resolve().parents[1]
 ux = (root / "src/ux_model/ux_model.c").read_text(encoding="utf-8")
 feedback = (root / "src/renderer/profile_feedback.c").read_text(encoding="utf-8")
 
-canonical = '{"MOUSE OPTIONS"," PASSTHROUGH"," STANDARD REMAP"," ESCAPE REMAP"," CUSTOM REMAP",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK","KEY X: HELP"}'
+canonical = '{"REMAPPING OPTIONS"," PASSTHROUGH"," STANDARD REMAP"," ESCAPE REMAP"," CUSTOM REMAP",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK","KEY X: HELP"}'
 assert canonical in ux
 
 # Old visual is replaced in-place.
@@ -31,7 +31,36 @@ for token in (
 # PASSTHROUGH and is cyan only when passthrough is the active profile.
 assert "ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS && blu2usb_ux_mouse_connected()" not in feedback
 
-# HOPE-29 is still future.
-assert "HOPE-29 owns help-remapper-options" in ux
+# HOPE-29 is bundled into this consolidated remapper-flow candidate.
+assert '"REMAPPER OPTIONS HELP"' in ux
+assert "BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS" in ux
+
+# Exclusive-current rendering must rebuild all option tones before applying
+# authoritative active cyan, then selected white.
+assert "for (uint8_t row = 1u; row <= 4u; ++row)" in feedback
+assert "set_row_tone(frame, row, BLU2USB_UI_TONE_ACTIONABLE);" in feedback
+assert "set_row_tone(frame, profile_row, BLU2USB_UI_TONE_CURRENT);" in feedback
+assert "BLU2USB_UI_TONE_EMPHASIZED" in feedback
 
 print("HOPE-10 remapper-options source invariants: OK")
+
+# Bundled v1 visible names replace legacy strings.
+for old in (
+    '"PASSTHROUGH APPLIED"',
+    '"APPLY DEFAULT REMAP"',
+    '"DEFAULT REMAP APPLIED"',
+    '"APPLY ESCAPE"',
+    '"ESCAPE APPLIED"',
+    '"CUSTOM APPLIED"',
+):
+    assert old not in ux
+
+for new in (
+    '"PASSTHROUGH ACTIVE"',
+    '"APPLY STANDARD REMAP"',
+    '"STANDARD REMAP ACTIVE"',
+    '"APPLY ESCAPE REMAP"',
+    '"ESCAPE APPLIED ACTIVE"',
+    '"EDIT CUSTOM REMAP"',
+):
+    assert new in ux
