@@ -539,12 +539,29 @@ static void ble_hogp_session_setup(void)
     g_saved_search_active = false;
     atomic_store_explicit(&g_saved_search_request, false, memory_order_relaxed);
     atomic_store_explicit(&g_saved_search_cancel, false, memory_order_relaxed);
+
+    g_pair_new_state = BLE_PAIR_NEW_IDLE;
+    g_pair_new_active = false;
+    g_pair_new_cancel_pending = false;
+    g_pair_new_resume_after_disconnect = false;
+    g_pair_new_handoff_pending = false;
+    g_pair_new_bond_count_before = 0;
+    memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
+    g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
+    g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_hids_cid = 0u;
+    memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
+    g_pair_new_timer_active = false;
+    atomic_store_explicit(&g_pair_new_request, false, memory_order_relaxed);
+    atomic_store_explicit(&g_pair_new_cancel, false, memory_order_relaxed);
+
     hids_client_init(g_descriptor_storage, sizeof(g_descriptor_storage));
     g_hci_registration.callback = &hci_packet_handler;
     hci_add_event_handler(&g_hci_registration);
     g_sm_registration.callback = &sm_packet_handler;
     sm_add_event_handler(&g_sm_registration);
     btstack_run_loop_set_timer_handler(&g_reconnect_timer, reconnect_timeout_handler);
+    btstack_run_loop_set_timer_handler(&g_pair_new_timer, pair_new_timeout_handler);
     btstack_run_loop_set_timer_handler(&g_vendor_timer, vendor_timer_handler);
     btstack_run_loop_set_timer(&g_vendor_timer, BLE_HOGP_VENDOR_SERVICE_MS);
     btstack_run_loop_add_timer(&g_vendor_timer);
@@ -569,4 +586,14 @@ void blu2usb_ble_hogp_pico_request_saved_search(void)
 void blu2usb_ble_hogp_pico_cancel_saved_search(void)
 {
     atomic_store_explicit(&g_saved_search_cancel, true, memory_order_release);
+}
+
+void blu2usb_ble_hogp_pico_request_pair_new(void)
+{
+    atomic_store_explicit(&g_pair_new_request, true, memory_order_release);
+}
+
+void blu2usb_ble_hogp_pico_cancel_pair_new(void)
+{
+    atomic_store_explicit(&g_pair_new_cancel, true, memory_order_release);
 }
