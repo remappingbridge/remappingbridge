@@ -89,7 +89,9 @@ static void test_home_regions_selection_and_render(void)
 {
     blu2usb_ux_model_t ux; blu2usb_ui_frame_t frame; blu2usb_ux_init(&ux); blu2usb_ui_project(&ux,&frame);
     assert(!frame.learn_background&&frame.hint_start_row==6u);
-    assert_text(&frame,0,0,"HOME"); assert(frame.cells[1][1].tone==BLU2USB_UI_TONE_EMPHASIZED);
+    assert_text(&frame,0,0,"UNKNOWN MOUSE");
+    assert_text(&frame,1,0," NO REMAP PASSTHROUGH");
+    assert(frame.cells[1][1].tone==BLU2USB_UI_TONE_EMPHASIZED);
     assert(blu2usb_renderer_background_rgb565(&frame,5)==BLU2USB_COLOR_BLACK);
     assert(blu2usb_renderer_background_rgb565(&frame,6)==BLU2USB_COLOR_DARK_MAGENTA);
     send(&ux,BLU2USB_CONTROL_JOY_DOWN,true); blu2usb_ui_project(&ux,&frame); assert(frame.cells[1][1].tone==BLU2USB_UI_TONE_EMPHASIZED);
