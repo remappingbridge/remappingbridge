@@ -5,13 +5,14 @@
 #include "btstack.h"
 #include "ble/le_device_db.h"
 
-#define BLE_HOGP_DESCRIPTOR_STORAGE_SIZE 2048u
+#define BLE_HOGP_DESCRIPTOR_STORAGE_SIZE 4096u
 #define BLE_HOGP_REJECTED_DEVICE_CAPACITY 4u
 #define BLE_APPEARANCE_HID_GENERIC 960u
 #define BLE_APPEARANCE_HID_MOUSE 962u
 #define BLE_APPEARANCE_HID_LAST 1023u
 #define BLE_HOGP_VENDOR_SERVICE_MS 20u
 #define BLE_HOGP_BONDED_RECONNECT_TIMEOUT_MS 8000u
+#define BLE_HOGP_PAIR_NEW_TIMEOUT_MS 15000u
 
 _Static_assert(sizeof(blu2usb_canonical_mouse_event_t) <= BLU2USB_BT_RUNTIME_MESSAGE_PAYLOAD_SIZE,
                "canonical mouse event must fit runtime message");
@@ -26,6 +27,16 @@ typedef enum {
     BLE_HOGP_STATE_READY,
     BLE_HOGP_STATE_DISCONNECTING,
 } ble_hogp_state_t;
+
+typedef enum {
+    BLE_PAIR_NEW_IDLE = 0,
+    BLE_PAIR_NEW_SCANNING,
+    BLE_PAIR_NEW_CONNECTING,
+    BLE_PAIR_NEW_SECURING,
+    BLE_PAIR_NEW_CONNECTING_HIDS,
+    BLE_PAIR_NEW_READY,
+    BLE_PAIR_NEW_DISCONNECTING,
+} ble_pair_new_state_t;
 
 typedef struct {
     bool used;
@@ -53,6 +64,23 @@ static bool g_idle_after_disconnect;
 static bool g_saved_search_active;
 static atomic_bool g_saved_search_request = ATOMIC_VAR_INIT(false);
 static atomic_bool g_saved_search_cancel = ATOMIC_VAR_INIT(false);
+
+static ble_pair_new_state_t g_pair_new_state;
+static bool g_pair_new_active;
+static bool g_pair_new_cancel_pending;
+static bool g_pair_new_resume_after_disconnect;
+static bool g_pair_new_handoff_pending;
+static int g_pair_new_bond_count_before;
+static bd_addr_t g_pair_new_address;
+static bd_addr_type_t g_pair_new_address_type;
+static hci_con_handle_t g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+static uint16_t g_pair_new_hids_cid;
+static blu2usb_ble_hogp_parser_t g_pair_new_parser;
+static btstack_timer_source_t g_pair_new_timer;
+static bool g_pair_new_timer_active;
+static atomic_bool g_pair_new_request = ATOMIC_VAR_INIT(false);
+static atomic_bool g_pair_new_cancel = ATOMIC_VAR_INIT(false);
+
 static blu2usb_ble_hogp_vendor_backend_t g_vendor_backend;
 static bool g_vendor_registered;
 
@@ -60,6 +88,9 @@ static void handle_gatt_client_event(uint8_t packet_type, uint16_t channel,
                                      uint8_t *packet, uint16_t size);
 static void start_scan(void);
 static void reconnect_or_scan(void);
+static void pair_new_resume_scan(void);
+static void pair_new_finalize_promotion(void);
+static void service_vendor_output(void);
 
 bool blu2usb_ble_hogp_register_vendor_backend(
     const blu2usb_ble_hogp_vendor_backend_t *backend)
@@ -147,6 +178,97 @@ static void reject_address(const bd_addr_t address, bd_addr_type_t type)
     g_rejected_next = (g_rejected_next + 1u) % BLE_HOGP_REJECTED_DEVICE_CAPACITY;
 }
 
+static bool address_is_saved(const bd_addr_t address, bd_addr_type_t type)
+{
+    const int count = le_device_db_count();
+    for (int index = 0; index < count; ++index) {
+        int saved_type = 0;
+        bd_addr_t saved_address;
+        sm_key_t irk;
+        memset(saved_address, 0, sizeof(saved_address));
+        memset(irk, 0, sizeof(irk));
+        le_device_db_info(index, &saved_type, saved_address, irk);
+        if ((bd_addr_type_t)saved_type == type &&
+            memcmp(saved_address, address, sizeof(bd_addr_t)) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void remove_pair_new_bond(void)
+{
+    const int count = le_device_db_count();
+    for (int index = 0; index < count; ++index) {
+        int saved_type = 0;
+        bd_addr_t saved_address;
+        sm_key_t irk;
+        memset(saved_address, 0, sizeof(saved_address));
+        memset(irk, 0, sizeof(irk));
+        le_device_db_info(index, &saved_type, saved_address, irk);
+        if ((bd_addr_type_t)saved_type == g_pair_new_address_type &&
+            memcmp(saved_address, g_pair_new_address, sizeof(bd_addr_t)) == 0) {
+            le_device_db_remove(index);
+            break;
+        }
+    }
+}
+
+static bool pair_new_created_new_bond(void)
+{
+    return le_device_db_count() > g_pair_new_bond_count_before;
+}
+
+static void stop_pair_new_timer(void)
+{
+    if (!g_pair_new_timer_active) return;
+    (void)btstack_run_loop_remove_timer(&g_pair_new_timer);
+    g_pair_new_timer_active = false;
+}
+
+static void pair_new_clear_candidate(void)
+{
+    memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
+    g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
+    g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_hids_cid = 0u;
+    memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
+    g_pair_new_cancel_pending = false;
+    g_pair_new_resume_after_disconnect = false;
+    if (!g_pair_new_handoff_pending)
+        g_pair_new_state = BLE_PAIR_NEW_IDLE;
+}
+
+static void pair_new_resume_scan(void)
+{
+    if (!g_pair_new_active || !g_pair_new_timer_active) {
+        if (!g_pair_new_handoff_pending)
+            g_pair_new_state = BLE_PAIR_NEW_IDLE;
+        return;
+    }
+
+    pair_new_clear_candidate();
+    g_pair_new_state = BLE_PAIR_NEW_SCANNING;
+    gap_set_scan_parameters(0u, 48u, 48u);
+    gap_start_scan();
+}
+
+static void pair_new_disconnect_candidate(bool remove_bond, bool resume)
+{
+    if (remove_bond)
+        remove_pair_new_bond();
+
+    g_pair_new_resume_after_disconnect = resume;
+    if (g_pair_new_connection_handle != HCI_CON_HANDLE_INVALID) {
+        g_pair_new_state = BLE_PAIR_NEW_DISCONNECTING;
+        gap_disconnect(g_pair_new_connection_handle);
+    } else {
+        pair_new_clear_candidate();
+        if (resume)
+            pair_new_resume_scan();
+    }
+}
+
 static void stop_reconnect_timer(void)
 {
     if (!g_reconnect_timer_active) return;
@@ -186,6 +308,36 @@ static void reconnect_timeout_handler(btstack_timer_source_t *timer)
     } else {
         g_state = BLE_HOGP_STATE_IDLE;
     }
+}
+
+static void pair_new_timeout_handler(btstack_timer_source_t *timer)
+{
+    (void)timer;
+    g_pair_new_timer_active = false;
+    if (!g_pair_new_active) return;
+
+    g_pair_new_active = false;
+    (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_TIMEOUT);
+
+    if (g_pair_new_state == BLE_PAIR_NEW_SCANNING) {
+        gap_stop_scan();
+        pair_new_clear_candidate();
+        return;
+    }
+
+    if (g_pair_new_state == BLE_PAIR_NEW_CONNECTING) {
+        g_pair_new_cancel_pending = true;
+        if (gap_connect_cancel() != ERROR_CODE_SUCCESS) {
+            g_pair_new_cancel_pending = false;
+            pair_new_clear_candidate();
+        }
+        return;
+    }
+
+    if (g_pair_new_connection_handle != HCI_CON_HANDLE_INVALID)
+        pair_new_disconnect_candidate(true, false);
+    else
+        pair_new_clear_candidate();
 }
 
 static bool start_bonded_reconnect(void)
@@ -232,6 +384,67 @@ static void reconnect_or_scan(void)
     if (!start_bonded_reconnect()) start_scan();
 }
 
+static bool start_pair_new(void)
+{
+    if (g_pair_new_active || g_pair_new_handoff_pending) return false;
+
+    if (g_saved_search_active || g_reconnect_cancel_pending ||
+        (g_state != BLE_HOGP_STATE_READY &&
+         (g_state == BLE_HOGP_STATE_CONNECTING ||
+          g_state == BLE_HOGP_STATE_SECURING ||
+          g_state == BLE_HOGP_STATE_CONNECTING_HIDS ||
+          g_state == BLE_HOGP_STATE_DISCONNECTING))) {
+        return false;
+    }
+
+    if (g_state == BLE_HOGP_STATE_SCANNING) {
+        gap_stop_scan();
+        g_state = BLE_HOGP_STATE_IDLE;
+    }
+
+    pair_new_clear_candidate();
+    g_pair_new_active = true;
+    g_pair_new_state = BLE_PAIR_NEW_SCANNING;
+    g_pair_new_bond_count_before = le_device_db_count();
+
+    btstack_run_loop_set_timer(&g_pair_new_timer, BLE_HOGP_PAIR_NEW_TIMEOUT_MS);
+    btstack_run_loop_add_timer(&g_pair_new_timer);
+    g_pair_new_timer_active = true;
+
+    gap_set_scan_parameters(0u, 48u, 48u);
+    gap_start_scan();
+    (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_STARTED);
+    return true;
+}
+
+static void cancel_pair_new(void)
+{
+    if (!g_pair_new_active && !g_pair_new_handoff_pending) return;
+
+    stop_pair_new_timer();
+    g_pair_new_active = false;
+
+    if (g_pair_new_state == BLE_PAIR_NEW_SCANNING) {
+        gap_stop_scan();
+        pair_new_clear_candidate();
+        return;
+    }
+
+    if (g_pair_new_state == BLE_PAIR_NEW_CONNECTING) {
+        g_pair_new_cancel_pending = true;
+        if (gap_connect_cancel() != ERROR_CODE_SUCCESS) {
+            g_pair_new_cancel_pending = false;
+            pair_new_clear_candidate();
+        }
+        return;
+    }
+
+    if (!g_pair_new_handoff_pending &&
+        g_pair_new_connection_handle != HCI_CON_HANDLE_INVALID) {
+        pair_new_disconnect_candidate(true, false);
+    }
+}
+
 static void disconnect_current(bool reconnect_bonded)
 {
     const bool was_ready = g_state == BLE_HOGP_STATE_READY;
@@ -265,6 +478,66 @@ static void connect_hid_service(void)
     if (status != ERROR_CODE_SUCCESS) disconnect_and_rescan();
 }
 
+static void pair_new_connect_hid_service(void)
+{
+    g_pair_new_state = BLE_PAIR_NEW_CONNECTING_HIDS;
+    g_pair_new_hids_cid = 0u;
+    const uint8_t status = hids_client_connect(g_pair_new_connection_handle,
+        &handle_gatt_client_event, HID_PROTOCOL_MODE_REPORT,
+        &g_pair_new_hids_cid);
+    if (status != ERROR_CODE_SUCCESS)
+        pair_new_disconnect_candidate(true, true);
+}
+
+static void pair_new_finalize_promotion(void)
+{
+    memcpy(g_remote_address, g_pair_new_address, sizeof(bd_addr_t));
+    g_remote_address_type = g_pair_new_address_type;
+    g_connection_handle = g_pair_new_connection_handle;
+    g_hids_cid = g_pair_new_hids_cid;
+    g_parser = g_pair_new_parser;
+
+    g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_hids_cid = 0u;
+    memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
+    memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
+    g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
+    g_pair_new_state = BLE_PAIR_NEW_IDLE;
+    g_pair_new_active = false;
+    g_pair_new_handoff_pending = false;
+    g_pair_new_cancel_pending = false;
+    g_pair_new_resume_after_disconnect = false;
+
+    g_state = BLE_HOGP_STATE_READY;
+    g_reconnect_after_disconnect = false;
+    g_idle_after_disconnect = false;
+
+    if (g_vendor_registered)
+        g_vendor_backend.session(g_vendor_backend.context, true);
+
+    (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_PROMOTED);
+    service_vendor_output();
+}
+
+static void pair_new_begin_handoff(void)
+{
+    stop_pair_new_timer();
+    g_pair_new_active = false;
+    g_pair_new_state = BLE_PAIR_NEW_READY;
+
+    if (g_state == BLE_HOGP_STATE_READY &&
+        g_connection_handle != HCI_CON_HANDLE_INVALID) {
+        g_pair_new_handoff_pending = true;
+        if (g_vendor_registered)
+            g_vendor_backend.session(g_vendor_backend.context, false);
+        g_state = BLE_HOGP_STATE_DISCONNECTING;
+        gap_disconnect(g_connection_handle);
+        return;
+    }
+
+    pair_new_finalize_promotion();
+}
+
 static void service_vendor_output(void)
 {
     if (!g_vendor_registered || g_state != BLE_HOGP_STATE_READY || g_hids_cid == 0u) return;
@@ -293,30 +566,54 @@ static void service_saved_search_requests(void)
                     g_reconnect_cancel_pending = false;
                     g_state = BLE_HOGP_STATE_IDLE;
                 }
-            } else if (g_connection_handle != HCI_CON_HANDLE_INVALID) {
+            } else if (g_connection_handle != HCI_CON_HANDLE_INVALID &&
+                       g_state != BLE_HOGP_STATE_READY) {
                 g_idle_after_disconnect = true;
                 g_state = BLE_HOGP_STATE_DISCONNECTING;
                 gap_disconnect(g_connection_handle);
-            } else {
+            } else if (g_state != BLE_HOGP_STATE_READY) {
                 g_state = BLE_HOGP_STATE_IDLE;
             }
         }
     }
 
     if (atomic_exchange_explicit(&g_saved_search_request, false, memory_order_acq_rel)) {
+        if (g_pair_new_state != BLE_PAIR_NEW_IDLE ||
+            g_pair_new_handoff_pending || g_pair_new_cancel_pending) {
+            atomic_store_explicit(&g_saved_search_request, true, memory_order_release);
+            return;
+        }
         if (!g_saved_search_active) {
             if (g_state == BLE_HOGP_STATE_SCANNING) gap_stop_scan();
-            if (g_state != BLE_HOGP_STATE_READY && g_state != BLE_HOGP_STATE_DISCONNECTING) {
-                if (!start_bonded_reconnect()) g_state = BLE_HOGP_STATE_IDLE;
+            if (g_state != BLE_HOGP_STATE_READY &&
+                g_state != BLE_HOGP_STATE_DISCONNECTING) {
+                if (!start_bonded_reconnect())
+                    g_state = BLE_HOGP_STATE_IDLE;
             }
         }
+    }
+}
+
+static void service_pair_new_cancel_request(void)
+{
+    if (atomic_exchange_explicit(&g_pair_new_cancel, false, memory_order_acq_rel))
+        cancel_pair_new();
+}
+
+static void service_pair_new_requests(void)
+{
+    if (atomic_exchange_explicit(&g_pair_new_request, false, memory_order_acq_rel)) {
+        if (!start_pair_new())
+            atomic_store_explicit(&g_pair_new_request, true, memory_order_release);
     }
 }
 
 static void vendor_timer_handler(btstack_timer_source_t *timer)
 {
     (void)timer;
+    service_pair_new_cancel_request();
     service_saved_search_requests();
+    service_pair_new_requests();
     service_vendor_output();
     btstack_run_loop_set_timer(&g_vendor_timer, BLE_HOGP_VENDOR_SERVICE_MS);
     btstack_run_loop_add_timer(&g_vendor_timer);
@@ -330,60 +627,147 @@ static void handle_gatt_client_event(uint8_t packet_type, uint16_t channel,
 
     switch (hci_event_gattservice_meta_get_subevent_code(packet)) {
     case GATTSERVICE_SUBEVENT_HID_SERVICE_CONNECTED: {
-        const uint8_t status = gattservice_subevent_hid_service_connected_get_status(packet);
-        if (status != ERROR_CODE_SUCCESS) { disconnect_and_rescan(); return; }
-        const uint8_t *descriptor = hids_client_descriptor_storage_get_descriptor_data(g_hids_cid, 0u);
-        const uint16_t descriptor_len = hids_client_descriptor_storage_get_descriptor_len(g_hids_cid, 0u);
-        const blu2usb_hid_source_t source = blu2usb_hid_source_make(BLU2USB_HID_SOURCE_MOUSE, 1u);
-        const bool parser_ready = descriptor != NULL && descriptor_len > 0u &&
-            blu2usb_ble_hogp_parser_configure(&g_parser, source, descriptor, descriptor_len) &&
+        const uint16_t cid =
+            gattservice_subevent_hid_service_connected_get_hids_cid(packet);
+        const uint8_t status =
+            gattservice_subevent_hid_service_connected_get_status(packet);
+        const bool candidate =
+            g_pair_new_hids_cid != 0u && cid == g_pair_new_hids_cid;
+
+        if (candidate) {
+            if (status != ERROR_CODE_SUCCESS) {
+                pair_new_disconnect_candidate(true, true);
+                return;
+            }
+
+            const uint8_t *descriptor =
+                hids_client_descriptor_storage_get_descriptor_data(cid, 0u);
+            const uint16_t descriptor_len =
+                hids_client_descriptor_storage_get_descriptor_len(cid, 0u);
+            const blu2usb_hid_source_t source =
+                blu2usb_hid_source_make(BLU2USB_HID_SOURCE_MOUSE, 1u);
+            const bool parser_ready =
+                descriptor != NULL && descriptor_len > 0u &&
+                blu2usb_ble_hogp_parser_configure(
+                    &g_pair_new_parser, source, descriptor, descriptor_len) &&
+                blu2usb_ble_hogp_parser_has_mouse(&g_pair_new_parser);
+
+            if (!parser_ready) {
+                if (descriptor != NULL && descriptor_len > 0u)
+                    reject_address(g_pair_new_address, g_pair_new_address_type);
+                pair_new_disconnect_candidate(true, true);
+                return;
+            }
+
+            if (!pair_new_created_new_bond()) {
+                pair_new_disconnect_candidate(false, true);
+                return;
+            }
+
+            g_pair_new_state = BLE_PAIR_NEW_READY;
+            pair_new_begin_handoff();
+            return;
+        }
+
+        if (cid != g_hids_cid) return;
+        if (status != ERROR_CODE_SUCCESS) {
+            disconnect_and_rescan();
+            return;
+        }
+
+        const uint8_t *descriptor =
+            hids_client_descriptor_storage_get_descriptor_data(g_hids_cid, 0u);
+        const uint16_t descriptor_len =
+            hids_client_descriptor_storage_get_descriptor_len(g_hids_cid, 0u);
+        const blu2usb_hid_source_t source =
+            blu2usb_hid_source_make(BLU2USB_HID_SOURCE_MOUSE, 1u);
+        const bool parser_ready =
+            descriptor != NULL && descriptor_len > 0u &&
+            blu2usb_ble_hogp_parser_configure(
+                &g_parser, source, descriptor, descriptor_len) &&
             blu2usb_ble_hogp_parser_has_mouse(&g_parser);
+
         if (!parser_ready) {
             if (descriptor != NULL && descriptor_len > 0u)
                 reject_address(g_remote_address, g_remote_address_type);
             disconnect_and_rescan();
             return;
         }
+
         g_state = BLE_HOGP_STATE_READY;
         stop_reconnect_timer();
         g_saved_search_active = false;
         g_reconnect_after_disconnect = false;
-        if (g_vendor_registered) g_vendor_backend.session(g_vendor_backend.context, true);
+        if (g_vendor_registered)
+            g_vendor_backend.session(g_vendor_backend.context, true);
         if (!publish_status(BLU2USB_BLE_HOGP_MESSAGE_CONNECTED)) {
-            disconnect_and_rescan(); return;
+            disconnect_and_rescan();
+            return;
         }
         service_vendor_output();
         break;
     }
-    case GATTSERVICE_SUBEVENT_HID_SERVICE_DISCONNECTED:
-        if (g_state != BLE_HOGP_STATE_DISCONNECTING)
-            disconnect_current(g_state == BLE_HOGP_STATE_READY);
+
+    case GATTSERVICE_SUBEVENT_HID_SERVICE_DISCONNECTED: {
+        const uint16_t cid =
+            gattservice_subevent_hid_service_disconnected_get_hids_cid(packet);
+
+        if (g_pair_new_hids_cid != 0u && cid == g_pair_new_hids_cid)
+            break;
+
+        if (cid == g_hids_cid) {
+            if (g_pair_new_handoff_pending) break;
+            if (g_state != BLE_HOGP_STATE_DISCONNECTING)
+                disconnect_current(g_state == BLE_HOGP_STATE_READY);
+        }
         break;
+    }
+
     case GATTSERVICE_SUBEVENT_HID_REPORT: {
-        if (g_state != BLE_HOGP_STATE_READY) break;
-        const uint8_t report_id = gattservice_subevent_hid_report_get_report_id(packet);
-        const uint8_t *raw = gattservice_subevent_hid_report_get_report(packet);
-        const uint16_t raw_len = gattservice_subevent_hid_report_get_report_len(packet);
+        const uint16_t cid =
+            gattservice_subevent_hid_report_get_hids_cid(packet);
+
+        if (g_pair_new_hids_cid != 0u && cid == g_pair_new_hids_cid)
+            break;
+
+        if (g_state != BLE_HOGP_STATE_READY || cid != g_hids_cid) break;
+
+        const uint8_t report_id =
+            gattservice_subevent_hid_report_get_report_id(packet);
+        const uint8_t *raw =
+            gattservice_subevent_hid_report_get_report(packet);
+        const uint16_t raw_len =
+            gattservice_subevent_hid_report_get_report_len(packet);
         const uint8_t *payload = NULL;
         size_t payload_len = 0u;
-        if (!blu2usb_ble_hogp_parser_normalize_report(&g_parser, report_id, raw,
-                                                       raw_len, &payload, &payload_len)) {
-            disconnect_and_rescan(); break;
+
+        if (!blu2usb_ble_hogp_parser_normalize_report(
+                &g_parser, report_id, raw, raw_len, &payload, &payload_len)) {
+            disconnect_and_rescan();
+            break;
         }
+
         const blu2usb_hid_source_t source =
             blu2usb_hid_source_make(BLU2USB_HID_SOURCE_MOUSE, 1u);
         bool consumed = false;
         if (g_vendor_registered)
-            consumed = g_vendor_backend.input(g_vendor_backend.context, source,
-                report_id, payload, payload_len, publish_runtime_mouse_event, NULL);
-        if (!consumed && !blu2usb_ble_hogp_parser_parse_report(&g_parser, report_id,
-            payload, payload_len, publish_mouse_event, NULL)) {
+            consumed = g_vendor_backend.input(
+                g_vendor_backend.context, source, report_id, payload,
+                payload_len, publish_runtime_mouse_event, NULL);
+
+        if (!consumed &&
+            !blu2usb_ble_hogp_parser_parse_report(
+                &g_parser, report_id, payload, payload_len,
+                publish_mouse_event, NULL)) {
             disconnect_and_rescan();
         }
+
         service_vendor_output();
         break;
     }
-    default: break;
+
+    default:
+        break;
     }
 }
 
@@ -392,37 +776,108 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
 {
     (void)channel; (void)size;
     if (packet_type != HCI_EVENT_PACKET) return;
+
     switch (hci_event_packet_get_type(packet)) {
     case BTSTACK_EVENT_STATE:
         if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING &&
-            g_state == BLE_HOGP_STATE_WAITING_FOR_STACK) reconnect_or_scan();
+            g_state == BLE_HOGP_STATE_WAITING_FOR_STACK) {
+            reconnect_or_scan();
+        }
         break;
+
     case GAP_EVENT_ADVERTISING_REPORT: {
-        if (g_state != BLE_HOGP_STATE_SCANNING || !advertisement_has_hid_service(packet)) break;
+        if (!advertisement_has_hid_service(packet)) break;
+
         bd_addr_t address;
         gap_event_advertising_report_get_address(packet, address);
-        const bd_addr_type_t type = gap_event_advertising_report_get_address_type(packet);
+        const bd_addr_type_t type =
+            gap_event_advertising_report_get_address_type(packet);
         const uint16_t appearance = advertisement_appearance(packet);
+
+        if (g_pair_new_active && g_pair_new_state == BLE_PAIR_NEW_SCANNING) {
+            if (address_is_rejected(address, type)) break;
+            if (appearance_is_explicit_non_mouse_hid(appearance)) {
+                reject_address(address, type);
+                break;
+            }
+            if (address_is_saved(address, type)) break;
+
+            gap_stop_scan();
+            memcpy(g_pair_new_address, address, sizeof(bd_addr_t));
+            g_pair_new_address_type = type;
+            g_pair_new_cancel_pending = false;
+            g_pair_new_state = BLE_PAIR_NEW_CONNECTING;
+            if (gap_connect(g_pair_new_address, g_pair_new_address_type) !=
+                ERROR_CODE_SUCCESS) {
+                pair_new_resume_scan();
+            }
+            break;
+        }
+
+        if (g_state != BLE_HOGP_STATE_SCANNING) break;
         if (address_is_rejected(address, type)) break;
-        if (appearance_is_explicit_non_mouse_hid(appearance)) { reject_address(address, type); break; }
+        if (appearance_is_explicit_non_mouse_hid(appearance)) {
+            reject_address(address, type);
+            break;
+        }
+
         gap_stop_scan();
         stop_reconnect_timer();
         memcpy(g_remote_address, address, sizeof(bd_addr_t));
         g_remote_address_type = type;
         g_reconnect_cancel_pending = false;
         g_state = BLE_HOGP_STATE_CONNECTING;
-        if (gap_connect(g_remote_address, g_remote_address_type) != ERROR_CODE_SUCCESS)
+        if (gap_connect(g_remote_address, g_remote_address_type) !=
+            ERROR_CODE_SUCCESS) {
             start_scan();
+        }
         break;
     }
+
     case HCI_EVENT_META_GAP:
-        if (hci_event_gap_meta_get_subevent_code(packet) == GAP_SUBEVENT_LE_CONNECTION_COMPLETE &&
-            g_state == BLE_HOGP_STATE_CONNECTING) {
-            const uint8_t status = gap_subevent_le_connection_complete_get_status(packet);
+        if (hci_event_gap_meta_get_subevent_code(packet) !=
+            GAP_SUBEVENT_LE_CONNECTION_COMPLETE) {
+            break;
+        }
+
+        if (g_pair_new_state == BLE_PAIR_NEW_CONNECTING) {
+            const uint8_t status =
+                gap_subevent_le_connection_complete_get_status(packet);
+
+            if (g_pair_new_cancel_pending) {
+                g_pair_new_cancel_pending = false;
+                if (status == ERROR_CODE_SUCCESS) {
+                    g_pair_new_connection_handle =
+                        gap_subevent_le_connection_complete_get_connection_handle(packet);
+                    pair_new_disconnect_candidate(false, false);
+                } else {
+                    pair_new_clear_candidate();
+                }
+                break;
+            }
+
+            if (status != ERROR_CODE_SUCCESS) {
+                g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+                if (g_pair_new_active) pair_new_resume_scan();
+                else pair_new_clear_candidate();
+                break;
+            }
+
+            g_pair_new_connection_handle =
+                gap_subevent_le_connection_complete_get_connection_handle(packet);
+            g_pair_new_state = BLE_PAIR_NEW_SECURING;
+            sm_request_pairing(g_pair_new_connection_handle);
+            break;
+        }
+
+        if (g_state == BLE_HOGP_STATE_CONNECTING) {
+            const uint8_t status =
+                gap_subevent_le_connection_complete_get_status(packet);
             if (g_reconnect_cancel_pending) {
                 g_reconnect_cancel_pending = false;
                 if (status == ERROR_CODE_SUCCESS) {
-                    g_connection_handle = gap_subevent_le_connection_complete_get_connection_handle(packet);
+                    g_connection_handle =
+                        gap_subevent_le_connection_complete_get_connection_handle(packet);
                     g_idle_after_disconnect = true;
                     g_state = BLE_HOGP_STATE_DISCONNECTING;
                     gap_disconnect(g_connection_handle);
@@ -432,25 +887,56 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
                 }
                 break;
             }
+
             if (status != ERROR_CODE_SUCCESS) {
                 g_connection_handle = HCI_CON_HANDLE_INVALID;
                 if (g_saved_search_active) {
                     g_saved_search_active = false;
                     stop_reconnect_timer();
-                    (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_SEARCH_TIMEOUT);
+                    (void)publish_status(
+                        BLU2USB_BLE_HOGP_MESSAGE_SAVED_SEARCH_TIMEOUT);
                     g_state = BLE_HOGP_STATE_IDLE;
                 } else {
                     start_scan();
                 }
                 break;
             }
+
             if (!g_saved_search_active) stop_reconnect_timer();
-            g_connection_handle = gap_subevent_le_connection_complete_get_connection_handle(packet);
+            g_connection_handle =
+                gap_subevent_le_connection_complete_get_connection_handle(packet);
             g_state = BLE_HOGP_STATE_SECURING;
             sm_request_pairing(g_connection_handle);
         }
         break;
+
     case HCI_EVENT_DISCONNECTION_COMPLETE: {
+        const hci_con_handle_t disconnected =
+            hci_event_disconnection_complete_get_connection_handle(packet);
+
+        if (g_pair_new_handoff_pending &&
+            disconnected == g_connection_handle) {
+            g_connection_handle = HCI_CON_HANDLE_INVALID;
+            g_hids_cid = 0u;
+            memset(&g_parser, 0, sizeof(g_parser));
+            pair_new_finalize_promotion();
+            break;
+        }
+
+        if (disconnected == g_pair_new_connection_handle) {
+            const bool resume =
+                g_pair_new_resume_after_disconnect &&
+                g_pair_new_active && g_pair_new_timer_active;
+            g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+            g_pair_new_hids_cid = 0u;
+            memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
+            g_pair_new_resume_after_disconnect = false;
+            g_pair_new_cancel_pending = false;
+            g_pair_new_state = BLE_PAIR_NEW_IDLE;
+            if (resume) pair_new_resume_scan();
+            break;
+        }
+
         if (g_idle_after_disconnect) {
             g_idle_after_disconnect = false;
             g_connection_handle = HCI_CON_HANDLE_INVALID;
@@ -459,20 +945,35 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
             g_state = BLE_HOGP_STATE_IDLE;
             break;
         }
+
         const bool was_ready = g_state == BLE_HOGP_STATE_READY;
         const bool reconnect_bonded = was_ready || g_reconnect_after_disconnect;
         stop_reconnect_timer();
-        if (was_ready && g_vendor_registered) g_vendor_backend.session(g_vendor_backend.context, false);
+
+        if (was_ready && g_vendor_registered)
+            g_vendor_backend.session(g_vendor_backend.context, false);
+
         g_connection_handle = HCI_CON_HANDLE_INVALID;
         g_hids_cid = 0u;
         memset(&g_parser, 0, sizeof(g_parser));
-        if (was_ready) (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_DISCONNECTED);
+
+        if (was_ready)
+            (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_DISCONNECTED);
+
         g_reconnect_after_disconnect = false;
+
+        if (g_pair_new_active || g_pair_new_handoff_pending) {
+            g_state = BLE_HOGP_STATE_IDLE;
+            break;
+        }
+
         if (reconnect_bonded) reconnect_or_scan();
         else start_scan();
         break;
     }
-    default: break;
+
+    default:
+        break;
     }
 }
 
@@ -481,23 +982,64 @@ static void sm_packet_handler(uint8_t packet_type, uint16_t channel,
 {
     (void)channel; (void)size;
     if (packet_type != HCI_EVENT_PACKET) return;
-    bool ready = false;
+
     switch (hci_event_packet_get_type(packet)) {
     case SM_EVENT_JUST_WORKS_REQUEST:
-        sm_just_works_confirm(sm_event_just_works_request_get_handle(packet)); break;
+        sm_just_works_confirm(
+            sm_event_just_works_request_get_handle(packet));
+        break;
+
     case SM_EVENT_NUMERIC_COMPARISON_REQUEST:
-        sm_numeric_comparison_confirm(sm_event_passkey_display_number_get_handle(packet)); break;
-    case SM_EVENT_PAIRING_COMPLETE:
-        if (sm_event_pairing_complete_get_status(packet) == ERROR_CODE_SUCCESS) ready = true;
-        else disconnect_and_rescan();
+        sm_numeric_comparison_confirm(
+            sm_event_passkey_display_number_get_handle(packet));
         break;
-    case SM_EVENT_REENCRYPTION_COMPLETE:
-        if (sm_event_reencryption_complete_get_status(packet) == ERROR_CODE_SUCCESS) ready = true;
-        else disconnect_and_rescan();
+
+    case SM_EVENT_PAIRING_COMPLETE: {
+        const hci_con_handle_t handle =
+            sm_event_pairing_complete_get_handle(packet);
+        const bool success =
+            sm_event_pairing_complete_get_status(packet) == ERROR_CODE_SUCCESS;
+
+        if (handle == g_pair_new_connection_handle &&
+            g_pair_new_state == BLE_PAIR_NEW_SECURING) {
+            if (success) pair_new_connect_hid_service();
+            else pair_new_disconnect_candidate(true, true);
+            break;
+        }
+
+        if (handle == g_connection_handle &&
+            g_state == BLE_HOGP_STATE_SECURING) {
+            if (success) connect_hid_service();
+            else disconnect_and_rescan();
+        }
         break;
-    default: break;
     }
-    if (ready && g_state == BLE_HOGP_STATE_SECURING) connect_hid_service();
+
+    case SM_EVENT_REENCRYPTION_COMPLETE: {
+        const hci_con_handle_t handle =
+            sm_event_reencryption_complete_get_handle(packet);
+        const bool success =
+            sm_event_reencryption_complete_get_status(packet) ==
+                ERROR_CODE_SUCCESS;
+
+        if (handle == g_pair_new_connection_handle &&
+            g_pair_new_state == BLE_PAIR_NEW_SECURING) {
+            pair_new_disconnect_candidate(false,
+                success && g_pair_new_active);
+            break;
+        }
+
+        if (handle == g_connection_handle &&
+            g_state == BLE_HOGP_STATE_SECURING) {
+            if (success) connect_hid_service();
+            else disconnect_and_rescan();
+        }
+        break;
+    }
+
+    default:
+        break;
+    }
 }
 
 static void ble_hogp_session_setup(void)
@@ -517,12 +1059,29 @@ static void ble_hogp_session_setup(void)
     g_saved_search_active = false;
     atomic_store_explicit(&g_saved_search_request, false, memory_order_relaxed);
     atomic_store_explicit(&g_saved_search_cancel, false, memory_order_relaxed);
+
+    g_pair_new_state = BLE_PAIR_NEW_IDLE;
+    g_pair_new_active = false;
+    g_pair_new_cancel_pending = false;
+    g_pair_new_resume_after_disconnect = false;
+    g_pair_new_handoff_pending = false;
+    g_pair_new_bond_count_before = 0;
+    memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
+    g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
+    g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_hids_cid = 0u;
+    memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
+    g_pair_new_timer_active = false;
+    atomic_store_explicit(&g_pair_new_request, false, memory_order_relaxed);
+    atomic_store_explicit(&g_pair_new_cancel, false, memory_order_relaxed);
+
     hids_client_init(g_descriptor_storage, sizeof(g_descriptor_storage));
     g_hci_registration.callback = &hci_packet_handler;
     hci_add_event_handler(&g_hci_registration);
     g_sm_registration.callback = &sm_packet_handler;
     sm_add_event_handler(&g_sm_registration);
     btstack_run_loop_set_timer_handler(&g_reconnect_timer, reconnect_timeout_handler);
+    btstack_run_loop_set_timer_handler(&g_pair_new_timer, pair_new_timeout_handler);
     btstack_run_loop_set_timer_handler(&g_vendor_timer, vendor_timer_handler);
     btstack_run_loop_set_timer(&g_vendor_timer, BLE_HOGP_VENDOR_SERVICE_MS);
     btstack_run_loop_add_timer(&g_vendor_timer);
@@ -547,4 +1106,14 @@ void blu2usb_ble_hogp_pico_request_saved_search(void)
 void blu2usb_ble_hogp_pico_cancel_saved_search(void)
 {
     atomic_store_explicit(&g_saved_search_cancel, true, memory_order_release);
+}
+
+void blu2usb_ble_hogp_pico_request_pair_new(void)
+{
+    atomic_store_explicit(&g_pair_new_request, true, memory_order_release);
+}
+
+void blu2usb_ble_hogp_pico_cancel_pair_new(void)
+{
+    atomic_store_explicit(&g_pair_new_cancel, true, memory_order_release);
 }

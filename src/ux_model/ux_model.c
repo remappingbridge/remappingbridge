@@ -14,8 +14,7 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_MOUSE_HELP] = {{"MOUSE HELP",EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,"ANY KEY: BACK"},0x00fe},
     [BLU2USB_SCREEN_DEVICES_HELP] = {{"DEVICES HELP","KEYBOARD IS DIFFERENT","FROM COMPOSITE.","COMPOSITE IS TOUCHPAD","AND KEYBOARD EMBEDDED","TOGETHER AND IT PAIRS","ITS OWN BLUETOOTH.",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_MOUSE_OPTIONS] = {{"MOUSE OPTIONS"," PAIR MOUSE"," PASSTHROUGH"," DEFAULT REMAP"," ESCAPE REMAP"," CUSTOM REMAP",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK"},0},
-    [BLU2USB_SCREEN_PAIR_MOUSE] = {{"PAIR MOUSE","SEARCHING BLE HID","TARGET MOUSE","AUTO SEARCH ACTIVE","FOUND 0 HID",EMPTY,"KEY A: RETRY ON ERROR","KEY B: CANCEL","KEY X: HELP"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
-    [BLU2USB_SCREEN_PAIR_MOUSE_HELP] = {{"PAIR MOUSE HELP",EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,"ANY KEY: BACK"},0x00fe},
+    [BLU2USB_SCREEN_PAIR_MOUSE] = {{"PAIR NEW MOUSE","TRYING TO CONNECT","A NEW MOUSE THAT","IS NOT LISTED","IN SAVED DEVICES",EMPTY,"KEY B: CANCEL","KEY X: HELP","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_MOUSE_SAVED] = {{"FIRST MOUSE CONNECTED","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y",EMPTY," KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_APPLY_PASSTHROUGH] = {{"APPLY PASSTHROUGH","ORIGINAL MOUSE","BUTTONS POSITION","ARE NOT ACTIVE",EMPTY,EMPTY,"KEY A: APPLY","KEY B: CANCEL","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_PASSTHROUGH_APPLIED] = {{"PASSTHROUGH APPLIED","ORIGINAL MOUSE","BUTTONS POSITION","ARE ACTIVE NOW",EMPTY,EMPTY,EMPTY,"KEY B: BACK","KEY Y: LOCK"},0},
@@ -55,7 +54,7 @@ static bool is_help(blu2usb_screen_id_t screen) {
     return screen == BLU2USB_SCREEN_HOME_SEARCHING_HELP ||
            screen == BLU2USB_SCREEN_HOME_RETRY_HELP ||
            screen == BLU2USB_SCREEN_MOUSE_HELP || screen == BLU2USB_SCREEN_DEVICES_HELP ||
-           screen == BLU2USB_SCREEN_PAIR_MOUSE_HELP || screen == BLU2USB_SCREEN_OTHER_OPTIONS_HELP ||
+           screen == BLU2USB_SCREEN_OTHER_OPTIONS_HELP ||
            screen == BLU2USB_SCREEN_PAIR_KEYBOARD_HELP || screen == BLU2USB_SCREEN_PAIR_COMPOSITE_HELP;
 }
 
@@ -87,7 +86,6 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_OTHER_DEVICES_STATUS: return BLU2USB_SCREEN_HOME;
     case BLU2USB_SCREEN_MOUSE_HELP:
     case BLU2USB_SCREEN_DEVICES_HELP:
-    case BLU2USB_SCREEN_PAIR_MOUSE_HELP:
     case BLU2USB_SCREEN_OTHER_OPTIONS_HELP:
     case BLU2USB_SCREEN_PAIR_KEYBOARD_HELP:
     case BLU2USB_SCREEN_PAIR_COMPOSITE_HELP: return ux->return_screen;
@@ -278,6 +276,18 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
+    if (ux->screen == BLU2USB_SCREEN_PAIR_MOUSE &&
+        control == BLU2USB_CONTROL_KEY_X) {
+        /* HOPE-26 owns Pair New Help. Keep X visible but inert here. */
+        return cmd;
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_PAIR_MOUSE &&
+        control == BLU2USB_CONTROL_KEY_B) {
+        enter(ux, BLU2USB_SCREEN_HOME);
+        return cmd;
+    }
+
     if (control == BLU2USB_CONTROL_KEY_Y && lock_allowed(ux->screen)) {
         blu2usb_interaction_lock(&ux->interaction);
         return cmd;
@@ -330,12 +340,10 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         const unsigned selected = ux->selection;
         switch (selected) {
         case 0:
-            if (blu2usb_ux_mouse_connected()) {
-                enter(ux, BLU2USB_SCREEN_MOUSE_SAVED);
-            } else {
-                enter(ux, BLU2USB_SCREEN_PAIR_MOUSE);
-                cmd.kind = BLU2USB_UX_COMMAND_PAIR_MOUSE;
-            }
+            /* HOPE-06 replaces legacy Pair Device in-place. Pair New may run
+             * while the current Mouse remains authoritative. */
+            enter(ux, BLU2USB_SCREEN_PAIR_MOUSE);
+            cmd.kind = BLU2USB_UX_COMMAND_PAIR_MOUSE;
             break;
         case 1:
             enter(ux, ux->active_profile == BLU2USB_MOUSE_PROFILE_PASSTHROUGH
@@ -371,12 +379,12 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
-    if (ux->screen == BLU2USB_SCREEN_PAIR_MOUSE || ux->screen == BLU2USB_SCREEN_PAIR_KEYBOARD || ux->screen == BLU2USB_SCREEN_PAIR_COMPOSITE) {
+    if (ux->screen == BLU2USB_SCREEN_PAIR_KEYBOARD || ux->screen == BLU2USB_SCREEN_PAIR_COMPOSITE) {
         if (control == BLU2USB_CONTROL_KEY_A) { cmd.kind = BLU2USB_UX_COMMAND_RETRY; return cmd; }
         if (control == BLU2USB_CONTROL_KEY_X) {
             ux->return_screen = ux->screen;
-            enter(ux, ux->screen == BLU2USB_SCREEN_PAIR_MOUSE ? BLU2USB_SCREEN_PAIR_MOUSE_HELP :
-                      ux->screen == BLU2USB_SCREEN_PAIR_KEYBOARD ? BLU2USB_SCREEN_PAIR_KEYBOARD_HELP : BLU2USB_SCREEN_PAIR_COMPOSITE_HELP);
+            enter(ux, ux->screen == BLU2USB_SCREEN_PAIR_KEYBOARD ?
+                      BLU2USB_SCREEN_PAIR_KEYBOARD_HELP : BLU2USB_SCREEN_PAIR_COMPOSITE_HELP);
             return cmd;
         }
     }

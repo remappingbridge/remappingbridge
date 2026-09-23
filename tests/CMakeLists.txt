@@ -115,3 +115,15 @@ target_link_libraries(blu2usb_test_hope25_home_retry_help PRIVATE
     blu2usb_ux_model
 )
 add_test(NAME hope25_home_retry_help COMMAND blu2usb_test_hope25_home_retry_help)
+
+add_executable(blu2usb_test_hope06_pair_new test_hope06_pair_new.c)
+target_link_libraries(blu2usb_test_hope06_pair_new PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME hope06_pair_new COMMAND blu2usb_test_hope06_pair_new)
+
+add_test(
+    NAME hope06_pair_new_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_hope06_pair_new_source.py
+)
