@@ -238,7 +238,8 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     const uint8_t hint = searching_first
         ? BLU2USB_RENDERER_TEXT_ROWS
         : (first_mouse_connected ? 8u
-           : (ux->screen == BLU2USB_SCREEN_HELP_PAIR_NEW
+           : ((ux->screen == BLU2USB_SCREEN_HELP_PAIR_NEW ||
+               ux->screen == BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW)
               ? 8u
               : first_hint_row(screen)));
     blu2usb_ui_frame_reset(frame, didactic_full_background, hint);

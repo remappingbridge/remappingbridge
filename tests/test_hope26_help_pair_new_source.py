@@ -23,8 +23,8 @@ assert "blu2usb_ble_hogp_pico_cancel_pair_new();" in app
 assert "BLU2USB_SCREEN_RETRY_PAIR_NEW" in ux_h
 assert "NO NEW MOUSE OUTSIDE" in ux
 
-# HOPE-27 remains future.
-assert "DEVICE NOT FOUND HELP" not in ux
+# HOPE-27 now canonically introduces retry-pair-new Help. HOPE-26 continues
+# freezing Pair New Help behavior and must not forbid later accepted screens.
 
 print("HOPE-26 help-pair-new source invariants: OK")
 
