@@ -97,7 +97,7 @@ static void test_cancel_lock_unlock_and_destinations(void)
     ux.screen = BLU2USB_SCREEN_HOME_SEARCHING;
 
     tap(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_HOME);
+    assert(ux.screen == BLU2USB_SCREEN_HOME_RETRY);
     assert(ux.saved_device_count == 1u);
 
     ux.screen = BLU2USB_SCREEN_HOME_SEARCHING;
