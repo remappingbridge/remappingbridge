@@ -40,13 +40,13 @@ static void init_home(blu2usb_ux_model_t *ux, unsigned selection)
 static void test_exact_layout_and_hint_region(void)
 {
     static const char *const expected[9] = {
-        "HOME CONNECTED HELP",
+        "REMOVE CONNECTED HELP",
         "TO DISCONNECT THE",
         "CURRENTLY CONNECTED",
-        "MOUSE, NAVIGATE TO:",
-        "SAVED DEVICES >",
-        "(MOUSE PAGE) > REMOVE",
-        "DEVICE > REMOVE",
+        "MOUSE NAVIGATE TO:",
+        "STEP 1. SAVED DEVICES",
+        "STEP 2. REMOVE DEVICE",
+        "STEP 3. KEY A: REMOVE",
         "",
         "ANY KEY: BACK",
     };
