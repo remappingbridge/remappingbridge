@@ -59,7 +59,7 @@ static void test_exact_screen_and_palette(void)
     blu2usb_ux_model_t ux;
     blu2usb_ui_frame_t frame;
     blu2usb_ux_init(&ux);
-    ux.screen = BLU2USB_SCREEN_SEARCHING_FIRST;
+    ux.screen = BLU2USB_SCREEN_LEARN_KEYS;
     project(&ux, &frame);
 
     assert(frame.learn_background);
@@ -90,12 +90,12 @@ static void press_project_release(blu2usb_ux_model_t *ux,
                                   blu2usb_ui_frame_t *released)
 {
     (void)blu2usb_ux_input(ux, control, true);
-    assert(ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST);
+    assert(ux->screen == BLU2USB_SCREEN_LEARN_KEYS);
     assert(!blu2usb_interaction_is_locked(&ux->interaction));
     project(ux, held);
 
     (void)blu2usb_ux_input(ux, control, false);
-    assert(ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST);
+    assert(ux->screen == BLU2USB_SCREEN_LEARN_KEYS);
     assert(!blu2usb_interaction_is_locked(&ux->interaction));
     project(ux, released);
 }
@@ -106,7 +106,7 @@ static void test_didactic_press_feedback(void)
     blu2usb_ui_frame_t held, released;
 
     blu2usb_ux_init(&ux);
-    ux.screen = BLU2USB_SCREEN_SEARCHING_FIRST;
+    ux.screen = BLU2USB_SCREEN_LEARN_KEYS;
 
     press_project_release(&ux, BLU2USB_CONTROL_JOY_UP, &held, &released);
     assert_span_tone(&held, 3u, 7u, 6u, BLU2USB_UI_TONE_EMPHASIZED);
@@ -145,7 +145,7 @@ static void test_every_control_is_inert(void)
     for (unsigned raw = 0u; raw < BLU2USB_CONTROL_COUNT; ++raw) {
         blu2usb_ux_model_t ux;
         blu2usb_ux_init(&ux);
-        ux.screen = BLU2USB_SCREEN_SEARCHING_FIRST;
+        ux.screen = BLU2USB_SCREEN_LEARN_KEYS;
 
         const blu2usb_control_t control = (blu2usb_control_t)raw;
         const blu2usb_ux_command_t press = blu2usb_ux_input(&ux, control, true);
@@ -153,7 +153,7 @@ static void test_every_control_is_inert(void)
 
         assert(press.kind == BLU2USB_UX_COMMAND_NONE);
         assert(release.kind == BLU2USB_UX_COMMAND_NONE);
-        assert(ux.screen == BLU2USB_SCREEN_SEARCHING_FIRST);
+        assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
         assert(!blu2usb_interaction_is_locked(&ux.interaction));
     }
 }
