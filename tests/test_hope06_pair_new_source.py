@@ -6,10 +6,18 @@ app = (root / "src/app/main.c").read_text(encoding="utf-8")
 ux = (root / "src/ux_model/ux_model.c").read_text(encoding="utf-8")
 ux_h = (root / "include/blu2usb/ux_model/ux_model.h").read_text(encoding="utf-8")
 ble_h = (root / "include/blu2usb/ble_hogp/ble_hogp.h").read_text(encoding="utf-8")
+btstack_config = (root / "include/btstack_config.h").read_text(encoding="utf-8")
 
 # Pair New is a distinct bounded 15-second operation.
 assert "#define BLE_HOGP_PAIR_NEW_TIMEOUT_MS 15000u" in ble
 assert "btstack_run_loop_set_timer(&g_pair_new_timer, BLE_HOGP_PAIR_NEW_TIMEOUT_MS)" in ble
+
+# The static BTstack pools must actually permit the authoritative session plus
+# one temporary Pair New candidate. This caught the first physical HOPE-06 failure:
+# the implementation had two logical sessions but BTstack was capped at one.
+assert "#define MAX_NR_HCI_CONNECTIONS 2" in btstack_config
+assert "#define MAX_NR_GATT_CLIENTS 2" in btstack_config
+assert "#define MAX_NR_HIDS_CLIENTS 2" in btstack_config
 
 # Candidate state is separate from the authoritative G06 session.
 for symbol in (
