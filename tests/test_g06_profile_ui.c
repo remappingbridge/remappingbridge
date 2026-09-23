@@ -306,37 +306,27 @@ static void test_mouse_status_tracks_connection_and_active_profile(void)
     assert_row_text(&frame, 2u, "PROFILE: CUSTOM");
 }
 
-static void test_connected_mouse_marks_pair_and_opens_paired_feedback(void)
+static void test_connected_mouse_can_open_pair_new(void)
 {
     blu2usb_ux_model_t ux;
     blu2usb_ui_frame_t frame;
     init_ux(&ux);
     blu2usb_ux_set_mouse_connected(true);
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 1u;
-
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_CURRENT);
-
     ux.selection = 0u;
+
     project_physical(&ux, &frame);
     assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_EMPHASIZED);
 
-    const blu2usb_ux_command_t command = press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(command.kind == BLU2USB_UX_COMMAND_NONE);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_SAVED);
+    const blu2usb_ux_command_t command =
+        press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    assert(command.kind == BLU2USB_UX_COMMAND_PAIR_MOUSE);
+    assert(ux.screen == BLU2USB_SCREEN_PAIR_MOUSE);
 
     project_physical(&ux, &frame);
-    assert_row_text(&frame, 0u, "FIRST MOUSE CONNECTED");
-    assert_row_text(&frame, 1u, "       JOY UP");
-    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_ACTIONABLE);
-    assert_row_text(&frame, 8u, " KEY Y: LOCK");
-    assert_row_tone(&frame, 8u, BLU2USB_UI_TONE_ACTIONABLE);
-
-    /* HOPE-02 replaces the old success screen in-place; Back is now
-     * instructional only and must not leave the screen. */
-    press_release(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_SAVED);
+    assert_row_text(&frame, 0u, "PAIR NEW MOUSE");
+    assert_row_text(&frame, 6u, "KEY B: CANCEL");
+    assert_row_text(&frame, 8u, "KEY Y: LOCK");
 }
 
 int main(void)
@@ -349,6 +339,6 @@ int main(void)
     test_custom_target_apply_and_back_updates_edit_screen();
     test_custom_apply_has_dedicated_feedback_and_back();
     test_mouse_status_tracks_connection_and_active_profile();
-    test_connected_mouse_marks_pair_and_opens_paired_feedback();
+    test_connected_mouse_can_open_pair_new();
     return 0;
 }
