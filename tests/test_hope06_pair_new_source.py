@@ -67,8 +67,9 @@ assert '"SEARCHING BLE HID","TARGET MOUSE"' not in ux
 assert "BLU2USB_SCREEN_PAIR_MOUSE_HELP" not in ux_h
 assert "BLU2USB_SCREEN_PAIR_MOUSE_HELP" not in ux
 
-# No future Pair New Help is introduced by this gate.
-assert "PAIR NEW DEVICE HELP" not in ux
+# Pair New Help was absent in HOPE-06 itself and is introduced canonically
+# by the subsequent accepted-sequence gate HOPE-26. HOPE-06 must continue
+# freezing only the Pair New runtime and legacy-screen removal invariants.
 
 # Runtime event contract is wired end-to-end.
 for token in (

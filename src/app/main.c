@@ -429,6 +429,7 @@ int main(void)
             }
             if (!is_locked &&
                 screen_before != BLU2USB_SCREEN_PAIR_MOUSE &&
+                screen_before != BLU2USB_SCREEN_HELP_PAIR_NEW &&
                 ux.screen == BLU2USB_SCREEN_PAIR_MOUSE) {
                 blu2usb_ble_hogp_pico_request_pair_new();
             }
