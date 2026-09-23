@@ -30,7 +30,7 @@ static void tap(blu2usb_ux_model_t *ux, blu2usb_control_t control)
 static void test_exact_layout(void)
 {
     static const char *const expected[9] = {
-        "PAIR NEW MOUSE",
+        "NEW MOUSE NOT FOUND",
         "NO NEW MOUSE OUTSIDE",
         "THE LIST OF SAVED",
         "DEVICES WAS FOUND",
