@@ -102,7 +102,7 @@ static void test_any_key_back_is_consumed_and_never_locks(void)
         const blu2usb_ux_command_t release = blu2usb_ux_input(&ux, control, false);
 
         assert(release.kind == BLU2USB_UX_COMMAND_NONE);
-        assert(ux.screen == BLU2USB_SCREEN_HOME);
+        assert(ux.screen == BLU2USB_SCREEN_HOME_RETRY);
         assert(ux.selection == 0u);
         assert(ux.saved_device_count == 1u);
         assert(!blu2usb_interaction_is_locked(&ux.interaction));

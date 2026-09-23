@@ -290,8 +290,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             break;
         case BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_TIMEOUT:
             if (ux != NULL && ux->screen == BLU2USB_SCREEN_HOME_SEARCHING) {
-                /* HOPE-09 will replace this temporary retry placeholder. */
-                ux->screen = BLU2USB_SCREEN_HOME;
+                ux->screen = BLU2USB_SCREEN_HOME_RETRY;
                 ux->selection = 0u;
                 ui_changed = true;
             }
