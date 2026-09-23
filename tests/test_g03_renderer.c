@@ -135,7 +135,7 @@ static void test_back_cancel_hidden_controls_and_pair_new(void)
     send(&ux,BLU2USB_CONTROL_KEY_X,true); blu2usb_ui_project(&ux,&frame);
     assert(frame.cells[7][0].tone==BLU2USB_UI_TONE_EMPHASIZED);
     send(&ux,BLU2USB_CONTROL_KEY_X,false);
-    assert(ux.screen==BLU2USB_SCREEN_PAIR_MOUSE);
+    assert(ux.screen==BLU2USB_SCREEN_HELP_PAIR_NEW);
 }
 
 int main(void)
