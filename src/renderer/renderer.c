@@ -161,6 +161,35 @@ static bool row_has_control(const char *row, blu2usb_control_t control)
     }
 }
 
+static void project_searching_first_pressed(const blu2usb_ux_model_t *ux,
+                                             blu2usb_ui_frame_t *frame)
+{
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_UP))
+        (void)blu2usb_ui_frame_set_tone_span(frame,3,7,6,BLU2USB_UI_TONE_EMPHASIZED);
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_LEFT)) {
+        (void)blu2usb_ui_frame_set_tone_span(frame,4,2,3,BLU2USB_UI_TONE_EMPHASIZED);
+        (void)blu2usb_ui_frame_set_tone_span(frame,5,2,4,BLU2USB_UI_TONE_EMPHASIZED);
+    }
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_PRESS)) {
+        (void)blu2usb_ui_frame_set_tone_span(frame,4,9,3,BLU2USB_UI_TONE_EMPHASIZED);
+        (void)blu2usb_ui_frame_set_tone_span(frame,5,8,5,BLU2USB_UI_TONE_EMPHASIZED);
+    }
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_RIGHT)) {
+        (void)blu2usb_ui_frame_set_tone_span(frame,4,16,3,BLU2USB_UI_TONE_EMPHASIZED);
+        (void)blu2usb_ui_frame_set_tone_span(frame,5,15,5,BLU2USB_UI_TONE_EMPHASIZED);
+    }
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_DOWN))
+        (void)blu2usb_ui_frame_set_tone_span(frame,6,6,8,BLU2USB_UI_TONE_EMPHASIZED);
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_KEY_A))
+        (void)blu2usb_ui_frame_set_tone_span(frame,7,1,5,BLU2USB_UI_TONE_EMPHASIZED);
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_KEY_X))
+        (void)blu2usb_ui_frame_set_tone_span(frame,7,15,5,BLU2USB_UI_TONE_EMPHASIZED);
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_KEY_B))
+        (void)blu2usb_ui_frame_set_tone_span(frame,8,1,5,BLU2USB_UI_TONE_EMPHASIZED);
+    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_KEY_Y))
+        (void)blu2usb_ui_frame_set_tone_span(frame,8,15,5,BLU2USB_UI_TONE_EMPHASIZED);
+}
+
 static void project_learn_pressed(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
 {
     if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_UP))
@@ -198,24 +227,34 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     const blu2usb_screen_template_t *screen = blu2usb_ux_screen_template(ux->screen);
     if (screen == NULL) return;
     const bool learn = ux->screen == BLU2USB_SCREEN_LEARN_KEYS;
+    const bool searching_first = ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST;
+    const bool didactic_full_background = learn || searching_first;
     const bool success_feedback = is_success_feedback(ux->screen);
     const bool custom_feedback = ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM &&
         ux->active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP && !ux->custom_dirty;
-    const uint8_t hint = learn ? BLU2USB_RENDERER_TEXT_ROWS : first_hint_row(screen);
-    blu2usb_ui_frame_reset(frame, learn, hint);
+    const uint8_t hint = didactic_full_background
+        ? BLU2USB_RENDERER_TEXT_ROWS : first_hint_row(screen);
+    blu2usb_ui_frame_reset(frame, didactic_full_background, hint);
 
     for (uint8_t row = 0; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
         const char *text = screen->rows[row] != NULL ? screen->rows[row] : "";
         if (custom_feedback && row == 8u) text = "";
         blu2usb_ui_tone_t tone;
         if (row == 0) tone = BLU2USB_UI_TONE_TITLE;
+        else if (searching_first && (row == 1u || row == 2u))
+            tone = BLU2USB_UI_TONE_STATIC;
         else if (success_feedback && row < hint && text[0] != '\0') tone = BLU2USB_UI_TONE_CURRENT;
         else if (custom_feedback && row >= 1u && row <= 5u) tone = BLU2USB_UI_TONE_CURRENT;
-        else if (learn || row >= hint || text[0] == ' ') tone = BLU2USB_UI_TONE_ACTIONABLE;
+        else if (didactic_full_background || row >= hint || text[0] == ' ')
+            tone = BLU2USB_UI_TONE_ACTIONABLE;
         else tone = BLU2USB_UI_TONE_STATIC;
         (void)blu2usb_ui_frame_set_text(frame,row,0,text,tone);
     }
 
+    if (searching_first) {
+        project_searching_first_pressed(ux,frame);
+        return;
+    }
     if (learn) {
         project_learn_pressed(ux,frame);
         return;
