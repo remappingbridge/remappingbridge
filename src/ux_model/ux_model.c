@@ -16,6 +16,7 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_MOUSE_OPTIONS] = {{"MOUSE OPTIONS"," PAIR MOUSE"," PASSTHROUGH"," DEFAULT REMAP"," ESCAPE REMAP"," CUSTOM REMAP",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK"},0},
     [BLU2USB_SCREEN_PAIR_MOUSE] = {{"PAIR NEW MOUSE","TRYING TO CONNECT","A NEW MOUSE THAT","IS NOT LISTED","IN SAVED DEVICES",EMPTY,"KEY B: CANCEL","KEY X: HELP","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_HELP_PAIR_NEW] = {{"PAIR NEW DEVICE HELP","TO CONNECT A SAVED","DEVICE FIRST UNPLUG","CURRENTLY CONNECTED","MOUSE AND PRESS THE","KEY B TO BACK UNTIL","SEARCHING APPEARS.",EMPTY,"ANY KEY: BACK"},0},
+    [BLU2USB_SCREEN_RETRY_PAIR_NEW] = {{"PAIR NEW MOUSE","NO NEW MOUSE OUTSIDE","THE LIST OF SAVED","DEVICES WAS FOUND",EMPTY,"KEY A: RETRY NEW PAIR","KEY B: BACK TRY SAVED","KEY X: HELP","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_MOUSE_SAVED] = {{"FIRST MOUSE CONNECTED","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y",EMPTY," KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_APPLY_PASSTHROUGH] = {{"APPLY PASSTHROUGH","ORIGINAL MOUSE","BUTTONS POSITION","ARE NOT ACTIVE",EMPTY,EMPTY,"KEY A: APPLY","KEY B: CANCEL","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_PASSTHROUGH_APPLIED] = {{"PASSTHROUGH APPLIED","ORIGINAL MOUSE","BUTTONS POSITION","ARE ACTIVE NOW",EMPTY,EMPTY,EMPTY,"KEY B: BACK","KEY Y: LOCK"},0},
@@ -280,7 +281,9 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
 
     if (ux->screen == BLU2USB_SCREEN_PAIR_MOUSE &&
         control == BLU2USB_CONTROL_KEY_X) {
-        ux->return_screen = BLU2USB_SCREEN_PAIR_MOUSE;
+        /* Opening Pair New Help cancels the active Pair New transaction.
+         * Mouse UI v1 returns from that Help into retry-pair-new. */
+        ux->return_screen = BLU2USB_SCREEN_RETRY_PAIR_NEW;
         enter(ux, BLU2USB_SCREEN_HELP_PAIR_NEW);
         return cmd;
     }
@@ -288,6 +291,24 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     if (ux->screen == BLU2USB_SCREEN_PAIR_MOUSE &&
         control == BLU2USB_CONTROL_KEY_B) {
         enter(ux, BLU2USB_SCREEN_HOME);
+        return cmd;
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_RETRY_PAIR_NEW &&
+        control == BLU2USB_CONTROL_KEY_A) {
+        enter(ux, BLU2USB_SCREEN_PAIR_MOUSE);
+        return cmd;
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_RETRY_PAIR_NEW &&
+        control == BLU2USB_CONTROL_KEY_B) {
+        enter(ux, BLU2USB_SCREEN_HOME);
+        return cmd;
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_RETRY_PAIR_NEW &&
+        control == BLU2USB_CONTROL_KEY_X) {
+        /* HOPE-27 owns help-retry-pair-new. */
         return cmd;
     }
 
