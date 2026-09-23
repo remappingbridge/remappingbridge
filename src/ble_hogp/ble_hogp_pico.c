@@ -97,6 +97,8 @@ static void start_scan(void);
 static void reconnect_or_scan(void);
 static void pair_new_resume_scan(void);
 static void pair_new_finalize_promotion(void);
+static void connect_hid_service(void);
+static void pair_new_connect_hid_service(void);
 static void read_current_mouse_name(void);
 static void read_pair_new_mouse_name(void);
 static void service_vendor_output(void);
@@ -1021,6 +1023,7 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
             g_connection_handle = HCI_CON_HANDLE_INVALID;
             g_hids_cid = 0u;
             memset(&g_parser, 0, sizeof(g_parser));
+            g_current_mouse_name[0] = '\0';
             pair_new_finalize_promotion();
             break;
         }
@@ -1044,6 +1047,7 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
             g_connection_handle = HCI_CON_HANDLE_INVALID;
             g_hids_cid = 0u;
             memset(&g_parser, 0, sizeof(g_parser));
+            g_current_mouse_name[0] = '\0';
             g_state = BLE_HOGP_STATE_IDLE;
             break;
         }
@@ -1058,6 +1062,7 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
         g_connection_handle = HCI_CON_HANDLE_INVALID;
         g_hids_cid = 0u;
         memset(&g_parser, 0, sizeof(g_parser));
+        g_current_mouse_name[0] = '\0';
 
         if (was_ready)
             (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_DISCONNECTED);
@@ -1104,14 +1109,14 @@ static void sm_packet_handler(uint8_t packet_type, uint16_t channel,
 
         if (handle == g_pair_new_connection_handle &&
             g_pair_new_state == BLE_PAIR_NEW_SECURING) {
-            if (success) pair_new_connect_hid_service();
+            if (success) read_pair_new_mouse_name();
             else pair_new_disconnect_candidate(true, true);
             break;
         }
 
         if (handle == g_connection_handle &&
             g_state == BLE_HOGP_STATE_SECURING) {
-            if (success) connect_hid_service();
+            if (success) read_current_mouse_name();
             else disconnect_and_rescan();
         }
         break;
@@ -1199,6 +1204,11 @@ unsigned blu2usb_ble_hogp_pico_bonded_mouse_count(void)
 {
     const int count = le_device_db_count();
     return count > 0 ? (unsigned)count : 0u;
+}
+
+const char *blu2usb_ble_hogp_pico_current_mouse_name(void)
+{
+    return g_current_mouse_name;
 }
 
 void blu2usb_ble_hogp_pico_request_saved_search(void)
