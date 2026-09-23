@@ -240,7 +240,14 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 blu2usb_ux_set_mouse_connected(true);
                 ui_changed = true;
             }
-            if (ux != NULL && ux->screen == BLU2USB_SCREEN_PAIR_MOUSE) {
+            if (ux != NULL && ux->screen == BLU2USB_SCREEN_LEARN_KEYS) {
+                /* HOPE-01 replaces this legacy screen slot in-place with
+                 * SEARCHING FIRST MOUSE. HOPE-02 will replace the success
+                 * transition with first-mouse-connected. */
+                ux->screen = BLU2USB_SCREEN_HOME;
+                ux->selection = 0u;
+                ui_changed = true;
+            } else if (ux != NULL && ux->screen == BLU2USB_SCREEN_PAIR_MOUSE) {
                 ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
                 ux->selection = 0u;
                 ui_changed = true;
@@ -307,13 +314,16 @@ int main(void)
     if (!blu2usb_st7789_pico_init(&display)) {
         for (;;) { blu2usb_usb_hid_pico_task(); tight_loop_contents(); }
     }
-    (void)render_state(&display, &ux);
-    blu2usb_st7789_pico_set_backlight(true);
 
     (void)blu2usb_logitech_hidpp_pico_start();
     blu2usb_logitech_hidpp_pico_set_forward_fix(
         blu2usb_profiles_requires_forward_held_fix(&boot_profile));
     (void)blu2usb_ble_hogp_start();
+
+    /* The inherited first-screen slot is already SEARCHING FIRST MOUSE.
+     * There is no legacy visual fallback, regardless of stored bonds. */
+    (void)render_state(&display, &ux);
+    blu2usb_st7789_pico_set_backlight(true);
 
     for (;;) {
         blu2usb_usb_hid_pico_task();

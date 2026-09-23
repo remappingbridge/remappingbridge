@@ -39,7 +39,7 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD] = {{"DEVICE DETAILS","BKB-3G","TYPE: KEYBOARD","STATUS: SAVED"," REMOVE DEVICE",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK","KEY Y: LOCK"},DYN(1)|DYN(2)|DYN(3)},
     [BLU2USB_SCREEN_DEVICE_DETAILS_COMPOSITE] = {{"DEVICE DETAILS","DESK COMPOSITE","TYPE: COMPOSITE","STATUS: SAVED"," REMOVE DEVICE",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK","KEY Y: LOCK"},DYN(1)|DYN(2)|DYN(3)},
     [BLU2USB_SCREEN_REMOVE_DEVICE] = {{"REMOVE DEVICE","BKB-3G","PAIRING AND MAPPINGS","WILL BE DELETED",EMPTY,EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY Y: LOCK"},DYN(1)},
-    [BLU2USB_SCREEN_LEARN_KEYS] = {{"PRESS TO LEARN A KEY","      JOY UP","JOY    JOY    JOY","LEFT  PRESS  RIGHT","     JOY DOWN","               KEY A","LOCK SCREEN    KEY B"," AND UNLOCK    KEY X","  OPEN HOME -> KEY Y"},0},
+    [BLU2USB_SCREEN_LEARN_KEYS] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
 };
 
 static blu2usb_ux_command_t no_command(void) {
@@ -106,7 +106,7 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD:
     case BLU2USB_SCREEN_DEVICE_DETAILS_COMPOSITE: return BLU2USB_SCREEN_SAVED_DEVICES;
     case BLU2USB_SCREEN_REMOVE_DEVICE: return ux->return_screen;
-    case BLU2USB_SCREEN_LEARN_KEYS: return BLU2USB_SCREEN_HOME;
+    case BLU2USB_SCREEN_LEARN_KEYS: return BLU2USB_SCREEN_LEARN_KEYS;
     default: return BLU2USB_SCREEN_HOME;
     }
 }
@@ -217,7 +217,8 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     }
 
     if (ux->screen == BLU2USB_SCREEN_LEARN_KEYS) {
-        if (control == BLU2USB_CONTROL_KEY_Y) blu2usb_interaction_lock(&ux->interaction);
+        /* HOPE-01 replaces the legacy LEARN THE KEYS presentation in-place.
+         * All controls are didactic only on SEARCHING FIRST MOUSE. */
         return cmd;
     }
 

@@ -68,3 +68,10 @@ add_test(
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_screen_contract.py
             ${PROJECT_SOURCE_DIR}
 )
+
+add_executable(blu2usb_test_hope01_searching_first test_hope01_searching_first.c)
+target_link_libraries(blu2usb_test_hope01_searching_first PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME hope01_searching_first COMMAND blu2usb_test_hope01_searching_first)
