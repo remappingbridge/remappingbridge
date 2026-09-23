@@ -301,8 +301,11 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             /* Pair New screen is already visible; no extra presentation. */
             break;
         case BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_TIMEOUT:
-            /* HOPE-07 owns retry-pair-new. HOPE-06 stops the 15-second
-             * search but keeps the canonical Pair New screen visible. */
+            if (ux != NULL && ux->screen == BLU2USB_SCREEN_PAIR_MOUSE) {
+                ux->screen = BLU2USB_SCREEN_RETRY_PAIR_NEW;
+                ux->selection = 0u;
+                ui_changed = true;
+            }
             break;
         case BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED:
             /* Atomic product-side half of the handoff: neutralize any held
@@ -429,7 +432,6 @@ int main(void)
             }
             if (!is_locked &&
                 screen_before != BLU2USB_SCREEN_PAIR_MOUSE &&
-                screen_before != BLU2USB_SCREEN_HELP_PAIR_NEW &&
                 ux.screen == BLU2USB_SCREEN_PAIR_MOUSE) {
                 blu2usb_ble_hogp_pico_request_pair_new();
             }
