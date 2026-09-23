@@ -81,6 +81,9 @@ static void test_retry_controls(void)
     assert(ux.screen == BLU2USB_SCREEN_HOME_RETRY);
 
     tap(&ux, BLU2USB_CONTROL_KEY_X);
+    assert(ux.screen == BLU2USB_SCREEN_HOME_RETRY_HELP);
+
+    tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.screen == BLU2USB_SCREEN_HOME_RETRY);
 
     tap(&ux, BLU2USB_CONTROL_KEY_A);
