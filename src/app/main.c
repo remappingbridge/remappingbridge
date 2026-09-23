@@ -251,6 +251,13 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
                 ux->selection = 0u;
                 ui_changed = true;
+            } else if (ux != NULL &&
+                       ux->screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED &&
+                       ux->return_screen == BLU2USB_SCREEN_HOME_SEARCHING) {
+                /* Saved Mouse reconnected while Help stayed visible. Return
+                 * from Help must resolve to the live connected HOME again. */
+                ux->return_screen = BLU2USB_SCREEN_HOME;
+                ux->return_selection = 0u;
             } else if (ux != NULL && ux->screen == BLU2USB_SCREEN_HOME_SEARCHING) {
                 /* HOPE-03 will replace this connected HOME placeholder. */
                 ux->screen = BLU2USB_SCREEN_HOME;
@@ -278,6 +285,12 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                     ux->screen = BLU2USB_SCREEN_HOME_SEARCHING;
                     ux->selection = 0u;
                     ui_changed = true;
+                } else if (ux->screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED &&
+                           ux->saved_device_count > 0u) {
+                    /* Mouse UI v1 keeps Help visible on disconnect, but
+                     * retargets Any-Key Back to home-searching. */
+                    ux->return_screen = BLU2USB_SCREEN_HOME_SEARCHING;
+                    ux->return_selection = 0u;
                 }
             }
             (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
