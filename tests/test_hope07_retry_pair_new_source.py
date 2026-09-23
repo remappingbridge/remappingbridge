@@ -6,6 +6,7 @@ ux = (root / "src/ux_model/ux_model.c").read_text(encoding="utf-8")
 ux_h = (root / "include/blu2usb/ux_model/ux_model.h").read_text(encoding="utf-8")
 
 assert "BLU2USB_SCREEN_RETRY_PAIR_NEW" in ux_h
+assert '"NEW MOUSE NOT FOUND"' in ux
 assert '"NO NEW MOUSE OUTSIDE"' in ux
 assert '"KEY A: RETRY NEW PAIR"' in ux
 assert '"KEY B: BACK TRY SAVED"' in ux
