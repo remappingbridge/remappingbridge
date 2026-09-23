@@ -99,7 +99,7 @@ static void test_home_regions_selection_and_render(void)
     assert(fake.fills==2u&&fake.colors[0]==BLU2USB_COLOR_BLACK&&fake.colors[1]==BLU2USB_COLOR_DARK_MAGENTA&&fake.writes>0u);
 }
 
-static void test_back_cancel_hidden_controls_and_pair_help_label(void)
+static void test_back_cancel_hidden_controls_and_pair_new(void)
 {
     blu2usb_ux_model_t ux; blu2usb_ui_frame_t frame; blu2usb_ux_init(&ux);
 
@@ -128,11 +128,14 @@ static void test_back_cancel_hidden_controls_and_pair_help_label(void)
 
     ux.screen=BLU2USB_SCREEN_PAIR_MOUSE;
     blu2usb_ui_project(&ux,&frame);
-    assert_text(&frame,8,0,"KEY X: HELP");
+    assert_text(&frame,0,0,"PAIR NEW MOUSE");
+    assert_text(&frame,6,0,"KEY B: CANCEL");
+    assert_text(&frame,7,0,"KEY X: HELP");
+    assert_text(&frame,8,0,"KEY Y: LOCK");
     send(&ux,BLU2USB_CONTROL_KEY_X,true); blu2usb_ui_project(&ux,&frame);
-    assert(frame.cells[8][0].tone==BLU2USB_UI_TONE_EMPHASIZED);
+    assert(frame.cells[7][0].tone==BLU2USB_UI_TONE_EMPHASIZED);
     send(&ux,BLU2USB_CONTROL_KEY_X,false);
-    assert(ux.screen==BLU2USB_SCREEN_PAIR_MOUSE_HELP);
+    assert(ux.screen==BLU2USB_SCREEN_PAIR_MOUSE);
 }
 
 int main(void)
@@ -141,6 +144,6 @@ int main(void)
     test_retained_pixel_relocation();
     test_learn_projection_and_feedback();
     test_home_regions_selection_and_render();
-    test_back_cancel_hidden_controls_and_pair_help_label();
+    test_back_cancel_hidden_controls_and_pair_new();
     return 0;
 }
