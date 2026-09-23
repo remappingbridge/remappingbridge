@@ -463,6 +463,64 @@ static void connect_hid_service(void)
     if (status != ERROR_CODE_SUCCESS) disconnect_and_rescan();
 }
 
+static void pair_new_connect_hid_service(void)
+{
+    g_pair_new_state = BLE_PAIR_NEW_CONNECTING_HIDS;
+    g_pair_new_hids_cid = 0u;
+    const uint8_t status = hids_client_connect(g_pair_new_connection_handle,
+        &handle_gatt_client_event, HID_PROTOCOL_MODE_REPORT, &g_pair_new_hids_cid);
+    if (status != ERROR_CODE_SUCCESS)
+        pair_new_disconnect_candidate(true, true);
+}
+
+static void pair_new_finalize_promotion(void)
+{
+    memcpy(g_remote_address, g_pair_new_address, sizeof(bd_addr_t));
+    g_remote_address_type = g_pair_new_address_type;
+    g_connection_handle = g_pair_new_connection_handle;
+    g_hids_cid = g_pair_new_hids_cid;
+    g_parser = g_pair_new_parser;
+
+    g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_hids_cid = 0u;
+    memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
+    memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
+    g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
+    g_pair_new_state = BLE_PAIR_NEW_IDLE;
+    g_pair_new_active = false;
+    g_pair_new_handoff_pending = false;
+    g_pair_new_cancel_pending = false;
+    g_pair_new_resume_after_disconnect = false;
+
+    g_state = BLE_HOGP_STATE_READY;
+    g_reconnect_after_disconnect = false;
+    g_idle_after_disconnect = false;
+    if (g_vendor_registered)
+        g_vendor_backend.session(g_vendor_backend.context, true);
+
+    (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_PROMOTED);
+    service_vendor_output();
+}
+
+static void pair_new_begin_handoff(void)
+{
+    stop_pair_new_timer();
+    g_pair_new_active = false;
+    g_pair_new_state = BLE_PAIR_NEW_READY;
+
+    if (g_state == BLE_HOGP_STATE_READY &&
+        g_connection_handle != HCI_CON_HANDLE_INVALID) {
+        g_pair_new_handoff_pending = true;
+        if (g_vendor_registered)
+            g_vendor_backend.session(g_vendor_backend.context, false);
+        g_state = BLE_HOGP_STATE_DISCONNECTING;
+        gap_disconnect(g_connection_handle);
+        return;
+    }
+
+    pair_new_finalize_promotion();
+}
+
 static void service_vendor_output(void)
 {
     if (!g_vendor_registered || g_state != BLE_HOGP_STATE_READY || g_hids_cid == 0u) return;
