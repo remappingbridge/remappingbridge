@@ -241,7 +241,9 @@ static void disconnect_current(bool reconnect_bonded)
 
 static void disconnect_and_rescan(void)
 {
-    disconnect_current(false);
+    /* During HOPE-08 saved-only search, failures stay inside the bonded
+     * reconnect path instead of opening discovery to unsaved devices. */
+    disconnect_current(g_saved_search_active);
 }
 
 static void connect_hid_service(void)
@@ -288,9 +290,11 @@ static void service_saved_search_requests(void)
     }
 
     if (atomic_exchange_explicit(&g_saved_search_request, false, memory_order_acq_rel)) {
-        if (g_state == BLE_HOGP_STATE_SCANNING) gap_stop_scan();
-        if (g_state != BLE_HOGP_STATE_READY && g_state != BLE_HOGP_STATE_DISCONNECTING) {
-            if (!start_bonded_reconnect()) g_state = BLE_HOGP_STATE_IDLE;
+        if (!g_saved_search_active) {
+            if (g_state == BLE_HOGP_STATE_SCANNING) gap_stop_scan();
+            if (g_state != BLE_HOGP_STATE_READY && g_state != BLE_HOGP_STATE_DISCONNECTING) {
+                if (!start_bonded_reconnect()) g_state = BLE_HOGP_STATE_IDLE;
+            }
         }
     }
 }
