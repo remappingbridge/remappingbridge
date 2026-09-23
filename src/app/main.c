@@ -240,10 +240,17 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 blu2usb_ux_set_mouse_connected(true);
                 ui_changed = true;
             }
+            if (ux != NULL)
+                blu2usb_ux_set_saved_device_count(
+                    ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
             if (ux != NULL && ux->screen == BLU2USB_SCREEN_LEARN_KEYS) {
-                /* HOPE-02: the accepted first-search READY event enters the
-                 * in-place FIRST MOUSE CONNECTED success slot. */
+                /* First-ever pairing still goes through accepted HOPE-02. */
                 ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
+                ux->selection = 0u;
+                ui_changed = true;
+            } else if (ux != NULL && ux->screen == BLU2USB_SCREEN_HOME_SEARCHING) {
+                /* HOPE-03 will replace this connected HOME placeholder. */
+                ux->screen = BLU2USB_SCREEN_HOME;
                 ux->selection = 0u;
                 ui_changed = true;
             } else if (ux != NULL && ux->screen == BLU2USB_SCREEN_PAIR_MOUSE) {
@@ -257,10 +264,37 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 blu2usb_ux_set_mouse_connected(false);
                 ui_changed = true;
             }
+            if (ux != NULL) {
+                blu2usb_ux_set_saved_device_count(
+                    ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
+                if (ux->screen == BLU2USB_SCREEN_HOME &&
+                    ux->saved_device_count > 0u) {
+                    ux->screen = BLU2USB_SCREEN_HOME_SEARCHING;
+                    ux->selection = 0u;
+                    ui_changed = true;
+                }
+            }
             (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
             (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
             *mouse_valid = false;
             *keyboard_valid = false;
+            break;
+        case BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_STARTED:
+            if (ux != NULL && !blu2usb_ux_mouse_connected() &&
+                ux->saved_device_count > 0u &&
+                ux->screen == BLU2USB_SCREEN_HOME) {
+                ux->screen = BLU2USB_SCREEN_HOME_SEARCHING;
+                ux->selection = 0u;
+                ui_changed = true;
+            }
+            break;
+        case BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_TIMEOUT:
+            if (ux != NULL && ux->screen == BLU2USB_SCREEN_HOME_SEARCHING) {
+                /* HOPE-09 will replace this temporary retry placeholder. */
+                ux->screen = BLU2USB_SCREEN_HOME;
+                ux->selection = 0u;
+                ui_changed = true;
+            }
             break;
         case BLU2USB_BLE_HOGP_EVENT_MOUSE: {
             blu2usb_remap_result_t mapped;
@@ -319,8 +353,14 @@ int main(void)
         blu2usb_profiles_requires_forward_held_fix(&boot_profile));
     (void)blu2usb_ble_hogp_start();
 
-    /* The inherited first-screen slot is already SEARCHING FIRST MOUSE.
-     * There is no legacy visual fallback, regardless of stored bonds. */
+    const unsigned saved_mouse_count =
+        blu2usb_ble_hogp_pico_bonded_mouse_count();
+    blu2usb_ux_set_saved_device_count(&ux, saved_mouse_count);
+    ux.screen = saved_mouse_count > 0u
+        ? BLU2USB_SCREEN_HOME_SEARCHING
+        : BLU2USB_SCREEN_LEARN_KEYS;
+    ux.selection = 0u;
+
     (void)render_state(&display, &ux);
     blu2usb_st7789_pico_set_backlight(true);
 
@@ -338,11 +378,26 @@ int main(void)
         blu2usb_hat_event_t event;
         while (blu2usb_hat_pico_poll_event(&event)) {
             const bool was_locked = blu2usb_interaction_is_locked(&ux.interaction);
+            const blu2usb_screen_id_t screen_before = ux.screen;
             const blu2usb_ux_command_t command =
                 blu2usb_ux_input(&ux, event.control, event.pressed);
             handle_ux_command(&ux, command, &profiles, &remap, &aggregator,
                               &last_mouse_valid, &last_keyboard_valid);
             const bool is_locked = blu2usb_interaction_is_locked(&ux.interaction);
+
+            if (screen_before == BLU2USB_SCREEN_HOME_SEARCHING &&
+                (ux.screen != BLU2USB_SCREEN_HOME_SEARCHING ||
+                 (!was_locked && is_locked))) {
+                blu2usb_ble_hogp_pico_cancel_saved_search();
+            }
+            if ((!was_locked && !is_locked &&
+                 screen_before != BLU2USB_SCREEN_HOME_SEARCHING &&
+                 ux.screen == BLU2USB_SCREEN_HOME_SEARCHING) ||
+                (was_locked && !is_locked &&
+                 ux.screen == BLU2USB_SCREEN_HOME_SEARCHING)) {
+                blu2usb_ble_hogp_pico_request_saved_search();
+            }
+
             if (!was_locked && is_locked) {
                 blu2usb_st7789_pico_set_backlight(false);
             } else if (was_locked && !is_locked) {
