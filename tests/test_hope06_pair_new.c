@@ -86,6 +86,8 @@ static void test_pair_new_controls(void)
     project(&ux, &frame);
     assert(frame.cells[7][0].tone == BLU2USB_UI_TONE_EMPHASIZED);
     (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_KEY_X, false);
+    assert(ux.screen == BLU2USB_SCREEN_HELP_PAIR_NEW);
+    tap(&ux, BLU2USB_CONTROL_KEY_A);
     assert(ux.screen == BLU2USB_SCREEN_PAIR_MOUSE);
 
     (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_KEY_Y, true);
