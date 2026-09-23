@@ -409,6 +409,12 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
+    if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS &&
+        control == BLU2USB_CONTROL_JOY_LEFT) {
+        enter(ux, BLU2USB_SCREEN_HOME);
+        return cmd;
+    }
+
     if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS && control == BLU2USB_CONTROL_JOY_PRESS) {
         const unsigned selected = ux->selection;
         switch (selected) {
