@@ -14,7 +14,7 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_OTHER_DEVICES_STATUS] = {{"OTHER DEVICES STATUS","KEYBOARD","CONNECTED","COMPOSITE","NOT CONNECTED",EMPTY,"JOY RIGHT\\LEFT: PAGE","KEY B: BACK","KEY X: DEVICES HELP"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
     [BLU2USB_SCREEN_MOUSE_HELP] = {{"MOUSE HELP",EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,"ANY KEY: BACK"},0x00fe},
     [BLU2USB_SCREEN_DEVICES_HELP] = {{"DEVICES HELP","KEYBOARD IS DIFFERENT","FROM COMPOSITE.","COMPOSITE IS TOUCHPAD","AND KEYBOARD EMBEDDED","TOGETHER AND IT PAIRS","ITS OWN BLUETOOTH.",EMPTY,"ANY KEY: BACK"},0},
-    [BLU2USB_SCREEN_MOUSE_OPTIONS] = {{"MOUSE OPTIONS"," PASSTHROUGH"," STANDARD REMAP"," ESCAPE REMAP"," CUSTOM REMAP",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK","KEY X: HELP"},0},
+    [BLU2USB_SCREEN_MOUSE_OPTIONS] = {{"MOUSE OPTIONS"," PAIR MOUSE"," PASSTHROUGH"," DEFAULT REMAP"," ESCAPE REMAP"," CUSTOM REMAP",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK"},0},
     [BLU2USB_SCREEN_PAIR_MOUSE] = {{"PAIR NEW MOUSE","TRYING TO CONNECT","A NEW MOUSE THAT","IS NOT LISTED","IN SAVED DEVICES",EMPTY,"KEY B: CANCEL","KEY X: HELP","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_HELP_PAIR_NEW] = {{"PAIR NEW DEVICE HELP","TO CONNECT A SAVED","DEVICE FIRST UNPLUG","CURRENTLY CONNECTED","MOUSE AND PRESS THE","KEY B TO BACK UNTIL","SEARCHING APPEARS.",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_RETRY_PAIR_NEW] = {{"NEW MOUSE NOT FOUND","NO NEW MOUSE OUTSIDE","THE LIST OF SAVED","DEVICES WAS FOUND",EMPTY,"KEY A: RETRY NEW PAIR","KEY B: BACK TRY SAVED","KEY X: HELP","KEY Y: LOCK"},0},
@@ -132,7 +132,7 @@ unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_HOME: return 4;
     case BLU2USB_SCREEN_HOME_SEARCHING:
     case BLU2USB_SCREEN_HOME_RETRY: return 3;
-    case BLU2USB_SCREEN_MOUSE_OPTIONS: return 4;
+    case BLU2USB_SCREEN_MOUSE_OPTIONS: return 5;
     case BLU2USB_SCREEN_OTHER_OPTIONS: return 3;
     case BLU2USB_SCREEN_EDIT_CUSTOM: return 5;
     case BLU2USB_SCREEN_LEFT_WILL_BECOME:
@@ -403,39 +403,32 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         ux->return_screen = ux->screen; enter(ux, BLU2USB_SCREEN_DEVICES_HELP); return cmd;
     }
 
-    if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS &&
-        control == BLU2USB_CONTROL_KEY_X) {
-        /* HOPE-29 owns help-remapper-options. */
-        return cmd;
-    }
-
-    if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS &&
-        control == BLU2USB_CONTROL_JOY_LEFT) {
-        enter(ux, BLU2USB_SCREEN_HOME);
-        return cmd;
-    }
-
     if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS && control == BLU2USB_CONTROL_JOY_PRESS) {
         const unsigned selected = ux->selection;
         switch (selected) {
         case 0:
+            /* HOPE-06 replaces legacy Pair Device in-place. Pair New may run
+             * while the current Mouse remains authoritative. */
+            enter(ux, BLU2USB_SCREEN_PAIR_MOUSE);
+            cmd.kind = BLU2USB_UX_COMMAND_PAIR_MOUSE;
+            break;
+        case 1:
             enter(ux, ux->active_profile == BLU2USB_MOUSE_PROFILE_PASSTHROUGH
                       ? BLU2USB_SCREEN_PASSTHROUGH_APPLIED
                       : BLU2USB_SCREEN_APPLY_PASSTHROUGH);
             break;
-        case 1:
+        case 2:
             enter(ux, ux->active_profile == BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP
                       ? BLU2USB_SCREEN_DEFAULT_APPLIED
                       : BLU2USB_SCREEN_APPLY_DEFAULT);
             break;
-        case 2:
+        case 3:
             enter(ux, ux->active_profile == BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP
                       ? BLU2USB_SCREEN_ESCAPE_APPLIED
                       : BLU2USB_SCREEN_APPLY_ESCAPE);
             break;
-        case 3:
-            if (ux->active_profile != BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP)
-                ux->custom_dirty = true;
+        case 4:
+            if (ux->active_profile != BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP) ux->custom_dirty = true;
             enter(ux, BLU2USB_SCREEN_EDIT_CUSTOM);
             break;
         default:

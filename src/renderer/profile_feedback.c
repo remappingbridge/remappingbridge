@@ -36,10 +36,10 @@ static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
 {
     if (ux == NULL || ux->screen != BLU2USB_SCREEN_MOUSE_OPTIONS) return 0u;
     switch (ux->active_profile) {
-    case BLU2USB_MOUSE_PROFILE_PASSTHROUGH: return 1u;
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return 2u;
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return 3u;
-    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 4u;
+    case BLU2USB_MOUSE_PROFILE_PASSTHROUGH: return 2u;
+    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return 3u;
+    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return 4u;
+    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 5u;
     default: return 0u;
     }
 }
@@ -132,6 +132,9 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
 
     if (ux->screen == BLU2USB_SCREEN_MOUSE_STATUS)
         project_mouse_status(ux, frame);
+
+    if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS && blu2usb_ux_mouse_connected())
+        set_row_current_preserving_selection(frame, 1u);
 
     const uint8_t profile_row = active_profile_row(ux);
     if (profile_row != 0u)
