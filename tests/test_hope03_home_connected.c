@@ -157,8 +157,12 @@ static void test_navigation_and_future_help(void)
     assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
 
     init_home(&ux);
+    ux.selection = 2u;
     tap(&ux, BLU2USB_CONTROL_KEY_X);
+    assert(ux.screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED);
+    tap(&ux, BLU2USB_CONTROL_KEY_A);
     assert(ux.screen == BLU2USB_SCREEN_HOME);
+    assert(ux.selection == 2u);
 
     init_home(&ux);
     (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_KEY_Y, true);
