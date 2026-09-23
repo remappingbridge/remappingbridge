@@ -98,6 +98,7 @@ static int selected_row(const blu2usb_ux_model_t *ux)
     switch (ux->screen) {
     case BLU2USB_SCREEN_HOME:
     case BLU2USB_SCREEN_HOME_SEARCHING:
+    case BLU2USB_SCREEN_HOME_RETRY:
     case BLU2USB_SCREEN_MOUSE_OPTIONS:
     case BLU2USB_SCREEN_OTHER_OPTIONS:
     case BLU2USB_SCREEN_EDIT_CUSTOM:
