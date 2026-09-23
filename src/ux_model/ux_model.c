@@ -6,6 +6,7 @@
 static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_HOME] = {{"HOME"," STATUS"," MOUSE OPTIONS"," OTHER OPTIONS"," LEARN THE KEYS",EMPTY,"JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY Y: LOCK / UNLOCK"},0},
     [BLU2USB_SCREEN_HOME_SEARCHING] = {{"SEARCHING SAVED MOUSE"," SAVED DEVICES"," PAIR NEW MOUSE"," LEARN THE KEYS",EMPTY,"KEY B: CANCEL SEARCH","JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY X: HELP"},0},
+    [BLU2USB_SCREEN_HOME_SEARCHING_HELP] = {{"HOME SEARCHING HELP","THE MATCHING ATTEMPT","TOOK PLACE ONLY FOR","DEVICES ALREADY SAVED","IN THE PREFERENCES,","BUT NOT FOR DEVICES","THAT WERE NOT SAVED.",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_MOUSE_STATUS] = {{"MOUSE STATUS","MOUSE NOT CONNECTED","PROFILE: PASSTHROUGH","FWD: AUTO HIDPP","BACK: AUTO STD",EMPTY,"JOY RIGHT\\LEFT: PAGE","KEY B: BACK","KEY X: MOUSE HELP"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
     [BLU2USB_SCREEN_OTHER_DEVICES_STATUS] = {{"OTHER DEVICES STATUS","KEYBOARD","CONNECTED","COMPOSITE","NOT CONNECTED",EMPTY,"JOY RIGHT\\LEFT: PAGE","KEY B: BACK","KEY X: DEVICES HELP"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
     [BLU2USB_SCREEN_MOUSE_HELP] = {{"MOUSE HELP",EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,"ANY KEY: BACK"},0x00fe},
@@ -49,7 +50,8 @@ static blu2usb_ux_command_t no_command(void) {
 }
 
 static bool is_help(blu2usb_screen_id_t screen) {
-    return screen == BLU2USB_SCREEN_MOUSE_HELP || screen == BLU2USB_SCREEN_DEVICES_HELP ||
+    return screen == BLU2USB_SCREEN_HOME_SEARCHING_HELP ||
+           screen == BLU2USB_SCREEN_MOUSE_HELP || screen == BLU2USB_SCREEN_DEVICES_HELP ||
            screen == BLU2USB_SCREEN_PAIR_MOUSE_HELP || screen == BLU2USB_SCREEN_OTHER_OPTIONS_HELP ||
            screen == BLU2USB_SCREEN_PAIR_KEYBOARD_HELP || screen == BLU2USB_SCREEN_PAIR_COMPOSITE_HELP;
 }
@@ -218,6 +220,14 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
+    if (ux->screen == BLU2USB_SCREEN_HOME_SEARCHING_HELP) {
+        /* HOPE-09 will replace this inherited HOME retry placeholder.
+         * Any complete HAT interaction exits Help and is consumed. */
+        ux->screen = BLU2USB_SCREEN_HOME;
+        ux->selection = 0u;
+        return cmd;
+    }
+
     if (is_help(ux->screen)) {
         enter(ux, ux->return_screen);
         return cmd;
@@ -235,6 +245,13 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
          * including KEY B, are didactic and do not navigate. */
         if (control == BLU2USB_CONTROL_KEY_Y)
             blu2usb_interaction_lock(&ux->interaction);
+        return cmd;
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_HOME_SEARCHING &&
+        control == BLU2USB_CONTROL_KEY_X) {
+        ux->return_screen = BLU2USB_SCREEN_HOME_SEARCHING;
+        enter(ux, BLU2USB_SCREEN_HOME_SEARCHING_HELP);
         return cmd;
     }
 
