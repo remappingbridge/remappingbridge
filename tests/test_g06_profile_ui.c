@@ -68,7 +68,7 @@ static void test_current_profile_opens_feedback_and_back_once(void)
     blu2usb_ux_model_t ux;
     init_ux(&ux);
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 1u;
+    ux.selection = 0u;
 
     blu2usb_ux_command_t command = press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(command.kind == BLU2USB_UX_COMMAND_NONE);
@@ -86,15 +86,15 @@ static void test_selected_active_profile_is_white_then_returns_cyan(void)
     init_ux(&ux);
     ux.active_profile = BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP;
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 2u;
+    ux.selection = 1u;
 
     project_physical(&ux, &frame);
-    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_EMPHASIZED);
+    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_EMPHASIZED);
     assert(blu2usb_renderer_tone_rgb565(BLU2USB_UI_TONE_EMPHASIZED) == BLU2USB_COLOR_WHITE);
 
-    ux.selection = 1u;
+    ux.selection = 0u;
     project_physical(&ux, &frame);
-    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_CURRENT);
+    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_CURRENT);
 }
 
 static void test_default_apply_feedback_back_and_reentry(void)
@@ -103,7 +103,7 @@ static void test_default_apply_feedback_back_and_reentry(void)
     blu2usb_ui_frame_t frame;
     init_ux(&ux);
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 2u;
+    ux.selection = 1u;
 
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_APPLY_DEFAULT);
@@ -119,13 +119,13 @@ static void test_default_apply_feedback_back_and_reentry(void)
     press_release(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
 
+    ux.selection = 0u;
+    project_physical(&ux, &frame);
+    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_CURRENT);
+
     ux.selection = 1u;
     project_physical(&ux, &frame);
-    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_CURRENT);
-
-    ux.selection = 2u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_EMPHASIZED);
+    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_EMPHASIZED);
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_DEFAULT_APPLIED);
     assert_success_body_is_cyan(&ux);
@@ -138,7 +138,7 @@ static void test_escape_apply_feedback_back_and_reentry(void)
     init_ux(&ux);
     ux.active_profile = BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP;
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 3u;
+    ux.selection = 2u;
 
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_APPLY_ESCAPE);
@@ -153,13 +153,13 @@ static void test_escape_apply_feedback_back_and_reentry(void)
     press_release(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
 
+    ux.selection = 1u;
+    project_physical(&ux, &frame);
+    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_CURRENT);
+
     ux.selection = 2u;
     project_physical(&ux, &frame);
-    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_CURRENT);
-
-    ux.selection = 3u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_EMPHASIZED);
+    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_EMPHASIZED);
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_ESCAPE_APPLIED);
 }
@@ -194,7 +194,7 @@ static void test_custom_target_apply_and_back_updates_edit_screen(void)
     blu2usb_ui_frame_t frame;
     init_ux(&ux);
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 4u;
+    ux.selection = 3u;
 
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
@@ -258,13 +258,13 @@ static void test_custom_apply_has_dedicated_feedback_and_back(void)
 
     press_release(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
+    ux.selection = 2u;
+    project_physical(&ux, &frame);
+    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_CURRENT);
+
     ux.selection = 3u;
     project_physical(&ux, &frame);
-    assert_row_tone(&frame, 5u, BLU2USB_UI_TONE_CURRENT);
-
-    ux.selection = 4u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 5u, BLU2USB_UI_TONE_EMPHASIZED);
+    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_EMPHASIZED);
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
     assert(!ux.custom_dirty);
