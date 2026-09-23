@@ -241,10 +241,9 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 ui_changed = true;
             }
             if (ux != NULL && ux->screen == BLU2USB_SCREEN_LEARN_KEYS) {
-                /* HOPE-01 replaces this legacy screen slot in-place with
-                 * SEARCHING FIRST MOUSE. HOPE-02 will replace the success
-                 * transition with first-mouse-connected. */
-                ux->screen = BLU2USB_SCREEN_HOME;
+                /* HOPE-02: the accepted first-search READY event enters the
+                 * in-place FIRST MOUSE CONNECTED success slot. */
+                ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
                 ux->selection = 0u;
                 ui_changed = true;
             } else if (ux != NULL && ux->screen == BLU2USB_SCREEN_PAIR_MOUSE) {
