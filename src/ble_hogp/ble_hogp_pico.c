@@ -442,11 +442,3 @@ bool blu2usb_ble_hogp_start(void)
 {
     return blu2usb_bt_runtime_start(ble_hogp_session_setup);
 }
-
-bool blu2usb_ble_hogp_pico_has_bonded_mouse(void)
-{
-    /* G06 only creates persistent LE bonds through its Mouse HOGP path.
-     * HOPE-01 reuses that existing fact instead of creating the future
-     * Saved Devices registry early. */
-    return le_device_db_count() > 0;
-}
