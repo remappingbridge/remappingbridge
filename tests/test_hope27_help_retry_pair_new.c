@@ -29,7 +29,7 @@ static void tap(blu2usb_ux_model_t *ux, blu2usb_control_t control)
 static void test_exact_layout(void)
 {
     static const char *const expected[9] = {
-        "DEVICE NOT FOUND HELP",
+        "MOUSE NOT FOUND HELP",
         "TO CONNECT A SAVED",
         "DEVICE FIRST UNPLUG",
         "CURRENTLY CONNECTED",

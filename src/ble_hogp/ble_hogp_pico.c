@@ -13,6 +13,7 @@
 #define BLE_HOGP_VENDOR_SERVICE_MS 20u
 #define BLE_HOGP_BONDED_RECONNECT_TIMEOUT_MS 8000u
 #define BLE_HOGP_PAIR_NEW_TIMEOUT_MS 15000u
+#define BLE_HOGP_MOUSE_NAME_CAPACITY 64u
 
 _Static_assert(sizeof(blu2usb_canonical_mouse_event_t) <= BLU2USB_BT_RUNTIME_MESSAGE_PAYLOAD_SIZE,
                "canonical mouse event must fit runtime message");
@@ -23,6 +24,7 @@ typedef enum {
     BLE_HOGP_STATE_SCANNING,
     BLE_HOGP_STATE_CONNECTING,
     BLE_HOGP_STATE_SECURING,
+    BLE_HOGP_STATE_READING_NAME,
     BLE_HOGP_STATE_CONNECTING_HIDS,
     BLE_HOGP_STATE_READY,
     BLE_HOGP_STATE_DISCONNECTING,
@@ -33,6 +35,7 @@ typedef enum {
     BLE_PAIR_NEW_SCANNING,
     BLE_PAIR_NEW_CONNECTING,
     BLE_PAIR_NEW_SECURING,
+    BLE_PAIR_NEW_READING_NAME,
     BLE_PAIR_NEW_CONNECTING_HIDS,
     BLE_PAIR_NEW_READY,
     BLE_PAIR_NEW_DISCONNECTING,
@@ -49,6 +52,7 @@ static bd_addr_t g_remote_address;
 static bd_addr_type_t g_remote_address_type;
 static hci_con_handle_t g_connection_handle = HCI_CON_HANDLE_INVALID;
 static uint16_t g_hids_cid;
+static char g_current_mouse_name[BLE_HOGP_MOUSE_NAME_CAPACITY];
 static uint8_t g_descriptor_storage[BLE_HOGP_DESCRIPTOR_STORAGE_SIZE];
 static blu2usb_ble_hogp_parser_t g_parser;
 static ble_hogp_rejected_device_t g_rejected_devices[BLE_HOGP_REJECTED_DEVICE_CAPACITY];
@@ -75,6 +79,7 @@ static bd_addr_t g_pair_new_address;
 static bd_addr_type_t g_pair_new_address_type;
 static hci_con_handle_t g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
 static uint16_t g_pair_new_hids_cid;
+static char g_pair_new_mouse_name[BLE_HOGP_MOUSE_NAME_CAPACITY];
 static blu2usb_ble_hogp_parser_t g_pair_new_parser;
 static btstack_timer_source_t g_pair_new_timer;
 static bool g_pair_new_timer_active;
@@ -86,10 +91,16 @@ static bool g_vendor_registered;
 
 static void handle_gatt_client_event(uint8_t packet_type, uint16_t channel,
                                      uint8_t *packet, uint16_t size);
+static void handle_name_gatt_event(uint8_t packet_type, uint16_t channel,
+                                   uint8_t *packet, uint16_t size);
 static void start_scan(void);
 static void reconnect_or_scan(void);
 static void pair_new_resume_scan(void);
 static void pair_new_finalize_promotion(void);
+static void connect_hid_service(void);
+static void pair_new_connect_hid_service(void);
+static void read_current_mouse_name(void);
+static void read_pair_new_mouse_name(void);
 static void service_vendor_output(void);
 
 bool blu2usb_ble_hogp_register_vendor_backend(
@@ -230,8 +241,10 @@ static void pair_new_clear_candidate(void)
 {
     memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
     g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
+    g_pair_new_mouse_name[0] = '\0';
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
     g_pair_new_hids_cid = 0u;
+    g_pair_new_mouse_name[0] = '\0';
     memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
     g_pair_new_cancel_pending = false;
     g_pair_new_resume_after_disconnect = false;
@@ -469,6 +482,94 @@ static void disconnect_and_rescan(void)
     disconnect_current(g_saved_search_active);
 }
 
+static void copy_mouse_name(char out[BLE_HOGP_MOUSE_NAME_CAPACITY],
+                            const uint8_t *value, uint16_t value_len)
+{
+    size_t length = 0u;
+    if (value != NULL) {
+        while (length < value_len &&
+               length + 1u < BLE_HOGP_MOUSE_NAME_CAPACITY &&
+               value[length] != 0u) {
+            out[length] = (char)value[length];
+            ++length;
+        }
+    }
+    out[length] = '\0';
+}
+
+static void handle_name_gatt_event(uint8_t packet_type, uint16_t channel,
+                                   uint8_t *packet, uint16_t size)
+{
+    (void)packet_type;
+    (void)channel;
+    (void)size;
+
+    switch (hci_event_packet_get_type(packet)) {
+    case GATT_EVENT_CHARACTERISTIC_VALUE_QUERY_RESULT: {
+        const hci_con_handle_t handle =
+            gatt_event_characteristic_value_query_result_get_handle(packet);
+        const uint8_t *value =
+            gatt_event_characteristic_value_query_result_get_value(packet);
+        const uint16_t value_len =
+            gatt_event_characteristic_value_query_result_get_value_length(packet);
+
+        if (handle == g_pair_new_connection_handle &&
+            g_pair_new_state == BLE_PAIR_NEW_READING_NAME) {
+            copy_mouse_name(g_pair_new_mouse_name, value, value_len);
+        } else if (handle == g_connection_handle &&
+                   g_state == BLE_HOGP_STATE_READING_NAME) {
+            copy_mouse_name(g_current_mouse_name, value, value_len);
+        }
+        break;
+    }
+
+    case GATT_EVENT_QUERY_COMPLETE: {
+        const hci_con_handle_t handle =
+            gatt_event_query_complete_get_handle(packet);
+
+        if (handle == g_pair_new_connection_handle &&
+            g_pair_new_state == BLE_PAIR_NEW_READING_NAME) {
+            pair_new_connect_hid_service();
+        } else if (handle == g_connection_handle &&
+                   g_state == BLE_HOGP_STATE_READING_NAME) {
+            connect_hid_service();
+        }
+        break;
+    }
+
+    default:
+        break;
+    }
+}
+
+static void read_current_mouse_name(void)
+{
+    g_current_mouse_name[0] = '\0';
+    g_state = BLE_HOGP_STATE_READING_NAME;
+    const uint8_t status = gatt_client_read_value_of_characteristics_by_uuid16(
+        &handle_name_gatt_event,
+        g_connection_handle,
+        UINT16_C(0x0001),
+        UINT16_C(0xffff),
+        ORG_BLUETOOTH_CHARACTERISTIC_GAP_DEVICE_NAME);
+    if (status != ERROR_CODE_SUCCESS)
+        connect_hid_service();
+}
+
+static void read_pair_new_mouse_name(void)
+{
+    g_pair_new_mouse_name[0] = '\0';
+    g_pair_new_state = BLE_PAIR_NEW_READING_NAME;
+    const uint8_t status = gatt_client_read_value_of_characteristics_by_uuid16(
+        &handle_name_gatt_event,
+        g_pair_new_connection_handle,
+        UINT16_C(0x0001),
+        UINT16_C(0xffff),
+        ORG_BLUETOOTH_CHARACTERISTIC_GAP_DEVICE_NAME);
+    if (status != ERROR_CODE_SUCCESS)
+        pair_new_connect_hid_service();
+}
+
 static void connect_hid_service(void)
 {
     g_state = BLE_HOGP_STATE_CONNECTING_HIDS;
@@ -496,10 +597,13 @@ static void pair_new_finalize_promotion(void)
     g_connection_handle = g_pair_new_connection_handle;
     g_hids_cid = g_pair_new_hids_cid;
     g_parser = g_pair_new_parser;
+    memcpy(g_current_mouse_name, g_pair_new_mouse_name,
+           sizeof(g_current_mouse_name));
 
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
     g_pair_new_hids_cid = 0u;
     memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
+    g_pair_new_mouse_name[0] = '\0';
     memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
     g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_pair_new_state = BLE_PAIR_NEW_IDLE;
@@ -919,6 +1023,7 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
             g_connection_handle = HCI_CON_HANDLE_INVALID;
             g_hids_cid = 0u;
             memset(&g_parser, 0, sizeof(g_parser));
+            g_current_mouse_name[0] = '\0';
             pair_new_finalize_promotion();
             break;
         }
@@ -942,6 +1047,7 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
             g_connection_handle = HCI_CON_HANDLE_INVALID;
             g_hids_cid = 0u;
             memset(&g_parser, 0, sizeof(g_parser));
+            g_current_mouse_name[0] = '\0';
             g_state = BLE_HOGP_STATE_IDLE;
             break;
         }
@@ -956,6 +1062,7 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
         g_connection_handle = HCI_CON_HANDLE_INVALID;
         g_hids_cid = 0u;
         memset(&g_parser, 0, sizeof(g_parser));
+        g_current_mouse_name[0] = '\0';
 
         if (was_ready)
             (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_DISCONNECTED);
@@ -1002,14 +1109,14 @@ static void sm_packet_handler(uint8_t packet_type, uint16_t channel,
 
         if (handle == g_pair_new_connection_handle &&
             g_pair_new_state == BLE_PAIR_NEW_SECURING) {
-            if (success) pair_new_connect_hid_service();
+            if (success) read_pair_new_mouse_name();
             else pair_new_disconnect_candidate(true, true);
             break;
         }
 
         if (handle == g_connection_handle &&
             g_state == BLE_HOGP_STATE_SECURING) {
-            if (success) connect_hid_service();
+            if (success) read_current_mouse_name();
             else disconnect_and_rescan();
         }
         break;
@@ -1031,7 +1138,7 @@ static void sm_packet_handler(uint8_t packet_type, uint16_t channel,
 
         if (handle == g_connection_handle &&
             g_state == BLE_HOGP_STATE_SECURING) {
-            if (success) connect_hid_service();
+            if (success) read_current_mouse_name();
             else disconnect_and_rescan();
         }
         break;
@@ -1052,6 +1159,7 @@ static void ble_hogp_session_setup(void)
     g_state = BLE_HOGP_STATE_WAITING_FOR_STACK;
     g_connection_handle = HCI_CON_HANDLE_INVALID;
     g_hids_cid = 0u;
+    g_current_mouse_name[0] = '\0';
     g_reconnect_timer_active = false;
     g_reconnect_cancel_pending = false;
     g_reconnect_after_disconnect = false;
@@ -1096,6 +1204,11 @@ unsigned blu2usb_ble_hogp_pico_bonded_mouse_count(void)
 {
     const int count = le_device_db_count();
     return count > 0 ? (unsigned)count : 0u;
+}
+
+const char *blu2usb_ble_hogp_pico_current_mouse_name(void)
+{
+    return g_current_mouse_name;
 }
 
 void blu2usb_ble_hogp_pico_request_saved_search(void)

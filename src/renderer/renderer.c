@@ -41,6 +41,9 @@ static uint8_t glyph_row(char character, uint8_t row)
     case '<': { static const uint8_t rows[7]={0x01,0x02,0x04,0x08,0x04,0x02,0x01}; return rows[row]; }
     case '?': { static const uint8_t rows[7]={0x0e,0x11,0x01,0x02,0x04,0x00,0x04}; return rows[row]; }
     case '!': return (row < 5u || row == 6u) ? 0x04u : 0u;
+    case ',': return row == 5u ? 0x04u : (row == 6u ? 0x08u : 0u);
+    case '(': { static const uint8_t rows[7]={0x02,0x04,0x08,0x08,0x08,0x04,0x02}; return rows[row]; }
+    case ')': { static const uint8_t rows[7]={0x08,0x04,0x02,0x02,0x02,0x04,0x08}; return rows[row]; }
     default: return 0u;
     }
 }
@@ -91,6 +94,97 @@ static uint8_t first_hint_row(const blu2usb_screen_template_t *screen)
         if (starts_with(text, "JOY ") || starts_with(text, "KEY ") || starts_with(text, "ANY KEY")) return row;
     }
     return BLU2USB_RENDERER_TEXT_ROWS;
+}
+
+static bool home_renderer_supported(unsigned char value)
+{
+    if ((value >= 'A' && value <= 'Z') || (value >= '0' && value <= '9'))
+        return true;
+    return strchr(" -:.=/\\><?!,()", (int)value) != NULL;
+}
+
+static bool home_word_char(unsigned char value)
+{
+    return (value >= 'A' && value <= 'Z') ||
+           (value >= '0' && value <= '9') || value == '_';
+}
+
+static void home_title(const char *input,
+                       char out[BLU2USB_RENDERER_TEXT_COLS + 1u])
+{
+    char upper[BLU2USB_UX_MOUSE_NAME_CAPACITY];
+    size_t original_length = 0u;
+    bool contains_mouse = false;
+    size_t length = 0u;
+    bool useful = false;
+
+    if (input != NULL) {
+        for (; original_length + 1u < sizeof(upper) &&
+               input[original_length] != '\0'; ++original_length) {
+            unsigned char value = (unsigned char)input[original_length];
+            upper[original_length] =
+                (char)((value >= 'a' && value <= 'z') ?
+                    value - 'a' + 'A' : value);
+        }
+    }
+    upper[original_length] = '\0';
+
+    for (size_t i = 0u; i + 5u <= original_length; ++i) {
+        if (memcmp(upper + i, "MOUSE", 5u) == 0 &&
+            (i == 0u || !home_word_char((unsigned char)upper[i - 1u])) &&
+            (i + 5u == original_length ||
+             !home_word_char((unsigned char)upper[i + 5u]))) {
+            contains_mouse = true;
+            break;
+        }
+    }
+
+    for (size_t i = 0u; i < original_length &&
+                       length < BLU2USB_RENDERER_TEXT_COLS; ++i) {
+        const unsigned char value = (unsigned char)upper[i];
+        if (!home_renderer_supported(value)) continue;
+        out[length++] = (char)value;
+        if (value != ' ') useful = true;
+    }
+    out[length] = '\0';
+
+    if (!useful) {
+        (void)strcpy(out, "UNKNOWN MOUSE");
+        return;
+    }
+
+    if (length > 15u) {
+        length = 15u;
+        out[length] = '\0';
+    }
+
+    while (length > 0u && out[length - 1u] == ' ')
+        out[--length] = '\0';
+
+    if (!contains_mouse) {
+        const char suffix[] = " MOUSE";
+        size_t i = 0u;
+        while (suffix[i] != '\0' &&
+               length + 1u < BLU2USB_RENDERER_TEXT_COLS + 1u) {
+            out[length++] = suffix[i++];
+        }
+        out[length] = '\0';
+    }
+}
+
+static const char *home_profile_summary(blu2usb_mouse_profile_kind_t profile)
+{
+    switch (profile) {
+    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP:
+        return " REMAPPED TO STANDARD";
+    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP:
+        return " REMAPPED TO ESCAPE";
+    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP:
+        return " REMAPPED TO CUSTOM";
+    case BLU2USB_MOUSE_PROFILE_PASSTHROUGH:
+    default:
+        return " NO REMAP PASSTHROUGH";
+    }
 }
 
 static int selected_row(const blu2usb_ux_model_t *ux)
@@ -235,6 +329,12 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     const bool success_feedback = is_success_feedback(ux->screen) && !first_mouse_connected;
     const bool custom_feedback = ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM &&
         ux->active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP && !ux->custom_dirty;
+    char home_title_text[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    const char *home_summary_text = NULL;
+    if (ux->screen == BLU2USB_SCREEN_HOME) {
+        home_title(ux->current_mouse_name, home_title_text);
+        home_summary_text = home_profile_summary(ux->active_profile);
+    }
     const uint8_t hint = searching_first
         ? BLU2USB_RENDERER_TEXT_ROWS
         : (first_mouse_connected ? 8u
@@ -247,6 +347,10 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
 
     for (uint8_t row = 0; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
         const char *text = screen->rows[row] != NULL ? screen->rows[row] : "";
+        if (ux->screen == BLU2USB_SCREEN_HOME && row == 0u)
+            text = home_title_text;
+        else if (ux->screen == BLU2USB_SCREEN_HOME && row == 1u)
+            text = home_summary_text;
         if (custom_feedback && row == 8u) text = "";
         blu2usb_ui_tone_t tone;
         if (row == 0) tone = BLU2USB_UI_TONE_TITLE;

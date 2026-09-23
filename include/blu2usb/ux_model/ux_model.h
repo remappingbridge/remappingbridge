@@ -8,6 +8,8 @@
 #include "blu2usb/domain/profile.h"
 #include "blu2usb/interaction/interaction.h"
 
+#define BLU2USB_UX_MOUSE_NAME_CAPACITY 64u
+
 typedef enum {
     BLU2USB_SCREEN_HOME = 0,
     BLU2USB_SCREEN_HOME_SEARCHING,
@@ -88,6 +90,7 @@ typedef struct {
     unsigned saved_page;
     unsigned saved_pages;
     unsigned saved_device_count;
+    char current_mouse_name[BLU2USB_UX_MOUSE_NAME_CAPACITY];
     blu2usb_mouse_profile_kind_t active_profile;
     bool custom_dirty;
     blu2usb_mouse_source_t custom_source;
@@ -97,6 +100,7 @@ typedef struct {
 void blu2usb_ux_init(blu2usb_ux_model_t *ux);
 blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t control, bool pressed);
 void blu2usb_ux_set_saved_device_count(blu2usb_ux_model_t *ux, unsigned count);
+void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name);
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target);
 void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux, blu2usb_mouse_profile_kind_t active_profile);
 void blu2usb_ux_restore_profile_state(

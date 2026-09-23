@@ -7,7 +7,7 @@ renderer = (root / "src/renderer/renderer.c").read_text(encoding="utf-8")
 app = (root / "src/app/main.c").read_text(encoding="utf-8")
 
 assert "BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW" in ux_h
-assert '"DEVICE NOT FOUND HELP"' in ux
+assert '"MOUSE NOT FOUND HELP"' in ux
 assert '"KEY B TO BACK UNTIL"' in ux
 assert '"ANY KEY: BACK"' in ux
 
