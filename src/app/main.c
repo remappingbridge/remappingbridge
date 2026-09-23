@@ -240,7 +240,13 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 blu2usb_ux_set_mouse_connected(true);
                 ui_changed = true;
             }
-            if (ux != NULL && ux->screen == BLU2USB_SCREEN_PAIR_MOUSE) {
+            if (ux != NULL && ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST) {
+                /* HOPE-02 will insert first-mouse-connected here. Until then,
+                 * hand successful first pairing to the inherited G06 HOME. */
+                ux->screen = BLU2USB_SCREEN_HOME;
+                ux->selection = 0u;
+                ui_changed = true;
+            } else if (ux != NULL && ux->screen == BLU2USB_SCREEN_PAIR_MOUSE) {
                 ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
                 ux->selection = 0u;
                 ui_changed = true;
@@ -307,13 +313,17 @@ int main(void)
     if (!blu2usb_st7789_pico_init(&display)) {
         for (;;) { blu2usb_usb_hid_pico_task(); tight_loop_contents(); }
     }
-    (void)render_state(&display, &ux);
-    blu2usb_st7789_pico_set_backlight(true);
 
     (void)blu2usb_logitech_hidpp_pico_start();
     blu2usb_logitech_hidpp_pico_set_forward_fix(
         blu2usb_profiles_requires_forward_held_fix(&boot_profile));
-    (void)blu2usb_ble_hogp_start();
+    const bool ble_started = blu2usb_ble_hogp_start();
+
+    if (ble_started && !blu2usb_ble_hogp_pico_has_bonded_mouse())
+        ux.screen = BLU2USB_SCREEN_SEARCHING_FIRST;
+
+    (void)render_state(&display, &ux);
+    blu2usb_st7789_pico_set_backlight(true);
 
     for (;;) {
         blu2usb_usb_hid_pico_task();
