@@ -6,9 +6,11 @@ ux_h = (root / "include/blu2usb/ux_model/ux_model.h").read_text(encoding="utf-8"
 app = (root / "src/app/main.c").read_text(encoding="utf-8")
 
 assert "BLU2USB_SCREEN_HELP_HOME_CONNECTED" in ux_h
-assert '"HOME CONNECTED HELP"' in ux
-assert '"MOUSE, NAVIGATE TO:"' in ux
-assert '"(MOUSE PAGE) > REMOVE"' in ux
+assert '"REMOVE CONNECTED HELP"' in ux
+assert '"MOUSE NAVIGATE TO:"' in ux
+assert '"STEP 2. REMOVE DEVICE"' in ux
+assert '"STEP 1. SAVED DEVICES"' in ux
+assert '"STEP 3. KEY A: REMOVE"' in ux
 assert '"ANY KEY: BACK"' in ux
 
 # Help owns Y through generic Help semantics and cannot reach global lock.
