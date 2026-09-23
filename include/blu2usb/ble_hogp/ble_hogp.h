@@ -115,5 +115,6 @@ bool blu2usb_ble_hogp_decode_runtime_message(const blu2usb_bt_runtime_message_t 
 bool blu2usb_ble_hogp_register_vendor_backend(
     const blu2usb_ble_hogp_vendor_backend_t *backend);
 bool blu2usb_ble_hogp_start(void);
+bool blu2usb_ble_hogp_pico_has_bonded_mouse(void);
 
 #endif
