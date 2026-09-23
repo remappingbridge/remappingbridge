@@ -470,6 +470,18 @@ bool blu2usb_ble_hogp_decode_runtime_message(const blu2usb_bt_runtime_message_t 
         if (message->length != 0u) return false;
         event->type = BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_TIMEOUT;
         return true;
+    case BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_STARTED:
+        if (message->length != 0u) return false;
+        event->type = BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_STARTED;
+        return true;
+    case BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_TIMEOUT:
+        if (message->length != 0u) return false;
+        event->type = BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_TIMEOUT;
+        return true;
+    case BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_PROMOTED:
+        if (message->length != 0u) return false;
+        event->type = BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED;
+        return true;
     default:
         return false;
     }
