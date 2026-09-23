@@ -31,7 +31,7 @@ assert "blu2usb_ble_hogp_pico_request_pair_new();" in app
 # Pair New Help now returns to retry, never to the active searching screen.
 assert "ux->return_screen = BLU2USB_SCREEN_RETRY_PAIR_NEW;" in ux
 
-# HOPE-27 is still future.
-assert "DEVICE NOT FOUND HELP" not in ux
+# HOPE-27 now canonically introduces retry-pair-new Help. HOPE-07 continues
+# freezing retry behavior and must not forbid the next accepted screen.
 
 print("HOPE-07 retry-pair-new source invariants: OK")
