@@ -76,6 +76,8 @@ static void test_retry_and_future_help_inert(void)
     ux.screen = BLU2USB_SCREEN_RETRY_PAIR_NEW;
 
     tap(&ux, BLU2USB_CONTROL_KEY_X);
+    assert(ux.screen == BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW);
+    tap(&ux, BLU2USB_CONTROL_KEY_A);
     assert(ux.screen == BLU2USB_SCREEN_RETRY_PAIR_NEW);
 
     tap(&ux, BLU2USB_CONTROL_KEY_A);
