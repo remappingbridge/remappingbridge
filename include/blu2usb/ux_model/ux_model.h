@@ -12,6 +12,7 @@
 
 typedef enum {
     BLU2USB_SCREEN_HOME = 0,
+    BLU2USB_SCREEN_HELP_HOME_CONNECTED,
     BLU2USB_SCREEN_HOME_SEARCHING,
     BLU2USB_SCREEN_HOME_SEARCHING_HELP,
     BLU2USB_SCREEN_HOME_RETRY,
@@ -85,6 +86,7 @@ typedef struct {
     blu2usb_interaction_t interaction;
     blu2usb_screen_id_t screen;
     blu2usb_screen_id_t return_screen;
+    unsigned return_selection;
     unsigned selection;
     unsigned status_page;
     unsigned saved_page;
