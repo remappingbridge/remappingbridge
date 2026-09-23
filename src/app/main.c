@@ -254,7 +254,9 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 ux->selection = 0u;
                 ui_changed = true;
             } else if (ux != NULL && ux->screen == BLU2USB_SCREEN_PAIR_MOUSE) {
-                ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
+                /* Pair New success uses its dedicated promoted event. A normal
+                 * current-session connect while this screen is visible resolves HOME. */
+                ux->screen = BLU2USB_SCREEN_HOME;
                 ux->selection = 0u;
                 ui_changed = true;
             }
@@ -291,6 +293,29 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
         case BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_TIMEOUT:
             if (ux != NULL && ux->screen == BLU2USB_SCREEN_HOME_SEARCHING) {
                 ux->screen = BLU2USB_SCREEN_HOME_RETRY;
+                ux->selection = 0u;
+                ui_changed = true;
+            }
+            break;
+        case BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_STARTED:
+            /* Pair New screen is already visible; no extra presentation. */
+            break;
+        case BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_TIMEOUT:
+            /* HOPE-07 owns retry-pair-new. HOPE-06 stops the 15-second
+             * search but keeps the canonical Pair New screen visible. */
+            break;
+        case BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED:
+            /* Atomic product-side half of the handoff: neutralize any held
+             * old Mouse/Escape output before candidate reports are consumed. */
+            (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
+            (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
+            *mouse_valid = false;
+            *keyboard_valid = false;
+            blu2usb_ux_set_mouse_connected(true);
+            if (ux != NULL) {
+                blu2usb_ux_set_saved_device_count(
+                    ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
+                ux->screen = BLU2USB_SCREEN_HOME;
                 ux->selection = 0u;
                 ui_changed = true;
             }
@@ -395,6 +420,17 @@ int main(void)
                 (was_locked && !is_locked &&
                  ux.screen == BLU2USB_SCREEN_HOME_SEARCHING)) {
                 blu2usb_ble_hogp_pico_request_saved_search();
+            }
+
+            if (screen_before == BLU2USB_SCREEN_PAIR_MOUSE &&
+                (ux.screen != BLU2USB_SCREEN_PAIR_MOUSE ||
+                 (!was_locked && is_locked))) {
+                blu2usb_ble_hogp_pico_cancel_pair_new();
+            }
+            if (!is_locked &&
+                screen_before != BLU2USB_SCREEN_PAIR_MOUSE &&
+                ux.screen == BLU2USB_SCREEN_PAIR_MOUSE) {
+                blu2usb_ble_hogp_pico_request_pair_new();
             }
 
             if (!was_locked && is_locked) {
