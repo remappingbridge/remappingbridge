@@ -11,6 +11,17 @@ static void clear_row(blu2usb_ui_frame_t *frame, uint8_t row)
     }
 }
 
+static void set_row_tone(blu2usb_ui_frame_t *frame,
+                         uint8_t row,
+                         blu2usb_ui_tone_t tone)
+{
+    if (frame == NULL || row >= BLU2USB_RENDERER_TEXT_ROWS) return;
+    for (uint8_t column = 0u; column < BLU2USB_RENDERER_TEXT_COLS; ++column) {
+        if (frame->cells[row][column].character != ' ')
+            frame->cells[row][column].tone = tone;
+    }
+}
+
 static void set_row_current_preserving_selection(blu2usb_ui_frame_t *frame,
                                                   uint8_t row)
 {
