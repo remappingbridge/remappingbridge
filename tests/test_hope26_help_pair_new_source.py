@@ -30,3 +30,11 @@ assert "NO NEW MOUSE OUTSIDE" not in ux
 assert "DEVICE NOT FOUND HELP" not in ux
 
 print("HOPE-26 help-pair-new source invariants: OK")
+
+
+# Pair New Help contains prose beginning with "KEY B TO BACK UNTIL"; that is
+# explanatory body text, not a hint. The renderer must explicitly start the
+# hint region only at the final ANY KEY row.
+renderer = (root / "src/renderer/renderer.c").read_text(encoding="utf-8")
+assert "ux->screen == BLU2USB_SCREEN_HELP_PAIR_NEW" in renderer
+assert "? 8u" in renderer
