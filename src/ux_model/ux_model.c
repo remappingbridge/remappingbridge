@@ -5,6 +5,7 @@
 
 static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_HOME] = {{"UNKNOWN MOUSE"," NO REMAP PASSTHROUGH"," SAVED DEVICES"," PAIR NEW MOUSE"," LEARN THE KEYS",EMPTY,"JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY X: HELP TO REMOVE"},DYN(0)|DYN(1)},
+    [BLU2USB_SCREEN_HELP_HOME_CONNECTED] = {{"REMOVE CONNECTED HELP","TO DISCONNECT THE","CURRENTLY CONNECTED","MOUSE NAVIGATE TO:","STEP 1. SAVED DEVICES","STEP 2. REMOVE DEVICE","STEP 3. KEY A: REMOVE",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_HOME_SEARCHING] = {{"SEARCHING SAVED MOUSE"," SAVED DEVICES"," PAIR NEW MOUSE"," LEARN THE KEYS",EMPTY,"KEY B: CANCEL SEARCH","JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY X: HELP"},0},
     [BLU2USB_SCREEN_HOME_SEARCHING_HELP] = {{"HOME SEARCHING HELP","THE MATCHING ATTEMPT","TOOK PLACE ONLY FOR","DEVICES ALREADY SAVED","IN THE PREFERENCES,","BUT NOT FOR DEVICES","THAT WERE NOT SAVED.",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_HOME_RETRY] = {{"DEVICE NOT FOUND"," SAVED DEVICES"," PAIR NEW MOUSE"," LEARN THE KEYS",EMPTY,"KEY A: RETRY SEARCH","JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY X: HELP"},0},
@@ -54,7 +55,8 @@ static blu2usb_ux_command_t no_command(void) {
 }
 
 static bool is_help(blu2usb_screen_id_t screen) {
-    return screen == BLU2USB_SCREEN_HOME_SEARCHING_HELP ||
+    return screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED ||
+           screen == BLU2USB_SCREEN_HOME_SEARCHING_HELP ||
            screen == BLU2USB_SCREEN_HOME_RETRY_HELP ||
            screen == BLU2USB_SCREEN_HELP_PAIR_NEW ||
            screen == BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW ||
@@ -154,6 +156,7 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
     blu2usb_interaction_init(&ux->interaction);
     ux->screen = BLU2USB_SCREEN_HOME;
     ux->return_screen = BLU2USB_SCREEN_HOME;
+    ux->return_selection = 0u;
     ux->selection = 0;
     ux->status_page = 0;
     ux->saved_page = 0;
@@ -247,6 +250,15 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
          * HOME RETRY and the interaction is consumed. */
         ux->screen = BLU2USB_SCREEN_HOME_RETRY;
         ux->selection = 0u;
+        return cmd;
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED) {
+        const blu2usb_screen_id_t target = ux->return_screen;
+        const unsigned selection = ux->return_selection;
+        enter(ux, target);
+        if (ux->screen == BLU2USB_SCREEN_HOME)
+            ux->selection = selection % 4u;
         return cmd;
     }
 
@@ -351,7 +363,9 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
 
     if (ux->screen == BLU2USB_SCREEN_HOME &&
         control == BLU2USB_CONTROL_KEY_X) {
-        /* HOPE-28 owns help-home-connected. */
+        ux->return_screen = BLU2USB_SCREEN_HOME;
+        ux->return_selection = ux->selection;
+        enter(ux, BLU2USB_SCREEN_HELP_HOME_CONNECTED);
         return cmd;
     }
 

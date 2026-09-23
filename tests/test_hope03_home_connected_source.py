@@ -31,8 +31,9 @@ home_dest = """static const blu2usb_screen_id_t dest[4] = {
         };"""
 assert home_dest in ux
 
-# HOPE-28 remains future: X is visible but inert.
-assert "HOPE-28 owns help-home-connected" in ux
+# HOPE-28 now canonically owns the contextual HOME Help. HOPE-03 continues
+# freezing the HOME shell and must not forbid the next accepted screen.
+assert "BLU2USB_SCREEN_HELP_HOME_CONNECTED" in ux
 
 # Device Name is read after security and before HIDS, best effort.
 assert "ORG_BLUETOOTH_CHARACTERISTIC_GAP_DEVICE_NAME" in ble
