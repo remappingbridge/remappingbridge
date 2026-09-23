@@ -58,7 +58,7 @@ static void assert_row_tone(const blu2usb_ui_frame_t *frame,
 static void test_exact_layout(void)
 {
     static const char *const expected[9] = {
-        "MOUSE OPTIONS",
+        "REMAPPING OPTIONS",
         " PASSTHROUGH",
         " STANDARD REMAP",
         " ESCAPE REMAP",
@@ -175,8 +175,11 @@ static void test_back_help_and_lock(void)
     init_remapper(&ux);
     ux.selection = 2u;
     tap(&ux, BLU2USB_CONTROL_KEY_X);
+    assert(ux.screen == BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS);
+    tap(&ux, BLU2USB_CONTROL_KEY_Y);
     assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
     assert(ux.selection == 2u);
+    assert(!blu2usb_interaction_is_locked(&ux.interaction));
 
     tap(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_HOME);
@@ -197,10 +200,55 @@ static void test_back_help_and_lock(void)
     assert(ux.screen == BLU2USB_SCREEN_HOME);
 }
 
+
+static void test_profile_change_cyan_is_exclusive(void)
+{
+    blu2usb_ux_model_t ux;
+    blu2usb_ui_frame_t frame;
+    init_remapper(&ux);
+
+    /* Passthrough is initially authoritative. Select Standard so the selected
+     * row is white while only Passthrough is cyan. */
+    ux.active_profile = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
+    ux.selection = 1u;
+    project(&ux, &frame);
+    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_CURRENT);
+    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_EMPHASIZED);
+    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_ACTIONABLE);
+    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_ACTIONABLE);
+
+    /* Simulate confirmed runtime+persistence Standard apply, return to options
+     * and select an unrelated row. The old Passthrough row must lose cyan. */
+    blu2usb_ux_profile_applied(&ux, BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP);
+    tap(&ux, BLU2USB_CONTROL_KEY_B);
+    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
+    ux.selection = 3u;
+    project(&ux, &frame);
+    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_ACTIONABLE);
+    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_CURRENT);
+    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_ACTIONABLE);
+    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_EMPHASIZED);
+
+    /* Repeat once more to freeze against accumulating cyan rows. */
+    ux.selection = 2u;
+    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen == BLU2USB_SCREEN_APPLY_ESCAPE);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_A);
+    blu2usb_ux_profile_applied(&ux, BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP);
+    tap(&ux, BLU2USB_CONTROL_KEY_B);
+    ux.selection = 0u;
+    project(&ux, &frame);
+    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_EMPHASIZED);
+    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_ACTIONABLE);
+    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_CURRENT);
+    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_ACTIONABLE);
+}
+
 int main(void)
 {
     test_exact_layout();
     test_active_profile_and_selection_tones();
+    test_profile_change_cyan_is_exclusive();
     test_navigation();
     test_back_help_and_lock();
     return 0;
