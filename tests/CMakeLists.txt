@@ -89,3 +89,10 @@ target_link_libraries(blu2usb_test_hope08_home_searching PRIVATE
     blu2usb_ux_model
 )
 add_test(NAME hope08_home_searching COMMAND blu2usb_test_hope08_home_searching)
+
+add_executable(blu2usb_test_hope24_home_searching_help test_hope24_home_searching_help.c)
+target_link_libraries(blu2usb_test_hope24_home_searching_help PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME hope24_home_searching_help COMMAND blu2usb_test_hope24_home_searching_help)
