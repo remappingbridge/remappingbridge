@@ -13,6 +13,7 @@
 #define BLE_HOGP_VENDOR_SERVICE_MS 20u
 #define BLE_HOGP_BONDED_RECONNECT_TIMEOUT_MS 8000u
 #define BLE_HOGP_PAIR_NEW_TIMEOUT_MS 15000u
+#define BLE_HOGP_MOUSE_NAME_CAPACITY 64u
 
 _Static_assert(sizeof(blu2usb_canonical_mouse_event_t) <= BLU2USB_BT_RUNTIME_MESSAGE_PAYLOAD_SIZE,
                "canonical mouse event must fit runtime message");
@@ -23,6 +24,7 @@ typedef enum {
     BLE_HOGP_STATE_SCANNING,
     BLE_HOGP_STATE_CONNECTING,
     BLE_HOGP_STATE_SECURING,
+    BLE_HOGP_STATE_READING_NAME,
     BLE_HOGP_STATE_CONNECTING_HIDS,
     BLE_HOGP_STATE_READY,
     BLE_HOGP_STATE_DISCONNECTING,
@@ -33,6 +35,7 @@ typedef enum {
     BLE_PAIR_NEW_SCANNING,
     BLE_PAIR_NEW_CONNECTING,
     BLE_PAIR_NEW_SECURING,
+    BLE_PAIR_NEW_READING_NAME,
     BLE_PAIR_NEW_CONNECTING_HIDS,
     BLE_PAIR_NEW_READY,
     BLE_PAIR_NEW_DISCONNECTING,
@@ -49,6 +52,7 @@ static bd_addr_t g_remote_address;
 static bd_addr_type_t g_remote_address_type;
 static hci_con_handle_t g_connection_handle = HCI_CON_HANDLE_INVALID;
 static uint16_t g_hids_cid;
+static char g_current_mouse_name[BLE_HOGP_MOUSE_NAME_CAPACITY];
 static uint8_t g_descriptor_storage[BLE_HOGP_DESCRIPTOR_STORAGE_SIZE];
 static blu2usb_ble_hogp_parser_t g_parser;
 static ble_hogp_rejected_device_t g_rejected_devices[BLE_HOGP_REJECTED_DEVICE_CAPACITY];
@@ -75,6 +79,7 @@ static bd_addr_t g_pair_new_address;
 static bd_addr_type_t g_pair_new_address_type;
 static hci_con_handle_t g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
 static uint16_t g_pair_new_hids_cid;
+static char g_pair_new_mouse_name[BLE_HOGP_MOUSE_NAME_CAPACITY];
 static blu2usb_ble_hogp_parser_t g_pair_new_parser;
 static btstack_timer_source_t g_pair_new_timer;
 static bool g_pair_new_timer_active;
@@ -86,10 +91,14 @@ static bool g_vendor_registered;
 
 static void handle_gatt_client_event(uint8_t packet_type, uint16_t channel,
                                      uint8_t *packet, uint16_t size);
+static void handle_name_gatt_event(uint8_t packet_type, uint16_t channel,
+                                   uint8_t *packet, uint16_t size);
 static void start_scan(void);
 static void reconnect_or_scan(void);
 static void pair_new_resume_scan(void);
 static void pair_new_finalize_promotion(void);
+static void read_current_mouse_name(void);
+static void read_pair_new_mouse_name(void);
 static void service_vendor_output(void);
 
 bool blu2usb_ble_hogp_register_vendor_backend(
@@ -230,6 +239,7 @@ static void pair_new_clear_candidate(void)
 {
     memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
     g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
+    g_pair_new_mouse_name[0] = '\0';
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
     g_pair_new_hids_cid = 0u;
     memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
