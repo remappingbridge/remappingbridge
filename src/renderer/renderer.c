@@ -190,45 +190,13 @@ static void project_searching_first_pressed(const blu2usb_ux_model_t *ux,
         (void)blu2usb_ui_frame_set_tone_span(frame,8,15,5,BLU2USB_UI_TONE_EMPHASIZED);
 }
 
-static void project_learn_pressed(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
-{
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_UP))
-        (void)blu2usb_ui_frame_set_tone_span(frame,1,6,6,BLU2USB_UI_TONE_EMPHASIZED);
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_LEFT)) {
-        (void)blu2usb_ui_frame_set_tone_span(frame,2,0,3,BLU2USB_UI_TONE_EMPHASIZED);
-        (void)blu2usb_ui_frame_set_tone_span(frame,3,0,4,BLU2USB_UI_TONE_EMPHASIZED);
-    }
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_PRESS)) {
-        (void)blu2usb_ui_frame_set_tone_span(frame,2,7,3,BLU2USB_UI_TONE_EMPHASIZED);
-        (void)blu2usb_ui_frame_set_tone_span(frame,3,6,5,BLU2USB_UI_TONE_EMPHASIZED);
-    }
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_RIGHT)) {
-        (void)blu2usb_ui_frame_set_tone_span(frame,2,14,3,BLU2USB_UI_TONE_EMPHASIZED);
-        (void)blu2usb_ui_frame_set_tone_span(frame,3,13,5,BLU2USB_UI_TONE_EMPHASIZED);
-    }
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_JOY_DOWN))
-        (void)blu2usb_ui_frame_set_tone_span(frame,4,5,8,BLU2USB_UI_TONE_EMPHASIZED);
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_KEY_A))
-        (void)blu2usb_ui_frame_set_tone_span(frame,5,15,5,BLU2USB_UI_TONE_EMPHASIZED);
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_KEY_B))
-        (void)blu2usb_ui_frame_set_tone_span(frame,6,15,5,BLU2USB_UI_TONE_EMPHASIZED);
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_KEY_X))
-        (void)blu2usb_ui_frame_set_tone_span(frame,7,15,5,BLU2USB_UI_TONE_EMPHASIZED);
-    if (blu2usb_interaction_is_pressed(&ux->interaction, BLU2USB_CONTROL_KEY_Y)) {
-        (void)blu2usb_ui_frame_set_tone_span(frame,6,0,11,BLU2USB_UI_TONE_EMPHASIZED);
-        (void)blu2usb_ui_frame_set_tone_span(frame,7,1,10,BLU2USB_UI_TONE_EMPHASIZED);
-        (void)blu2usb_ui_frame_set_tone_span(frame,8,2,18,BLU2USB_UI_TONE_EMPHASIZED);
-    }
-}
-
 void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
 {
     if (ux == NULL || frame == NULL) return;
     const blu2usb_screen_template_t *screen = blu2usb_ux_screen_template(ux->screen);
     if (screen == NULL) return;
-    const bool learn = ux->screen == BLU2USB_SCREEN_LEARN_KEYS;
-    const bool searching_first = ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST;
-    const bool didactic_full_background = learn || searching_first;
+    const bool searching_first = ux->screen == BLU2USB_SCREEN_LEARN_KEYS;
+    const bool didactic_full_background = searching_first;
     const bool success_feedback = is_success_feedback(ux->screen);
     const bool custom_feedback = ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM &&
         ux->active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP && !ux->custom_dirty;
@@ -253,10 +221,6 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
 
     if (searching_first) {
         project_searching_first_pressed(ux,frame);
-        return;
-    }
-    if (learn) {
-        project_learn_pressed(ux,frame);
         return;
     }
 
