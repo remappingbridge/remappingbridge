@@ -166,6 +166,27 @@ static void test_runtime_queue_and_decode(void)
     CHECK(blu2usb_ble_hogp_decode_runtime_message(&message, &event));
     CHECK(event.type == BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_TIMEOUT);
 
+    CHECK(blu2usb_bt_runtime_publish(BLU2USB_BLE_HOGP_RUNTIME_CHANNEL,
+                                      BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_STARTED,
+                                      NULL, 0u));
+    CHECK(blu2usb_bt_runtime_poll(&message));
+    CHECK(blu2usb_ble_hogp_decode_runtime_message(&message, &event));
+    CHECK(event.type == BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_STARTED);
+
+    CHECK(blu2usb_bt_runtime_publish(BLU2USB_BLE_HOGP_RUNTIME_CHANNEL,
+                                      BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_TIMEOUT,
+                                      NULL, 0u));
+    CHECK(blu2usb_bt_runtime_poll(&message));
+    CHECK(blu2usb_ble_hogp_decode_runtime_message(&message, &event));
+    CHECK(event.type == BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_TIMEOUT);
+
+    CHECK(blu2usb_bt_runtime_publish(BLU2USB_BLE_HOGP_RUNTIME_CHANNEL,
+                                      BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_PROMOTED,
+                                      NULL, 0u));
+    CHECK(blu2usb_bt_runtime_poll(&message));
+    CHECK(blu2usb_ble_hogp_decode_runtime_message(&message, &event));
+    CHECK(event.type == BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED);
+
     blu2usb_bt_runtime_reset();
     for (unsigned int index = 0u; index < BLU2USB_BT_RUNTIME_QUEUE_CAPACITY; ++index) {
         CHECK(blu2usb_bt_runtime_publish(1u, 1u, NULL, 0u));
