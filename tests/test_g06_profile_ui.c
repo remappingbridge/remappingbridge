@@ -327,14 +327,16 @@ static void test_connected_mouse_marks_pair_and_opens_paired_feedback(void)
     assert(ux.screen == BLU2USB_SCREEN_MOUSE_SAVED);
 
     project_physical(&ux, &frame);
-    assert_row_text(&frame, 0u, "MOUSE PAIRED");
-    assert_row_text(&frame, 1u, "MOUSE CONNECTED");
-    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_CURRENT);
-    assert_row_text(&frame, 2u, "READY TO USE");
-    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_CURRENT);
+    assert_row_text(&frame, 0u, "FIRST MOUSE CONNECTED");
+    assert_row_text(&frame, 1u, "       JOY UP");
+    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_ACTIONABLE);
+    assert_row_text(&frame, 8u, " KEY Y: LOCK");
+    assert_row_tone(&frame, 8u, BLU2USB_UI_TONE_ACTIONABLE);
 
+    /* HOPE-02 replaces the old success screen in-place; Back is now
+     * instructional only and must not leave the screen. */
     press_release(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
+    assert(ux.screen == BLU2USB_SCREEN_MOUSE_SAVED);
 }
 
 int main(void)

@@ -52,6 +52,7 @@ typedef struct {
 typedef struct {
     blu2usb_ui_cell_t cells[BLU2USB_RENDERER_TEXT_ROWS][BLU2USB_RENDERER_TEXT_COLS];
     bool learn_background;
+    bool didactic_layout;
     uint8_t hint_start_row;
 } blu2usb_ui_frame_t;
 
