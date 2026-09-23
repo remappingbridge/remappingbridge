@@ -19,6 +19,9 @@ typedef enum {
     BLU2USB_BLE_HOGP_MESSAGE_MOUSE = 3,
     BLU2USB_BLE_HOGP_MESSAGE_SAVED_SEARCH_STARTED = 4,
     BLU2USB_BLE_HOGP_MESSAGE_SAVED_SEARCH_TIMEOUT = 5,
+    BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_STARTED = 6,
+    BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_TIMEOUT = 7,
+    BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_PROMOTED = 8,
 } blu2usb_ble_hogp_message_type_t;
 
 typedef enum {
@@ -68,6 +71,9 @@ typedef enum {
     BLU2USB_BLE_HOGP_EVENT_MOUSE,
     BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_STARTED,
     BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_TIMEOUT,
+    BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_STARTED,
+    BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_TIMEOUT,
+    BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED,
 } blu2usb_ble_hogp_event_type_t;
 
 typedef struct {
@@ -122,5 +128,7 @@ bool blu2usb_ble_hogp_start(void);
 unsigned blu2usb_ble_hogp_pico_bonded_mouse_count(void);
 void blu2usb_ble_hogp_pico_request_saved_search(void);
 void blu2usb_ble_hogp_pico_cancel_saved_search(void);
+void blu2usb_ble_hogp_pico_request_pair_new(void);
+void blu2usb_ble_hogp_pico_cancel_pair_new(void);
 
 #endif
