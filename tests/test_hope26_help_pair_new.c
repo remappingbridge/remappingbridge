@@ -78,19 +78,19 @@ static void test_x_opens_help(void)
     tap(&ux, BLU2USB_CONTROL_KEY_X);
 
     assert(ux.screen == BLU2USB_SCREEN_HELP_PAIR_NEW);
-    assert(ux.return_screen == BLU2USB_SCREEN_PAIR_MOUSE);
+    assert(ux.return_screen == BLU2USB_SCREEN_RETRY_PAIR_NEW);
     assert(ux.selection == 0u);
     assert(!blu2usb_interaction_is_locked(&ux.interaction));
 }
 
-static void test_any_key_returns_pair_placeholder_consumed(void)
+static void test_any_key_returns_retry_consumed(void)
 {
     for (unsigned raw = 0u; raw < BLU2USB_CONTROL_COUNT; ++raw) {
         blu2usb_ux_model_t ux;
         blu2usb_ux_init(&ux);
         blu2usb_ux_set_saved_device_count(&ux, 1u);
         ux.screen = BLU2USB_SCREEN_HELP_PAIR_NEW;
-        ux.return_screen = BLU2USB_SCREEN_PAIR_MOUSE;
+        ux.return_screen = BLU2USB_SCREEN_RETRY_PAIR_NEW;
 
         const blu2usb_control_t control = (blu2usb_control_t)raw;
         const blu2usb_ux_command_t press =
@@ -102,7 +102,7 @@ static void test_any_key_returns_pair_placeholder_consumed(void)
         const blu2usb_ux_command_t release =
             blu2usb_ux_input(&ux, control, false);
         assert(release.kind == BLU2USB_UX_COMMAND_NONE);
-        assert(ux.screen == BLU2USB_SCREEN_PAIR_MOUSE);
+        assert(ux.screen == BLU2USB_SCREEN_RETRY_PAIR_NEW);
         assert(ux.selection == 0u);
         assert(!blu2usb_interaction_is_locked(&ux.interaction));
     }
@@ -112,6 +112,6 @@ int main(void)
 {
     test_exact_layout();
     test_x_opens_help();
-    test_any_key_returns_pair_placeholder_consumed();
+    test_any_key_returns_retry_consumed();
     return 0;
 }
