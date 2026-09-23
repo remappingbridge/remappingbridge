@@ -18,15 +18,12 @@ cancel_guard = """if (screen_before == BLU2USB_SCREEN_PAIR_MOUSE &&
 assert cancel_guard in app
 assert "blu2usb_ble_hogp_pico_cancel_pair_new();" in app
 
-# Returning from Help uses Pair New only as the temporary HOPE-07 retry
-# placeholder. It must not request a fresh 15-second Pair New operation.
-request_guard = """screen_before != BLU2USB_SCREEN_PAIR_MOUSE &&
-                screen_before != BLU2USB_SCREEN_HELP_PAIR_NEW &&
-                ux.screen == BLU2USB_SCREEN_PAIR_MOUSE"""
-assert request_guard in app
+# HOPE-07 now owns the post-Help retry state. HOPE-26 must continue to
+# prove that Help cancellation does not itself restart Pair New.
+assert "BLU2USB_SCREEN_RETRY_PAIR_NEW" in ux_h
+assert "NO NEW MOUSE OUTSIDE" in ux
 
-# HOPE-07 / HOPE-27 visuals must not be introduced early.
-assert "NO NEW MOUSE OUTSIDE" not in ux
+# HOPE-27 remains future.
 assert "DEVICE NOT FOUND HELP" not in ux
 
 print("HOPE-26 help-pair-new source invariants: OK")
