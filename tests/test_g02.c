@@ -32,7 +32,9 @@ static void test_action_on_release_and_wrap(void) {
 static void test_status_pagination_and_help(void) {
     blu2usb_ux_model_t ux;
     blu2usb_ux_init(&ux);
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    /* HOPE-03 repurposes HOME selection 0 as the remap summary. Keep the
+     * legacy status-page regression focused on the status screen itself. */
+    ux.screen = BLU2USB_SCREEN_MOUSE_STATUS;
     assert(ux.screen == BLU2USB_SCREEN_MOUSE_STATUS);
     (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_LEFT, true);
     assert(ux.screen == BLU2USB_SCREEN_MOUSE_STATUS);
@@ -88,9 +90,10 @@ static void test_transport_neutral_keyboard(void) {
 static void test_custom_editor_offline_and_escape_target(void) {
     blu2usb_ux_model_t ux;
     blu2usb_ux_init(&ux);
-    ux.selection = 1;
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
+    /* HOME now routes selection 0 to the legacy Mouse Options destination
+     * until HOPE-10 replaces it in-place. Enter directly to keep this G02
+     * custom-editor regression independent from the evolving HOME shell. */
+    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
     ux.selection = 4;
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
