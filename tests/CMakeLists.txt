@@ -75,3 +75,10 @@ target_link_libraries(blu2usb_test_hope01_searching_first PRIVATE
     blu2usb_ux_model
 )
 add_test(NAME hope01_searching_first COMMAND blu2usb_test_hope01_searching_first)
+
+add_executable(blu2usb_test_hope02_first_mouse_connected test_hope02_first_mouse_connected.c)
+target_link_libraries(blu2usb_test_hope02_first_mouse_connected PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME hope02_first_mouse_connected COMMAND blu2usb_test_hope02_first_mouse_connected)
