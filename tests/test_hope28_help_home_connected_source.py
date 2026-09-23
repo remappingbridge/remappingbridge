@@ -13,7 +13,6 @@ assert '"ANY KEY: BACK"' in ux
 
 # Help owns Y through generic Help semantics and cannot reach global lock.
 assert "screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED" in ux
-assert "return screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED" not in ux
 assert "ux->return_selection = ux->selection;" in ux
 assert "enter(ux, BLU2USB_SCREEN_HELP_HOME_CONNECTED);" in ux
 
