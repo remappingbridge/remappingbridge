@@ -96,6 +96,12 @@ static bool g_idle_after_disconnect;
 static bool g_saved_search_active;
 static atomic_bool g_saved_search_request = ATOMIC_VAR_INIT(false);
 static atomic_bool g_saved_search_cancel = ATOMIC_VAR_INIT(false);
+static atomic_int g_remove_saved_request = ATOMIC_VAR_INIT(-1);
+static bool g_remove_disconnect_pending;
+static bool g_remove_target_valid;
+static bd_addr_type_t g_remove_target_type;
+static bd_addr_t g_remove_target_address;
+static sm_key_t g_remove_target_irk;
 
 static ble_pair_new_state_t g_pair_new_state;
 static bool g_pair_new_active;
@@ -134,8 +140,12 @@ static void read_pair_new_mouse_name(void);
 static void service_vendor_output(void);
 static void saved_names_load(void);
 static void saved_names_remember_bond(int bond_index, const char *name);
+static void saved_names_remove_identity(bd_addr_type_t address_type,
+                                        const bd_addr_t address,
+                                        const sm_key_t irk);
 static void dedupe_current_bond(void);
 static int resolve_current_bond_index(void);
+static void service_remove_saved_request(void);
 
 static bool bond_slot_info(int slot,
                            bd_addr_type_t *address_type,
@@ -396,6 +406,80 @@ static void saved_names_remember_bond(int bond_index, const char *name)
     if (memcmp(&candidate, &g_saved_names[slot], sizeof(candidate)) == 0) return;
     g_saved_names[slot] = candidate;
     (void)saved_names_store();
+}
+
+static void saved_names_remove_identity(bd_addr_type_t address_type,
+                                        const bd_addr_t address,
+                                        const sm_key_t irk)
+{
+    saved_names_load();
+    bool changed = false;
+    for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index) {
+        ble_hogp_saved_name_t *entry = &g_saved_names[index];
+        if (!entry->used) continue;
+        if (!bond_identity_equal(entry->address_type, entry->address, entry->irk,
+                                 address_type, address, irk))
+            continue;
+        memset(entry, 0, sizeof(*entry));
+        changed = true;
+    }
+    if (changed) (void)saved_names_store();
+}
+
+static void remove_bonds_for_identity(bd_addr_type_t address_type,
+                                      const bd_addr_t address,
+                                      const sm_key_t irk)
+{
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t saved_address;
+        sm_key_t saved_irk;
+        if (!bond_slot_info(slot, &type, saved_address, saved_irk)) continue;
+        if (bond_identity_equal(type, saved_address, saved_irk,
+                                address_type, address, irk))
+            le_device_db_remove(slot);
+    }
+}
+
+static bool capture_logical_identity(int logical_bond,
+                                     bd_addr_type_t *address_type,
+                                     bd_addr_t address,
+                                     sm_key_t irk)
+{
+    const int slot = bond_slot_for_ordinal(logical_bond);
+    return slot >= 0 &&
+        bond_slot_info(slot, address_type, address, irk);
+}
+
+static bool current_matches_identity(bd_addr_type_t address_type,
+                                     const bd_addr_t address,
+                                     const sm_key_t irk)
+{
+    const int current_slot = resolve_current_bond_index();
+    bd_addr_type_t current_type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t current_address;
+    sm_key_t current_irk;
+    return bond_slot_info(current_slot, &current_type,
+                          current_address, current_irk) &&
+        bond_identity_equal(current_type, current_address, current_irk,
+                            address_type, address, irk);
+}
+
+static void complete_remove_target(void)
+{
+    if (!g_remove_target_valid) return;
+
+    saved_names_remove_identity(g_remove_target_type,
+                                g_remove_target_address,
+                                g_remove_target_irk);
+    remove_bonds_for_identity(g_remove_target_type,
+                              g_remove_target_address,
+                              g_remove_target_irk);
+    (void)gap_load_resolving_list_from_le_device_db();
+
+    g_remove_target_valid = false;
+    g_current_bond_index = -1;
+    (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVED);
 }
 
 static void dedupe_current_bond(void)
@@ -1058,6 +1142,56 @@ static void service_saved_search_requests(void)
     }
 }
 
+static void service_remove_saved_request(void)
+{
+    const int logical_bond = atomic_exchange_explicit(
+        &g_remove_saved_request, -1, memory_order_acq_rel);
+    if (logical_bond < 0) return;
+
+    if (g_pair_new_state != BLE_PAIR_NEW_IDLE ||
+        g_pair_new_handoff_pending || g_pair_new_cancel_pending ||
+        g_reconnect_cancel_pending ||
+        (g_state != BLE_HOGP_STATE_IDLE &&
+         g_state != BLE_HOGP_STATE_READY)) {
+        atomic_store_explicit(
+            &g_remove_saved_request, logical_bond, memory_order_release);
+        return;
+    }
+
+    bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!capture_logical_identity(logical_bond, &address_type, address, irk))
+        return;
+
+    g_remove_target_valid = true;
+    g_remove_target_type = address_type;
+    memcpy(g_remove_target_address, address, sizeof(bd_addr_t));
+    memcpy(g_remove_target_irk, irk, sizeof(sm_key_t));
+
+    if (g_state == BLE_HOGP_STATE_READY &&
+        g_connection_handle != HCI_CON_HANDLE_INVALID &&
+        current_matches_identity(address_type, address, irk)) {
+        stop_reconnect_timer();
+        g_saved_search_active = false;
+        g_reconnect_after_disconnect = false;
+        g_idle_after_disconnect = false;
+        g_remove_disconnect_pending = true;
+        if (g_vendor_registered)
+            g_vendor_backend.session(g_vendor_backend.context, false);
+        g_state = BLE_HOGP_STATE_DISCONNECTING;
+        gap_disconnect(g_connection_handle);
+        return;
+    }
+
+    complete_remove_target();
+
+    if (bond_unique_count() == 0 &&
+        g_connection_handle == HCI_CON_HANDLE_INVALID &&
+        g_state == BLE_HOGP_STATE_IDLE)
+        start_scan();
+}
+
 static void service_pair_new_cancel_request(void)
 {
     if (atomic_exchange_explicit(&g_pair_new_cancel, false, memory_order_acq_rel))
@@ -1077,6 +1211,7 @@ static void vendor_timer_handler(btstack_timer_source_t *timer)
     (void)timer;
     service_pair_new_cancel_request();
     service_saved_search_requests();
+    service_remove_saved_request();
     service_pair_new_requests();
     service_vendor_output();
     btstack_run_loop_set_timer(&g_vendor_timer, BLE_HOGP_VENDOR_SERVICE_MS);
@@ -1389,6 +1524,25 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
         const hci_con_handle_t disconnected =
             hci_event_disconnection_complete_get_connection_handle(packet);
 
+        if (g_remove_disconnect_pending &&
+            disconnected == g_connection_handle) {
+            g_remove_disconnect_pending = false;
+            g_connection_handle = HCI_CON_HANDLE_INVALID;
+            g_hids_cid = 0u;
+            memset(&g_parser, 0, sizeof(g_parser));
+            g_current_mouse_name[0] = '\0';
+            g_state = BLE_HOGP_STATE_IDLE;
+
+            (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_DISCONNECTED);
+            complete_remove_target();
+
+            if (bond_unique_count() > 0)
+                (void)start_bonded_reconnect();
+            else
+                start_scan();
+            break;
+        }
+
         if (g_pair_new_handoff_pending &&
             disconnected == g_connection_handle) {
             g_connection_handle = HCI_CON_HANDLE_INVALID;
@@ -1568,6 +1722,12 @@ static void ble_hogp_session_setup(void)
     g_saved_search_active = false;
     atomic_store_explicit(&g_saved_search_request, false, memory_order_relaxed);
     atomic_store_explicit(&g_saved_search_cancel, false, memory_order_relaxed);
+    atomic_store_explicit(&g_remove_saved_request, -1, memory_order_relaxed);
+    g_remove_disconnect_pending = false;
+    g_remove_target_valid = false;
+    g_remove_target_type = BD_ADDR_TYPE_UNKNOWN;
+    memset(g_remove_target_address, 0, sizeof(g_remove_target_address));
+    memset(g_remove_target_irk, 0, sizeof(g_remove_target_irk));
 
     g_pair_new_state = BLE_PAIR_NEW_IDLE;
     g_pair_new_active = false;
@@ -1664,4 +1824,11 @@ void blu2usb_ble_hogp_pico_request_pair_new(void)
 void blu2usb_ble_hogp_pico_cancel_pair_new(void)
 {
     atomic_store_explicit(&g_pair_new_cancel, true, memory_order_release);
+}
+
+void blu2usb_ble_hogp_pico_request_remove_saved_mouse(int logical_bond)
+{
+    if (logical_bond < 0) return;
+    atomic_store_explicit(
+        &g_remove_saved_request, logical_bond, memory_order_release);
 }
