@@ -239,7 +239,9 @@ static void project_saved_devices(const blu2usb_ux_model_t *ux,
     char title[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char name[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char profile[BLU2USB_RENDERER_TEXT_COLS + 1u];
-    const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
+    const int bond = ux->remove_target_bond >= 0
+        ? ux->remove_target_bond
+        : blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
     const bool current =
         blu2usb_ux_mouse_connected() &&
         bond >= 0 &&
