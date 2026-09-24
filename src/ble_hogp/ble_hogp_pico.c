@@ -1215,19 +1215,13 @@ int blu2usb_ble_hogp_pico_current_bond_index(void)
     if (g_state != BLE_HOGP_STATE_READY ||
         g_connection_handle == HCI_CON_HANDLE_INVALID) return -1;
 
-    const int count = le_device_db_count();
-    for (int index = 0; index < count; ++index) {
-        int saved_type = 0;
-        bd_addr_t saved_address;
-        sm_key_t irk;
-        memset(saved_address, 0, sizeof(saved_address));
-        memset(irk, 0, sizeof(irk));
-        le_device_db_info(index, &saved_type, saved_address, irk);
-        if ((bd_addr_type_t)saved_type == g_remote_address_type &&
-            memcmp(saved_address, g_remote_address, sizeof(bd_addr_t)) == 0)
-            return index;
-    }
-    return -1;
+    /* Ask BTstack's Security Manager for the LE Device DB identity that
+     * belongs to this connection. Comparing the current GAP peer address
+     * against the persisted bond address is incorrect when BLE Privacy/RPA
+     * is in use: the live address may be resolvable/private while the bond
+     * stores the peer identity address. */
+    const int index = sm_le_device_index(g_connection_handle);
+    return index >= 0 && index < le_device_db_count() ? index : -1;
 }
 
 const char *blu2usb_ble_hogp_pico_current_mouse_name(void)
