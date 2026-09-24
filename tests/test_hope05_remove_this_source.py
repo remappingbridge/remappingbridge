@@ -21,8 +21,7 @@ assert "ux->remove_target_bond =" in ux
 assert "blu2usb_ux_saved_page_for_bond" in ux
 assert "ux->remove_pending = true;" in ux
 assert "cmd.saved_bond = ux->remove_target_bond;" in ux
-assert "HOPE-30 owns KEY X / help-remove-this" in ux
-assert "BLU2USB_SCREEN_HELP_REMOVE_THIS" not in ux_h
+assert "KEY X: HELP" in ux
 
 assert "project_remove_this" in renderer
 assert "ux->remove_target_bond >= 0" in renderer
