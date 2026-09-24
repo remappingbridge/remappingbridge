@@ -109,10 +109,6 @@ static void test_back_cancel_hidden_controls_and_pair_new(void)
     click(&ux,BLU2USB_CONTROL_KEY_B);
     assert(ux.screen==BLU2USB_SCREEN_MOUSE_OPTIONS);
 
-    ux.screen=BLU2USB_SCREEN_PAIR_KEYBOARD;
-    click(&ux,BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen==BLU2USB_SCREEN_OTHER_OPTIONS);
-
     ux.screen=BLU2USB_SCREEN_LEFT_WILL_BECOME;
     ux.selection=0u;
     click(&ux,BLU2USB_CONTROL_JOY_UP);

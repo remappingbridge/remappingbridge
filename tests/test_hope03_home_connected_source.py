@@ -49,9 +49,12 @@ assert "gatt_event_characteristic_value_query_result_get_value" in ble
 assert "g_pair_new_mouse_name[BLE_HOGP_MOUSE_NAME_CAPACITY]" in ble
 assert "memcpy(g_current_mouse_name, g_pair_new_mouse_name" in ble
 
-# App synchronizes the authoritative name on normal connect and Pair New promotion,
-# and clears it on disconnect.
-assert app.count("blu2usb_ble_hogp_pico_current_mouse_name()") >= 2
+# App synchronizes the authoritative name on normal connect and Pair New promotion
+# through the centralized saved-Mouse synchronization path, and clears only the
+# connection-scoped HOME name on disconnect.
+assert "static void synchronize_saved_mice" in app
+assert "const char *current_name = blu2usb_ble_hogp_pico_current_mouse_name();" in app
+assert app.count("synchronize_saved_mice(ux, true)") >= 2
 assert "blu2usb_ux_set_current_mouse_name(ux, NULL);" in app
 assert "const char *blu2usb_ble_hogp_pico_current_mouse_name(void);" in ble_h
 

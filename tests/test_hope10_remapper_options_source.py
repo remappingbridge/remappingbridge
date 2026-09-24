@@ -13,7 +13,7 @@ assert "case BLU2USB_SCREEN_MOUSE_OPTIONS: return 4;" in ux
 
 # Pair New is not an option here anymore.
 start = ux.index("if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS && control == BLU2USB_CONTROL_JOY_PRESS)")
-end = ux.index("if (ux->screen == BLU2USB_SCREEN_OTHER_OPTIONS", start)
+end = ux.index("if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM", start)
 block = ux[start:end]
 assert "BLU2USB_SCREEN_PAIR_MOUSE" not in block
 assert "BLU2USB_UX_COMMAND_PAIR_MOUSE" not in block

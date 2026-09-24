@@ -35,9 +35,7 @@ static void set_row_current_preserving_selection(blu2usb_ui_frame_t *frame,
 
 static bool is_success_feedback(blu2usb_screen_id_t screen)
 {
-    return screen == BLU2USB_SCREEN_KEYBOARD_SAVED ||
-           screen == BLU2USB_SCREEN_COMPOSITE_SAVED ||
-           screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED ||
+    return screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED ||
            screen == BLU2USB_SCREEN_DEFAULT_APPLIED ||
            screen == BLU2USB_SCREEN_ESCAPE_APPLIED;
 }

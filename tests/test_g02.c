@@ -80,13 +80,6 @@ static void test_learn_title_positions_press_and_unlock(void) {
     assert(ux.selection == 0);
 }
 
-static void test_transport_neutral_keyboard(void) {
-    const blu2usb_screen_template_t *t = blu2usb_ux_screen_template(BLU2USB_SCREEN_PAIR_KEYBOARD);
-    assert(strcmp(t->rows[1], "SEARCHING KEYBOARD") == 0);
-    assert(strstr(t->rows[1], "BLE") == 0);
-    assert(strstr(t->rows[1], "CLASSIC") == 0);
-}
-
 static void test_custom_editor_offline_and_escape_target(void) {
     blu2usb_ux_model_t ux;
     blu2usb_ux_init(&ux);
@@ -94,7 +87,7 @@ static void test_custom_editor_offline_and_escape_target(void) {
      * until HOPE-10 replaces it in-place. Enter directly to keep this G02
      * custom-editor regression independent from the evolving HOME shell. */
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 4;
+    ux.selection = 3;
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
     assert(blu2usb_ux_option_count(&ux) == 5);
@@ -108,9 +101,9 @@ static void test_custom_editor_offline_and_escape_target(void) {
     assert(strcmp(t->rows[1], " LEFT") == 0);
     assert(strcmp(t->rows[2], " RIGHT") == 0);
     assert(strcmp(t->rows[3], " MIDDLE") == 0);
-    assert(strcmp(t->rows[4], " BACKWARD") == 0);
+    assert(strcmp(t->rows[4], " ESCAPE") == 0);
     assert(strcmp(t->rows[5], " FORWARD") == 0);
-    assert(strcmp(t->rows[6], " ESCAPE") == 0);
+    assert(strcmp(t->rows[6], " BACKWARD") == 0);
     blu2usb_ux_command_t cmd = press_release_cmd(&ux, BLU2USB_CONTROL_KEY_A);
     assert(cmd.kind == BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET);
     assert(cmd.source == BLU2USB_MOUSE_SOURCE_FORWARD);
@@ -140,13 +133,13 @@ static void test_saved_pagination_wrap(void) {
     blu2usb_ux_init(&ux);
     ux.screen = BLU2USB_SCREEN_SAVED_DEVICES;
     blu2usb_ux_set_saved_device_count(&ux, 6);
-    assert(ux.saved_pages == 2 && ux.saved_page == 0);
+    assert(ux.saved_pages == 6 && ux.saved_page == 0);
     press_release(&ux, BLU2USB_CONTROL_JOY_LEFT);
-    assert(ux.saved_page == 1);
-    assert(blu2usb_ux_option_count(&ux) == 2);
+    assert(ux.saved_page == 5);
+    assert(blu2usb_ux_option_count(&ux) == 0);
     press_release(&ux, BLU2USB_CONTROL_JOY_RIGHT);
     assert(ux.saved_page == 0);
-    assert(blu2usb_ux_option_count(&ux) == 4);
+    assert(blu2usb_ux_option_count(&ux) == 0);
 }
 
 static void test_all_templates_are_9x21(void) {
@@ -164,7 +157,6 @@ int main(void) {
     test_action_on_release_and_wrap();
     test_status_pagination_and_help();
     test_learn_title_positions_press_and_unlock();
-    test_transport_neutral_keyboard();
     test_custom_editor_offline_and_escape_target();
     test_custom_template_transaction();
     test_saved_pagination_wrap();

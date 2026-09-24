@@ -3,6 +3,7 @@
 #include <stdatomic.h>
 #include <string.h>
 #include "btstack.h"
+#include "btstack_tlv.h"
 #include "ble/le_device_db.h"
 
 #define BLE_HOGP_DESCRIPTOR_STORAGE_SIZE 4096u
@@ -14,6 +15,22 @@
 #define BLE_HOGP_BONDED_RECONNECT_TIMEOUT_MS 8000u
 #define BLE_HOGP_PAIR_NEW_TIMEOUT_MS 15000u
 #define BLE_HOGP_MOUSE_NAME_CAPACITY 64u
+#define BLE_HOGP_SAVED_NAME_CAPACITY 32u
+#define BLE_HOGP_SAVED_REGISTRY_CAPACITY 8u
+#define BLE_HOGP_SAVED_REGISTRY_VERSION 2u
+#define BLE_HOGP_SAVED_REGISTRY_VERSION_V1 1u
+#define BLE_HOGP_SAVED_REGISTRY_TAG UINT32_C(0x4232534e) /* B2SN */
+#define BLE_HOGP_SAVED_REGISTRY_V1_ENTRY_SIZE \
+    (1u + 1u + 6u + BLE_HOGP_SAVED_NAME_CAPACITY)
+#define BLE_HOGP_SAVED_REGISTRY_ENTRY_SIZE \
+    (1u + 1u + 6u + 16u + BLE_HOGP_SAVED_NAME_CAPACITY)
+#define BLE_HOGP_SAVED_REGISTRY_V1_SERIALIZED_SIZE \
+    (1u + BLE_HOGP_SAVED_REGISTRY_CAPACITY * BLE_HOGP_SAVED_REGISTRY_V1_ENTRY_SIZE)
+#define BLE_HOGP_SAVED_REGISTRY_SERIALIZED_SIZE \
+    (1u + BLE_HOGP_SAVED_REGISTRY_CAPACITY * BLE_HOGP_SAVED_REGISTRY_ENTRY_SIZE)
+
+_Static_assert(BLE_HOGP_SAVED_REGISTRY_CAPACITY == NVM_NUM_DEVICE_DB_ENTRIES,
+               "saved-name registry must cover the LE Device DB");
 
 _Static_assert(sizeof(blu2usb_canonical_mouse_event_t) <= BLU2USB_BT_RUNTIME_MESSAGE_PAYLOAD_SIZE,
                "canonical mouse event must fit runtime message");
@@ -47,16 +64,27 @@ typedef struct {
     bd_addr_t address;
 } ble_hogp_rejected_device_t;
 
+typedef struct {
+    bool used;
+    bd_addr_type_t address_type;
+    bd_addr_t address;
+    sm_key_t irk;
+    char name[BLE_HOGP_SAVED_NAME_CAPACITY];
+} ble_hogp_saved_name_t;
+
 static ble_hogp_state_t g_state;
 static bd_addr_t g_remote_address;
 static bd_addr_type_t g_remote_address_type;
 static hci_con_handle_t g_connection_handle = HCI_CON_HANDLE_INVALID;
+static int g_current_bond_index = -1;
 static uint16_t g_hids_cid;
 static char g_current_mouse_name[BLE_HOGP_MOUSE_NAME_CAPACITY];
 static uint8_t g_descriptor_storage[BLE_HOGP_DESCRIPTOR_STORAGE_SIZE];
 static blu2usb_ble_hogp_parser_t g_parser;
 static ble_hogp_rejected_device_t g_rejected_devices[BLE_HOGP_REJECTED_DEVICE_CAPACITY];
 static size_t g_rejected_next;
+static ble_hogp_saved_name_t g_saved_names[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+static bool g_saved_names_loaded;
 static btstack_packet_callback_registration_t g_hci_registration;
 static btstack_packet_callback_registration_t g_sm_registration;
 static btstack_timer_source_t g_vendor_timer;
@@ -75,6 +103,8 @@ static bool g_pair_new_cancel_pending;
 static bool g_pair_new_resume_after_disconnect;
 static bool g_pair_new_handoff_pending;
 static int g_pair_new_bond_count_before;
+static int g_pair_new_unique_count_before;
+static int g_pair_new_bond_index = -1;
 static bd_addr_t g_pair_new_address;
 static bd_addr_type_t g_pair_new_address_type;
 static hci_con_handle_t g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
@@ -102,6 +132,321 @@ static void pair_new_connect_hid_service(void);
 static void read_current_mouse_name(void);
 static void read_pair_new_mouse_name(void);
 static void service_vendor_output(void);
+static void saved_names_load(void);
+static void saved_names_remember_bond(int bond_index, const char *name);
+static void dedupe_current_bond(void);
+static int resolve_current_bond_index(void);
+
+static bool bond_slot_info(int slot,
+                           bd_addr_type_t *address_type,
+                           bd_addr_t address,
+                           sm_key_t irk)
+{
+    if (slot < 0 || slot >= le_device_db_max_count()) return false;
+
+    int saved_type = (int)BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t saved_address;
+    sm_key_t saved_irk;
+    memset(saved_address, 0, sizeof(saved_address));
+    memset(saved_irk, 0, sizeof(saved_irk));
+    le_device_db_info(slot, &saved_type, saved_address, saved_irk);
+    if (saved_type == (int)BD_ADDR_TYPE_UNKNOWN) return false;
+
+    if (address_type != NULL) *address_type = (bd_addr_type_t)saved_type;
+    if (address != NULL) memcpy(address, saved_address, sizeof(bd_addr_t));
+    if (irk != NULL) memcpy(irk, saved_irk, sizeof(sm_key_t));
+    return true;
+}
+
+static bool irk_is_nonzero(const sm_key_t irk)
+{
+    if (irk == NULL) return false;
+    for (unsigned index = 0u; index < sizeof(sm_key_t); ++index)
+        if (irk[index] != 0u) return true;
+    return false;
+}
+
+static bool bond_identity_equal(bd_addr_type_t left_type,
+                                const bd_addr_t left_address,
+                                const sm_key_t left_irk,
+                                bd_addr_type_t right_type,
+                                const bd_addr_t right_address,
+                                const sm_key_t right_irk)
+{
+    if (irk_is_nonzero(left_irk) && irk_is_nonzero(right_irk) &&
+        memcmp(left_irk, right_irk, sizeof(sm_key_t)) == 0)
+        return true;
+    return left_type == right_type &&
+        memcmp(left_address, right_address, sizeof(bd_addr_t)) == 0;
+}
+
+static bool bond_slot_is_first_for_identity(int slot)
+{
+    bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!bond_slot_info(slot, &type, address, irk)) return false;
+
+    for (int prior = 0; prior < slot; ++prior) {
+        bd_addr_type_t prior_type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t prior_address;
+        sm_key_t prior_irk;
+        if (!bond_slot_info(prior, &prior_type, prior_address, prior_irk)) continue;
+        if (bond_identity_equal(type, address, irk,
+                                prior_type, prior_address, prior_irk))
+            return false;
+    }
+    return true;
+}
+
+static int bond_slot_for_ordinal(int ordinal)
+{
+    if (ordinal < 0) return -1;
+    int seen = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        if (!bond_slot_is_first_for_identity(slot)) continue;
+        if (seen == ordinal) return slot;
+        ++seen;
+    }
+    return -1;
+}
+
+static int bond_unique_count(void)
+{
+    int count = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot)
+        if (bond_slot_is_first_for_identity(slot)) ++count;
+    return count;
+}
+
+static int bond_ordinal_for_slot(int wanted_slot)
+{
+    bd_addr_type_t wanted_type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t wanted_address;
+    sm_key_t wanted_irk;
+    if (!bond_slot_info(wanted_slot, &wanted_type, wanted_address, wanted_irk))
+        return -1;
+
+    int ordinal = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        if (!bond_slot_is_first_for_identity(slot)) continue;
+
+        bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t address;
+        sm_key_t irk;
+        if (!bond_slot_info(slot, &type, address, irk)) continue;
+        if (bond_identity_equal(wanted_type, wanted_address, wanted_irk,
+                                type, address, irk))
+            return ordinal;
+        ++ordinal;
+    }
+    return -1;
+}
+
+static bool saved_identity_for_bond(int bond_slot,
+                                    bd_addr_type_t *address_type,
+                                    bd_addr_t address,
+                                    sm_key_t irk)
+{
+    return address_type != NULL && address != NULL &&
+        bond_slot_info(bond_slot, address_type, address, irk);
+}
+
+static int saved_names_find(bd_addr_type_t address_type,
+                            const bd_addr_t address,
+                            const sm_key_t irk)
+{
+    for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index) {
+        if (!g_saved_names[index].used) continue;
+        if (bond_identity_equal(
+                g_saved_names[index].address_type,
+                g_saved_names[index].address,
+                g_saved_names[index].irk,
+                address_type, address, irk))
+            return (int)index;
+    }
+    return -1;
+}
+
+static int saved_names_free_slot(void)
+{
+    for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index)
+        if (!g_saved_names[index].used) return (int)index;
+    return -1;
+}
+
+static bool saved_names_store(void)
+{
+    const btstack_tlv_t *tlv = NULL;
+    void *context = NULL;
+    btstack_tlv_get_instance(&tlv, &context);
+    if (tlv == NULL || context == NULL) return false;
+
+    uint8_t payload[BLE_HOGP_SAVED_REGISTRY_SERIALIZED_SIZE];
+    memset(payload, 0, sizeof(payload));
+    payload[0] = BLE_HOGP_SAVED_REGISTRY_VERSION;
+    size_t offset = 1u;
+    for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index) {
+        const ble_hogp_saved_name_t *entry = &g_saved_names[index];
+        payload[offset++] = entry->used ? 1u : 0u;
+        payload[offset++] = (uint8_t)entry->address_type;
+        memcpy(&payload[offset], entry->address, sizeof(bd_addr_t));
+        offset += sizeof(bd_addr_t);
+        memcpy(&payload[offset], entry->irk, sizeof(sm_key_t));
+        offset += sizeof(sm_key_t);
+        memcpy(&payload[offset], entry->name, BLE_HOGP_SAVED_NAME_CAPACITY);
+        offset += BLE_HOGP_SAVED_NAME_CAPACITY;
+    }
+    return tlv->store_tag(context, BLE_HOGP_SAVED_REGISTRY_TAG,
+                          payload, sizeof(payload)) == 0;
+}
+
+static void saved_names_load(void)
+{
+    if (g_saved_names_loaded) return;
+    g_saved_names_loaded = true;
+    memset(g_saved_names, 0, sizeof(g_saved_names));
+
+    const btstack_tlv_t *tlv = NULL;
+    void *context = NULL;
+    btstack_tlv_get_instance(&tlv, &context);
+    if (tlv == NULL || context == NULL) return;
+
+    uint8_t payload[BLE_HOGP_SAVED_REGISTRY_SERIALIZED_SIZE];
+    memset(payload, 0, sizeof(payload));
+    const int length = tlv->get_tag(context, BLE_HOGP_SAVED_REGISTRY_TAG,
+                                    payload, sizeof(payload));
+    if (length <= 0) return;
+
+    const bool v2 =
+        length == (int)BLE_HOGP_SAVED_REGISTRY_SERIALIZED_SIZE &&
+        payload[0] == BLE_HOGP_SAVED_REGISTRY_VERSION;
+    const bool v1 =
+        length == (int)BLE_HOGP_SAVED_REGISTRY_V1_SERIALIZED_SIZE &&
+        payload[0] == BLE_HOGP_SAVED_REGISTRY_VERSION_V1;
+    if (!v2 && !v1) return;
+
+    size_t offset = 1u;
+    for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index) {
+        ble_hogp_saved_name_t *entry = &g_saved_names[index];
+        entry->used = payload[offset++] != 0u;
+        entry->address_type = (bd_addr_type_t)payload[offset++];
+        memcpy(entry->address, &payload[offset], sizeof(bd_addr_t));
+        offset += sizeof(bd_addr_t);
+        if (v2) {
+            memcpy(entry->irk, &payload[offset], sizeof(sm_key_t));
+            offset += sizeof(sm_key_t);
+        } else {
+            memset(entry->irk, 0, sizeof(sm_key_t));
+        }
+        memcpy(entry->name, &payload[offset], BLE_HOGP_SAVED_NAME_CAPACITY);
+        entry->name[BLE_HOGP_SAVED_NAME_CAPACITY - 1u] = '\0';
+        offset += BLE_HOGP_SAVED_NAME_CAPACITY;
+        if (!entry->used) {
+            memset(entry, 0, sizeof(*entry));
+            continue;
+        }
+
+        if (v1) {
+            for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+                bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+                bd_addr_t address;
+                sm_key_t irk;
+                if (!bond_slot_info(slot, &type, address, irk)) continue;
+                if (entry->address_type == type &&
+                    memcmp(entry->address, address, sizeof(bd_addr_t)) == 0) {
+                    memcpy(entry->irk, irk, sizeof(sm_key_t));
+                    break;
+                }
+            }
+        }
+    }
+
+    if (v1) (void)saved_names_store();
+}
+
+static void saved_names_remember_bond(int bond_index, const char *name)
+{
+    if (name == NULL || name[0] == '\0') return;
+    saved_names_load();
+
+    bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(bond_index, &address_type, address, irk)) return;
+
+    int slot = saved_names_find(address_type, address, irk);
+    if (slot < 0) slot = saved_names_free_slot();
+    if (slot < 0) return;
+
+    ble_hogp_saved_name_t candidate = g_saved_names[slot];
+    memset(&candidate, 0, sizeof(candidate));
+    candidate.used = true;
+    candidate.address_type = address_type;
+    memcpy(candidate.address, address, sizeof(bd_addr_t));
+    memcpy(candidate.irk, irk, sizeof(sm_key_t));
+    size_t length = 0u;
+    while (name[length] != '\0' &&
+           length + 1u < BLE_HOGP_SAVED_NAME_CAPACITY) {
+        candidate.name[length] = name[length];
+        ++length;
+    }
+    candidate.name[length] = '\0';
+
+    if (memcmp(&candidate, &g_saved_names[slot], sizeof(candidate)) == 0) return;
+    g_saved_names[slot] = candidate;
+    (void)saved_names_store();
+}
+
+static void dedupe_current_bond(void)
+{
+    if (!bond_slot_info(g_current_bond_index, NULL, NULL, NULL)) return;
+
+    bd_addr_type_t current_type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t current_address;
+    sm_key_t current_irk;
+    if (!bond_slot_info(g_current_bond_index, &current_type,
+                        current_address, current_irk))
+        return;
+
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        if (slot == g_current_bond_index) continue;
+
+        bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t address;
+        sm_key_t irk;
+        if (!bond_slot_info(slot, &type, address, irk)) continue;
+        if (!bond_identity_equal(current_type, current_address, current_irk,
+                                 type, address, irk))
+            continue;
+
+        /* The current slot just completed a working HID session, so it is
+         * the safe canonical bond. Remove only older/equivalent duplicates. */
+        le_device_db_remove(slot);
+    }
+}
+
+static int resolve_current_bond_index(void)
+{
+    const int count = le_device_db_count();
+    if (g_state != BLE_HOGP_STATE_READY ||
+        g_connection_handle == HCI_CON_HANDLE_INVALID || count <= 0) return -1;
+
+    if (bond_slot_info(g_current_bond_index, NULL, NULL, NULL))
+        return g_current_bond_index;
+
+    const int security_manager_index = sm_le_device_index(g_connection_handle);
+    if (bond_slot_info(security_manager_index, NULL, NULL, NULL)) {
+        g_current_bond_index = security_manager_index;
+        return security_manager_index;
+    }
+
+    if (bond_unique_count() == 1) {
+        g_current_bond_index = bond_slot_for_ordinal(0);
+        return g_current_bond_index;
+    }
+    return -1;
+}
 
 bool blu2usb_ble_hogp_register_vendor_backend(
     const blu2usb_ble_hogp_vendor_backend_t *backend)
@@ -191,15 +536,11 @@ static void reject_address(const bd_addr_t address, bd_addr_type_t type)
 
 static bool address_is_saved(const bd_addr_t address, bd_addr_type_t type)
 {
-    const int count = le_device_db_count();
-    for (int index = 0; index < count; ++index) {
-        int saved_type = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t saved_type = BD_ADDR_TYPE_UNKNOWN;
         bd_addr_t saved_address;
-        sm_key_t irk;
-        memset(saved_address, 0, sizeof(saved_address));
-        memset(irk, 0, sizeof(irk));
-        le_device_db_info(index, &saved_type, saved_address, irk);
-        if ((bd_addr_type_t)saved_type == type &&
+        if (!bond_slot_info(slot, &saved_type, saved_address, NULL)) continue;
+        if (saved_type == type &&
             memcmp(saved_address, address, sizeof(bd_addr_t)) == 0) {
             return true;
         }
@@ -209,23 +550,30 @@ static bool address_is_saved(const bd_addr_t address, bd_addr_type_t type)
 
 static void remove_pair_new_bond(void)
 {
-    const int count = le_device_db_count();
-    for (int index = 0; index < count; ++index) {
-        int saved_type = 0;
+    if (bond_slot_info(g_pair_new_bond_index, NULL, NULL, NULL)) {
+        le_device_db_remove(g_pair_new_bond_index);
+        g_pair_new_bond_index = -1;
+        return;
+    }
+
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t saved_type = BD_ADDR_TYPE_UNKNOWN;
         bd_addr_t saved_address;
-        sm_key_t irk;
-        memset(saved_address, 0, sizeof(saved_address));
-        memset(irk, 0, sizeof(irk));
-        le_device_db_info(index, &saved_type, saved_address, irk);
-        if ((bd_addr_type_t)saved_type == g_pair_new_address_type &&
+        if (!bond_slot_info(slot, &saved_type, saved_address, NULL)) continue;
+        if (saved_type == g_pair_new_address_type &&
             memcmp(saved_address, g_pair_new_address, sizeof(bd_addr_t)) == 0) {
-            le_device_db_remove(index);
+            le_device_db_remove(slot);
             break;
         }
     }
 }
 
 static bool pair_new_created_new_bond(void)
+{
+    return bond_unique_count() > g_pair_new_unique_count_before;
+}
+
+static bool pair_new_created_raw_bond(void)
 {
     return le_device_db_count() > g_pair_new_bond_count_before;
 }
@@ -243,6 +591,7 @@ static void pair_new_clear_candidate(void)
     g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_pair_new_mouse_name[0] = '\0';
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_bond_index = -1;
     g_pair_new_hids_cid = 0u;
     g_pair_new_mouse_name[0] = '\0';
     memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
@@ -294,6 +643,7 @@ static void start_scan(void)
     stop_reconnect_timer();
     g_saved_search_active = false;
     g_reconnect_cancel_pending = false;
+    g_current_bond_index = -1;
     g_state = BLE_HOGP_STATE_SCANNING;
     gap_set_scan_parameters(0u, 48u, 48u);
     gap_start_scan();
@@ -355,27 +705,24 @@ static void pair_new_timeout_handler(btstack_timer_source_t *timer)
 
 static bool start_bonded_reconnect(void)
 {
-    const int count = le_device_db_count();
-    if (count <= 0) return false;
+    if (le_device_db_count() <= 0) return false;
 
     stop_reconnect_timer();
     g_reconnect_cancel_pending = false;
+    g_current_bond_index = -1;
     (void)gap_whitelist_clear();
     (void)gap_load_resolving_list_from_le_device_db();
 
     unsigned added = 0u;
-    for (int index = 0; index < count; ++index) {
-        int address_type = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
         bd_addr_t address;
-        sm_key_t irk;
-        memset(address, 0, sizeof(address));
-        memset(irk, 0, sizeof(irk));
-        le_device_db_info(index, &address_type, address, irk);
-        if (gap_whitelist_add((bd_addr_type_t)address_type, address) != ERROR_CODE_SUCCESS)
+        if (!bond_slot_info(slot, &address_type, address, NULL)) continue;
+        if (gap_whitelist_add(address_type, address) != ERROR_CODE_SUCCESS)
             continue;
         if (added == 0u) {
             memcpy(g_remote_address, address, sizeof(bd_addr_t));
-            g_remote_address_type = (bd_addr_type_t)address_type;
+            g_remote_address_type = address_type;
         }
         ++added;
     }
@@ -419,6 +766,8 @@ static bool start_pair_new(void)
     g_pair_new_active = true;
     g_pair_new_state = BLE_PAIR_NEW_SCANNING;
     g_pair_new_bond_count_before = le_device_db_count();
+    g_pair_new_unique_count_before = bond_unique_count();
+    g_pair_new_bond_index = -1;
 
     btstack_run_loop_set_timer(&g_pair_new_timer, BLE_HOGP_PAIR_NEW_TIMEOUT_MS);
     btstack_run_loop_add_timer(&g_pair_new_timer);
@@ -592,6 +941,14 @@ static void pair_new_connect_hid_service(void)
 
 static void pair_new_finalize_promotion(void)
 {
+    int promoted_bond_index = g_pair_new_bond_index;
+    if (!bond_slot_info(promoted_bond_index, NULL, NULL, NULL))
+        promoted_bond_index = sm_le_device_index(g_pair_new_connection_handle);
+    g_current_bond_index =
+        bond_slot_info(promoted_bond_index, NULL, NULL, NULL)
+            ? promoted_bond_index
+            : -1;
+
     memcpy(g_remote_address, g_pair_new_address, sizeof(bd_addr_t));
     g_remote_address_type = g_pair_new_address_type;
     g_connection_handle = g_pair_new_connection_handle;
@@ -601,6 +958,7 @@ static void pair_new_finalize_promotion(void)
            sizeof(g_current_mouse_name));
 
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_bond_index = -1;
     g_pair_new_hids_cid = 0u;
     memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
     g_pair_new_mouse_name[0] = '\0';
@@ -615,6 +973,8 @@ static void pair_new_finalize_promotion(void)
     g_state = BLE_HOGP_STATE_READY;
     g_reconnect_after_disconnect = false;
     g_idle_after_disconnect = false;
+    saved_names_remember_bond(g_current_bond_index, g_current_mouse_name);
+    dedupe_current_bond();
 
     if (g_vendor_registered)
         g_vendor_backend.session(g_vendor_backend.context, true);
@@ -764,7 +1124,10 @@ static void handle_gatt_client_event(uint8_t packet_type, uint16_t channel,
             }
 
             if (!pair_new_created_new_bond()) {
-                pair_new_disconnect_candidate(false, true);
+                /* A saved Mouse seen through a different private address can
+                 * create a transient raw DB entry. It is not a new logical
+                 * Mouse when its IRK/identity matches an existing bond. */
+                pair_new_disconnect_candidate(pair_new_created_raw_bond(), true);
                 return;
             }
 
@@ -802,6 +1165,9 @@ static void handle_gatt_client_event(uint8_t packet_type, uint16_t channel,
         stop_reconnect_timer();
         g_saved_search_active = false;
         g_reconnect_after_disconnect = false;
+        g_current_bond_index = resolve_current_bond_index();
+        saved_names_remember_bond(g_current_bond_index, g_current_mouse_name);
+        dedupe_current_bond();
         if (g_vendor_registered)
             g_vendor_backend.session(g_vendor_backend.context, true);
         if (!publish_status(BLU2USB_BLE_HOGP_MESSAGE_CONNECTED)) {
@@ -885,6 +1251,7 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
     case BTSTACK_EVENT_STATE:
         if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING &&
             g_state == BLE_HOGP_STATE_WAITING_FOR_STACK) {
+            saved_names_load();
             reconnect_or_scan();
         }
         break;
@@ -1007,6 +1374,10 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
             }
 
             if (!g_saved_search_active) stop_reconnect_timer();
+            g_remote_address_type = (bd_addr_type_t)
+                gap_subevent_le_connection_complete_get_peer_address_type(packet);
+            gap_subevent_le_connection_complete_get_peer_address(
+                packet, g_remote_address);
             g_connection_handle =
                 gap_subevent_le_connection_complete_get_connection_handle(packet);
             g_state = BLE_HOGP_STATE_SECURING;
@@ -1091,6 +1462,33 @@ static void sm_packet_handler(uint8_t packet_type, uint16_t channel,
     if (packet_type != HCI_EVENT_PACKET) return;
 
     switch (hci_event_packet_get_type(packet)) {
+    case SM_EVENT_IDENTITY_RESOLVING_SUCCEEDED: {
+        const hci_con_handle_t handle =
+            sm_event_identity_created_get_handle(packet);
+        const int index =
+            sm_event_identity_resolving_succeeded_get_index(packet);
+        if (bond_slot_info(index, NULL, NULL, NULL)) {
+            if (handle == g_connection_handle)
+                g_current_bond_index = index;
+            if (handle == g_pair_new_connection_handle)
+                g_pair_new_bond_index = index;
+        }
+        break;
+    }
+
+    case SM_EVENT_IDENTITY_CREATED: {
+        const hci_con_handle_t handle =
+            sm_event_identity_created_get_handle(packet);
+        const int index = sm_event_identity_created_get_index(packet);
+        if (bond_slot_info(index, NULL, NULL, NULL)) {
+            if (handle == g_connection_handle)
+                g_current_bond_index = index;
+            if (handle == g_pair_new_connection_handle)
+                g_pair_new_bond_index = index;
+        }
+        break;
+    }
+
     case SM_EVENT_JUST_WORKS_REQUEST:
         sm_just_works_confirm(
             sm_event_just_works_request_get_handle(packet));
@@ -1153,11 +1551,14 @@ static void ble_hogp_session_setup(void)
 {
     memset(&g_parser, 0, sizeof(g_parser));
     memset(g_rejected_devices, 0, sizeof(g_rejected_devices));
+    memset(g_saved_names, 0, sizeof(g_saved_names));
+    g_saved_names_loaded = false;
     memset(g_remote_address, 0, sizeof(g_remote_address));
     g_remote_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_rejected_next = 0u;
     g_state = BLE_HOGP_STATE_WAITING_FOR_STACK;
     g_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_current_bond_index = -1;
     g_hids_cid = 0u;
     g_current_mouse_name[0] = '\0';
     g_reconnect_timer_active = false;
@@ -1174,6 +1575,8 @@ static void ble_hogp_session_setup(void)
     g_pair_new_resume_after_disconnect = false;
     g_pair_new_handoff_pending = false;
     g_pair_new_bond_count_before = 0;
+    g_pair_new_unique_count_before = 0;
+    g_pair_new_bond_index = -1;
     memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
     g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
@@ -1202,8 +1605,40 @@ bool blu2usb_ble_hogp_start(void)
 
 unsigned blu2usb_ble_hogp_pico_bonded_mouse_count(void)
 {
-    const int count = le_device_db_count();
+    const int count = bond_unique_count();
     return count > 0 ? (unsigned)count : 0u;
+}
+
+int blu2usb_ble_hogp_pico_current_bond_index(void)
+{
+    return bond_ordinal_for_slot(resolve_current_bond_index());
+}
+
+bool blu2usb_ble_hogp_pico_saved_mouse_name(int bond_index,
+                                            char *out,
+                                            size_t out_capacity)
+{
+    if (out == NULL || out_capacity == 0u) return false;
+    out[0] = '\0';
+    saved_names_load();
+
+    const int db_slot = bond_slot_for_ordinal(bond_index);
+    bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(db_slot, &address_type, address, irk)) return false;
+
+    const int slot = saved_names_find(address_type, address, irk);
+    if (slot < 0 || g_saved_names[slot].name[0] == '\0') return false;
+
+    size_t length = 0u;
+    while (g_saved_names[slot].name[length] != '\0' &&
+           length + 1u < out_capacity) {
+        out[length] = g_saved_names[slot].name[length];
+        ++length;
+    }
+    out[length] = '\0';
+    return length > 0u;
 }
 
 const char *blu2usb_ble_hogp_pico_current_mouse_name(void)
