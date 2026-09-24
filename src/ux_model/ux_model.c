@@ -35,11 +35,17 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_FORWARD_WILL_BECOME] = {{"FORWARD WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," ESCAPE"," FORWARD"," BACKWARD",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_BACKWARD_WILL_BECOME] = {{"BACKWARD WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," ESCAPE"," FORWARD"," BACKWARD",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_SAVED_DEVICES] = {{"0 OF 0","UNKNOWN MOUSE","STATUS: DISCONNECTED","PROFILE: PASSTHROUGH"," REMOVE DEVICE",EMPTY,"JOY RIGHT\\LEFT: PAGE","JOY PRESS: ACCESS","KEY B: BACK"},DYN(0)|DYN(1)|DYN(2)|DYN(3)},
+    [BLU2USB_SCREEN_REMOVE_THIS] = {{"REMOVE THIS MOUSE","UNKNOWN MOUSE",EMPTY,"PAIRING AND MAPPINGS","WILL BE DELETED",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY X: HELP"},DYN(1)},
     [BLU2USB_SCREEN_LEARN_KEYS] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
 };
 
 static blu2usb_ux_command_t no_command(void) {
-    blu2usb_ux_command_t cmd = {BLU2USB_UX_COMMAND_NONE, BLU2USB_MOUSE_SOURCE_LEFT, BLU2USB_MOUSE_TARGET_LEFT};
+    blu2usb_ux_command_t cmd = {
+        .kind = BLU2USB_UX_COMMAND_NONE,
+        .source = BLU2USB_MOUSE_SOURCE_LEFT,
+        .target = BLU2USB_MOUSE_TARGET_LEFT,
+        .saved_bond = -1,
+    };
     return cmd;
 }
 
@@ -99,6 +105,7 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_FORWARD_WILL_BECOME:
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME: return BLU2USB_SCREEN_EDIT_CUSTOM;
     case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_HOME;
+    case BLU2USB_SCREEN_REMOVE_THIS: return BLU2USB_SCREEN_SAVED_DEVICES;
     case BLU2USB_SCREEN_LEARN_KEYS: return BLU2USB_SCREEN_LEARN_KEYS;
     default: return BLU2USB_SCREEN_HOME;
     }
@@ -531,11 +538,23 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     }
 
     if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES &&
-        control == BLU2USB_CONTROL_JOY_PRESS) {
-        /* HOPE-05 owns remove-this. HOPE-04 intentionally leaves ACCESS
-         * inert while preserving the canonical hint for the next gate. */
+        control == BLU2USB_CONTROL_JOY_PRESS &&
+        ux->saved_device_count > 0u) {
+        enter(ux, BLU2USB_SCREEN_REMOVE_THIS);
         return cmd;
     }
+
+    if (ux->screen == BLU2USB_SCREEN_REMOVE_THIS &&
+        control == BLU2USB_CONTROL_KEY_A) {
+        const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
+        if (bond >= 0) {
+            cmd.kind = BLU2USB_UX_COMMAND_REMOVE_MOUSE;
+            cmd.saved_bond = bond;
+        }
+        return cmd;
+    }
+
+    /* HOPE-30 owns KEY X / help-remove-this. */
 
     if (ux->screen == BLU2USB_SCREEN_APPLY_PASSTHROUGH && control == BLU2USB_CONTROL_KEY_A) {
         cmd.kind = BLU2USB_UX_COMMAND_APPLY_PASSTHROUGH;
