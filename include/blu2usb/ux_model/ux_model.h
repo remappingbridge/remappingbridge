@@ -83,6 +83,7 @@ typedef struct {
     unsigned saved_device_count;
     int saved_connected_bond;
     int saved_front_bond;
+    bool remove_pending;
     char saved_mouse_names[BLU2USB_UX_MAX_SAVED_MICE][BLU2USB_UX_MOUSE_NAME_CAPACITY];
     char current_mouse_name[BLU2USB_UX_MOUSE_NAME_CAPACITY];
     blu2usb_mouse_profile_kind_t active_profile;
