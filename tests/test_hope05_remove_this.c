@@ -105,6 +105,36 @@ static void test_cancel_preserves_saved_page(void)
     assert(!ux.remove_pending);
 }
 
+static void test_remove_target_survives_connected_first_reorder(void)
+{
+    blu2usb_ux_model_t ux;
+    blu2usb_ui_frame_t frame;
+    init_two(&ux);
+
+    /* Browse to the disconnected Mouse Alpha (logical bond 0). */
+    (void)tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
+    assert(ux.saved_page == 1u);
+    assert(blu2usb_ux_saved_bond_for_page(&ux, ux.saved_page) == 0);
+
+    (void)tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
+    assert(ux.remove_target_bond == 0);
+
+    /* Simulate background connection/order change while confirmation stays
+     * open. The pinned removal identity and projected name must not change. */
+    blu2usb_ux_set_saved_connected_bond(&ux, 0);
+    assert(ux.saved_page == 0u);
+    assert(ux.remove_target_bond == 0);
+
+    project(&ux, &frame);
+    assert_row(&frame, 1u, "MOUSE ALPHA");
+
+    const blu2usb_ux_command_t remove =
+        tap(&ux, BLU2USB_CONTROL_KEY_A);
+    assert(remove.kind == BLU2USB_UX_COMMAND_REMOVE_MOUSE);
+    assert(remove.saved_bond == 0);
+}
+
 static void test_help_is_deferred_to_hope30(void)
 {
     blu2usb_ux_model_t ux;
@@ -121,6 +151,7 @@ int main(void)
 {
     test_remove_this_projection_and_target();
     test_cancel_preserves_saved_page();
+    test_remove_target_survives_connected_first_reorder();
     test_help_is_deferred_to_hope30();
     return 0;
 }
