@@ -9,6 +9,7 @@
 #include "blu2usb/interaction/interaction.h"
 
 #define BLU2USB_UX_MOUSE_NAME_CAPACITY 64u
+#define BLU2USB_UX_MAX_SAVED_MICE 8u
 
 typedef enum {
     BLU2USB_SCREEN_HOME = 0,
@@ -77,7 +78,9 @@ typedef struct {
     unsigned saved_page;
     unsigned saved_pages;
     unsigned saved_device_count;
-    int saved_current_page;
+    int saved_connected_bond;
+    int saved_front_bond;
+    char saved_mouse_names[BLU2USB_UX_MAX_SAVED_MICE][BLU2USB_UX_MOUSE_NAME_CAPACITY];
     char current_mouse_name[BLU2USB_UX_MOUSE_NAME_CAPACITY];
     blu2usb_mouse_profile_kind_t active_profile;
     bool custom_dirty;
@@ -88,7 +91,9 @@ typedef struct {
 void blu2usb_ux_init(blu2usb_ux_model_t *ux);
 blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t control, bool pressed);
 void blu2usb_ux_set_saved_device_count(blu2usb_ux_model_t *ux, unsigned count);
-void blu2usb_ux_set_saved_current_page(blu2usb_ux_model_t *ux, int page);
+void blu2usb_ux_set_saved_connected_bond(blu2usb_ux_model_t *ux, int bond_index);
+void blu2usb_ux_set_saved_mouse_name(blu2usb_ux_model_t *ux, unsigned bond_index, const char *name);
+int blu2usb_ux_saved_bond_for_page(const blu2usb_ux_model_t *ux, unsigned page);
 void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name);
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target);
 void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux, blu2usb_mouse_profile_kind_t active_profile);
