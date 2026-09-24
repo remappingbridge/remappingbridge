@@ -103,6 +103,7 @@ static bool g_pair_new_cancel_pending;
 static bool g_pair_new_resume_after_disconnect;
 static bool g_pair_new_handoff_pending;
 static int g_pair_new_bond_count_before;
+static int g_pair_new_unique_count_before;
 static int g_pair_new_bond_index = -1;
 static bd_addr_t g_pair_new_address;
 static bd_addr_type_t g_pair_new_address_type;
@@ -133,6 +134,7 @@ static void read_pair_new_mouse_name(void);
 static void service_vendor_output(void);
 static void saved_names_load(void);
 static void saved_names_remember_bond(int bond_index, const char *name);
+static void dedupe_current_bond(void);
 static int resolve_current_bond_index(void);
 
 static bool bond_slot_info(int slot,
@@ -411,7 +413,7 @@ static int resolve_current_bond_index(void)
         return security_manager_index;
     }
 
-    if (count == 1) {
+    if (bond_unique_count() == 1) {
         g_current_bond_index = bond_slot_for_ordinal(0);
         return g_current_bond_index;
     }
@@ -539,6 +541,11 @@ static void remove_pair_new_bond(void)
 }
 
 static bool pair_new_created_new_bond(void)
+{
+    return bond_unique_count() > g_pair_new_unique_count_before;
+}
+
+static bool pair_new_created_raw_bond(void)
 {
     return le_device_db_count() > g_pair_new_bond_count_before;
 }
@@ -731,6 +738,7 @@ static bool start_pair_new(void)
     g_pair_new_active = true;
     g_pair_new_state = BLE_PAIR_NEW_SCANNING;
     g_pair_new_bond_count_before = le_device_db_count();
+    g_pair_new_unique_count_before = bond_unique_count();
     g_pair_new_bond_index = -1;
 
     btstack_run_loop_set_timer(&g_pair_new_timer, BLE_HOGP_PAIR_NEW_TIMEOUT_MS);
@@ -1087,7 +1095,10 @@ static void handle_gatt_client_event(uint8_t packet_type, uint16_t channel,
             }
 
             if (!pair_new_created_new_bond()) {
-                pair_new_disconnect_candidate(false, true);
+                /* A saved Mouse seen through a different private address can
+                 * create a transient raw DB entry. It is not a new logical
+                 * Mouse when its IRK/identity matches an existing bond. */
+                pair_new_disconnect_candidate(pair_new_created_raw_bond(), true);
                 return;
             }
 
@@ -1534,6 +1545,7 @@ static void ble_hogp_session_setup(void)
     g_pair_new_resume_after_disconnect = false;
     g_pair_new_handoff_pending = false;
     g_pair_new_bond_count_before = 0;
+    g_pair_new_unique_count_before = 0;
     g_pair_new_bond_index = -1;
     memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
     g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
@@ -1563,7 +1575,7 @@ bool blu2usb_ble_hogp_start(void)
 
 unsigned blu2usb_ble_hogp_pico_bonded_mouse_count(void)
 {
-    const int count = le_device_db_count();
+    const int count = bond_unique_count();
     return count > 0 ? (unsigned)count : 0u;
 }
 
@@ -1583,9 +1595,10 @@ bool blu2usb_ble_hogp_pico_saved_mouse_name(int bond_index,
     const int db_slot = bond_slot_for_ordinal(bond_index);
     bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
     bd_addr_t address;
-    if (!saved_identity_for_bond(db_slot, &address_type, address)) return false;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(db_slot, &address_type, address, irk)) return false;
 
-    const int slot = saved_names_find(address_type, address);
+    const int slot = saved_names_find(address_type, address, irk);
     if (slot < 0 || g_saved_names[slot].name[0] == '\0') return false;
 
     size_t length = 0u;
