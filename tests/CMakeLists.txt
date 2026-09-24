@@ -216,3 +216,16 @@ add_test(
     COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test_hope_remapper_flow_consolidated_source.py
 )
+
+add_executable(blu2usb_test_hope04_saved_devices test_hope04_saved_devices.c)
+target_link_libraries(blu2usb_test_hope04_saved_devices PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME hope04_saved_devices COMMAND blu2usb_test_hope04_saved_devices)
+
+add_test(
+    NAME hope04_saved_devices_source
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_hope04_saved_devices_source.py
+)
