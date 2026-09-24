@@ -12,7 +12,9 @@ assert '"0 OF 0","UNKNOWN MOUSE","STATUS: DISCONNECTED","PROFILE: PASSTHROUGH","
 assert '"JOY RIGHT\\\\LEFT: PAGE","JOY PRESS: ACCESS","KEY B: BACK"' in ux
 assert "case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_HOME;" in ux
 assert "case BLU2USB_SCREEN_SAVED_DEVICES: return 0;" in ux
-assert "HOPE-05 owns remove-this" in ux
+# HOPE-04 froze the Saved Devices shell; HOPE-05 is allowed to activate
+# the previously reserved REMOVE DEVICE access path.
+assert "BLU2USB_SCREEN_SAVED_DEVICES" in ux
 
 for legacy in (
     "BLU2USB_SCREEN_OTHER_OPTIONS",
