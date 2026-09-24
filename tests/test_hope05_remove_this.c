@@ -135,23 +135,11 @@ static void test_remove_target_survives_connected_first_reorder(void)
     assert(remove.saved_bond == 0);
 }
 
-static void test_help_is_deferred_to_hope30(void)
-{
-    blu2usb_ux_model_t ux;
-    init_two(&ux);
-    (void)tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
-    const blu2usb_ux_command_t cmd =
-        tap(&ux, BLU2USB_CONTROL_KEY_X);
-    assert(cmd.kind == BLU2USB_UX_COMMAND_NONE);
-    assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
-}
 
 int main(void)
 {
     test_remove_this_projection_and_target();
     test_cancel_preserves_saved_page();
     test_remove_target_survives_connected_first_reorder();
-    test_help_is_deferred_to_hope30();
     return 0;
 }
