@@ -11,16 +11,21 @@ app = (root / "src/app/main.c").read_text(encoding="utf-8")
 
 assert "BLU2USB_SCREEN_REMOVE_THIS" in ux_h
 assert "BLU2USB_UX_COMMAND_REMOVE_MOUSE" in ux_h
+assert "int remove_target_bond;" in ux_h
 assert "bool remove_pending;" in ux_h
 assert "int saved_bond;" in ux_h
+assert "blu2usb_ux_saved_page_for_bond" in ux_h
 assert '"REMOVE THIS MOUSE","UNKNOWN MOUSE",EMPTY,"PAIRING AND MAPPINGS","WILL BE DELETED",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY X: HELP"' in ux
 assert "case BLU2USB_SCREEN_REMOVE_THIS: return BLU2USB_SCREEN_SAVED_DEVICES;" in ux
+assert "ux->remove_target_bond =" in ux
+assert "blu2usb_ux_saved_page_for_bond" in ux
 assert "ux->remove_pending = true;" in ux
-assert "cmd.saved_bond = bond;" in ux
+assert "cmd.saved_bond = ux->remove_target_bond;" in ux
 assert "HOPE-30 owns KEY X / help-remove-this" in ux
 assert "BLU2USB_SCREEN_HELP_REMOVE_THIS" not in ux_h
 
 assert "project_remove_this" in renderer
+assert "ux->remove_target_bond >= 0" in renderer
 assert "home_title(saved_name, name);" in renderer
 assert "current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC" in renderer
 
