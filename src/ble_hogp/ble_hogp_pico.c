@@ -243,19 +243,24 @@ static int bond_ordinal_for_slot(int wanted_slot)
 
 static bool saved_identity_for_bond(int bond_slot,
                                     bd_addr_type_t *address_type,
-                                    bd_addr_t address)
+                                    bd_addr_t address,
+                                    sm_key_t irk)
 {
     return address_type != NULL && address != NULL &&
-        bond_slot_info(bond_slot, address_type, address, NULL);
+        bond_slot_info(bond_slot, address_type, address, irk);
 }
 
 static int saved_names_find(bd_addr_type_t address_type,
-                            const bd_addr_t address)
+                            const bd_addr_t address,
+                            const sm_key_t irk)
 {
     for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index) {
         if (!g_saved_names[index].used) continue;
-        if (g_saved_names[index].address_type == address_type &&
-            memcmp(g_saved_names[index].address, address, sizeof(bd_addr_t)) == 0)
+        if (bond_identity_equal(
+                g_saved_names[index].address_type,
+                g_saved_names[index].address,
+                g_saved_names[index].irk,
+                address_type, address, irk))
             return (int)index;
     }
     return -1;
@@ -285,6 +290,8 @@ static bool saved_names_store(void)
         payload[offset++] = (uint8_t)entry->address_type;
         memcpy(&payload[offset], entry->address, sizeof(bd_addr_t));
         offset += sizeof(bd_addr_t);
+        memcpy(&payload[offset], entry->irk, sizeof(sm_key_t));
+        offset += sizeof(sm_key_t);
         memcpy(&payload[offset], entry->name, BLE_HOGP_SAVED_NAME_CAPACITY);
         offset += BLE_HOGP_SAVED_NAME_CAPACITY;
     }
@@ -304,10 +311,18 @@ static void saved_names_load(void)
     if (tlv == NULL || context == NULL) return;
 
     uint8_t payload[BLE_HOGP_SAVED_REGISTRY_SERIALIZED_SIZE];
+    memset(payload, 0, sizeof(payload));
     const int length = tlv->get_tag(context, BLE_HOGP_SAVED_REGISTRY_TAG,
                                     payload, sizeof(payload));
-    if (length != (int)sizeof(payload) ||
-        payload[0] != BLE_HOGP_SAVED_REGISTRY_VERSION) return;
+    if (length <= 0) return;
+
+    const bool v2 =
+        length == (int)BLE_HOGP_SAVED_REGISTRY_SERIALIZED_SIZE &&
+        payload[0] == BLE_HOGP_SAVED_REGISTRY_VERSION;
+    const bool v1 =
+        length == (int)BLE_HOGP_SAVED_REGISTRY_V1_SERIALIZED_SIZE &&
+        payload[0] == BLE_HOGP_SAVED_REGISTRY_VERSION_V1;
+    if (!v2 && !v1) return;
 
     size_t offset = 1u;
     for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index) {
@@ -316,6 +331,12 @@ static void saved_names_load(void)
         entry->address_type = (bd_addr_type_t)payload[offset++];
         memcpy(entry->address, &payload[offset], sizeof(bd_addr_t));
         offset += sizeof(bd_addr_t);
+        if (v2) {
+            memcpy(entry->irk, &payload[offset], sizeof(sm_key_t));
+            offset += sizeof(sm_key_t);
+        } else {
+            memset(entry->irk, 0, sizeof(sm_key_t));
+        }
         memcpy(entry->name, &payload[offset], BLE_HOGP_SAVED_NAME_CAPACITY);
         entry->name[BLE_HOGP_SAVED_NAME_CAPACITY - 1u] = '\0';
         offset += BLE_HOGP_SAVED_NAME_CAPACITY;
@@ -323,7 +344,23 @@ static void saved_names_load(void)
             memset(entry, 0, sizeof(*entry));
             continue;
         }
+
+        if (v1) {
+            for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+                bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+                bd_addr_t address;
+                sm_key_t irk;
+                if (!bond_slot_info(slot, &type, address, irk)) continue;
+                if (entry->address_type == type &&
+                    memcmp(entry->address, address, sizeof(bd_addr_t)) == 0) {
+                    memcpy(entry->irk, irk, sizeof(sm_key_t));
+                    break;
+                }
+            }
+        }
     }
+
+    if (v1) (void)saved_names_store();
 }
 
 static void saved_names_remember_bond(int bond_index, const char *name)
@@ -333,9 +370,10 @@ static void saved_names_remember_bond(int bond_index, const char *name)
 
     bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
     bd_addr_t address;
-    if (!saved_identity_for_bond(bond_index, &address_type, address)) return;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(bond_index, &address_type, address, irk)) return;
 
-    int slot = saved_names_find(address_type, address);
+    int slot = saved_names_find(address_type, address, irk);
     if (slot < 0) slot = saved_names_free_slot();
     if (slot < 0) return;
 
@@ -344,6 +382,7 @@ static void saved_names_remember_bond(int bond_index, const char *name)
     candidate.used = true;
     candidate.address_type = address_type;
     memcpy(candidate.address, address, sizeof(bd_addr_t));
+    memcpy(candidate.irk, irk, sizeof(sm_key_t));
     size_t length = 0u;
     while (name[length] != '\0' &&
            length + 1u < BLE_HOGP_SAVED_NAME_CAPACITY) {
