@@ -44,22 +44,30 @@ void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux,
 {
     if (ux == NULL || !valid_profile(active_profile)) return;
 
+    const unsigned previous_selection = ux->selection;
     ux->active_profile = active_profile;
-    ux->selection = 0u;
 
     switch (active_profile) {
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH:
+        ux->selection = 0u;
         ux->screen = BLU2USB_SCREEN_PASSTHROUGH_APPLIED;
         break;
     case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP:
+        ux->selection = 0u;
         ux->screen = BLU2USB_SCREEN_DEFAULT_APPLIED;
         break;
     case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP:
+        ux->selection = 0u;
         ux->screen = BLU2USB_SCREEN_ESCAPE_APPLIED;
         break;
     case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP:
+        /* Mouse UI v1 has no separate CUSTOM APPLIED screen. Successful
+         * runtime+persistence confirmation stays in Custom Edit and turns
+         * the confirmed mapping rows cyan. */
         ux->custom_dirty = false;
-        ux->screen = BLU2USB_SCREEN_CUSTOM_APPLIED;
+        ux->screen = BLU2USB_SCREEN_EDIT_CUSTOM;
+        ux->selection = previous_selection < BLU2USB_MOUSE_SOURCE_COUNT ?
+            previous_selection : 0u;
         break;
     default:
         break;

@@ -291,6 +291,18 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                      * retargets Any-Key Back to home-searching. */
                     ux->return_screen = BLU2USB_SCREEN_HOME_SEARCHING;
                     ux->return_selection = 0u;
+                } else if (ux->screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED) {
+                    ux->screen = BLU2USB_SCREEN_APPLY_PASSTHROUGH;
+                    ux->selection = 0u;
+                    ui_changed = true;
+                } else if (ux->screen == BLU2USB_SCREEN_DEFAULT_APPLIED) {
+                    ux->screen = BLU2USB_SCREEN_APPLY_DEFAULT;
+                    ux->selection = 0u;
+                    ui_changed = true;
+                } else if (ux->screen == BLU2USB_SCREEN_ESCAPE_APPLIED) {
+                    ux->screen = BLU2USB_SCREEN_APPLY_ESCAPE;
+                    ux->selection = 0u;
+                    ui_changed = true;
                 }
             }
             (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);

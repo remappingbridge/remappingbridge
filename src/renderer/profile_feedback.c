@@ -11,6 +11,17 @@ static void clear_row(blu2usb_ui_frame_t *frame, uint8_t row)
     }
 }
 
+static void set_row_tone(blu2usb_ui_frame_t *frame,
+                         uint8_t row,
+                         blu2usb_ui_tone_t tone)
+{
+    if (frame == NULL || row >= BLU2USB_RENDERER_TEXT_ROWS) return;
+    for (uint8_t column = 0u; column < BLU2USB_RENDERER_TEXT_COLS; ++column) {
+        if (frame->cells[row][column].character != ' ')
+            frame->cells[row][column].tone = tone;
+    }
+}
+
 static void set_row_current_preserving_selection(blu2usb_ui_frame_t *frame,
                                                   uint8_t row)
 {
@@ -28,18 +39,17 @@ static bool is_success_feedback(blu2usb_screen_id_t screen)
            screen == BLU2USB_SCREEN_COMPOSITE_SAVED ||
            screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED ||
            screen == BLU2USB_SCREEN_DEFAULT_APPLIED ||
-           screen == BLU2USB_SCREEN_ESCAPE_APPLIED ||
-           screen == BLU2USB_SCREEN_CUSTOM_APPLIED;
+           screen == BLU2USB_SCREEN_ESCAPE_APPLIED;
 }
 
 static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
 {
     if (ux == NULL || ux->screen != BLU2USB_SCREEN_MOUSE_OPTIONS) return 0u;
     switch (ux->active_profile) {
-    case BLU2USB_MOUSE_PROFILE_PASSTHROUGH: return 2u;
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return 3u;
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return 4u;
-    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 5u;
+    case BLU2USB_MOUSE_PROFILE_PASSTHROUGH: return 1u;
+    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return 2u;
+    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return 3u;
+    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 4u;
     default: return 0u;
     }
 }
@@ -61,6 +71,19 @@ static const char *custom_source_name(unsigned source)
         "LEFT", "RIGHT", "MIDDLE", "FORWARD", "BACKWARD"
     };
     return source < BLU2USB_MOUSE_SOURCE_COUNT ? names[source] : "LEFT";
+}
+
+static uint8_t custom_target_row(blu2usb_mouse_target_t target)
+{
+    switch (target) {
+    case BLU2USB_MOUSE_TARGET_LEFT: return 1u;
+    case BLU2USB_MOUSE_TARGET_RIGHT: return 2u;
+    case BLU2USB_MOUSE_TARGET_MIDDLE: return 3u;
+    case BLU2USB_MOUSE_TARGET_ESCAPE: return 4u;
+    case BLU2USB_MOUSE_TARGET_FORWARD: return 5u;
+    case BLU2USB_MOUSE_TARGET_BACKWARD: return 6u;
+    default: return 1u;
+    }
 }
 
 static const char *custom_target_name(blu2usb_mouse_target_t target)
@@ -133,22 +156,31 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
     if (ux->screen == BLU2USB_SCREEN_MOUSE_STATUS)
         project_mouse_status(ux, frame);
 
-    if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS && blu2usb_ux_mouse_connected())
-        set_row_current_preserving_selection(frame, 1u);
+    if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS) {
+        /* Rebuild all four option tones from authoritative state on every
+         * projection. This prevents a previously-active profile from
+         * retaining cyan after another profile is confirmed. */
+        for (uint8_t row = 1u; row <= 4u; ++row)
+            set_row_tone(frame, row, BLU2USB_UI_TONE_ACTIONABLE);
 
-    const uint8_t profile_row = active_profile_row(ux);
-    if (profile_row != 0u)
-        set_row_current_preserving_selection(frame, profile_row);
+        const uint8_t profile_row = active_profile_row(ux);
+        if (profile_row != 0u)
+            set_row_tone(frame, profile_row, BLU2USB_UI_TONE_CURRENT);
 
-    if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM)
+        if (ux->selection < 4u)
+            set_row_tone(
+                frame, (uint8_t)(1u + ux->selection),
+                BLU2USB_UI_TONE_EMPHASIZED);
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM ||
+        ux->screen == BLU2USB_SCREEN_CUSTOM_APPLIED)
         project_custom_rows(ux, frame, false);
-    else if (ux->screen == BLU2USB_SCREEN_CUSTOM_APPLIED)
-        project_custom_rows(ux, frame, true);
 
     if (ux->screen >= BLU2USB_SCREEN_LEFT_WILL_BECOME &&
         ux->screen <= BLU2USB_SCREEN_BACKWARD_WILL_BECOME) {
         const uint8_t current_row =
-            (uint8_t)(1u + (unsigned)ux->custom_targets[ux->custom_source]);
+            custom_target_row(ux->custom_targets[ux->custom_source]);
         set_row_current_preserving_selection(frame, current_row);
     }
 }

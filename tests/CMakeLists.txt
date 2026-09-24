@@ -187,3 +187,32 @@ add_test(
     NAME hope28_help_home_connected_source
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_hope28_help_home_connected_source.py
 )
+
+add_executable(blu2usb_test_hope10_remapper_options test_hope10_remapper_options.c)
+target_link_libraries(blu2usb_test_hope10_remapper_options PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME hope10_remapper_options COMMAND blu2usb_test_hope10_remapper_options)
+
+add_test(
+    NAME hope10_remapper_options_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_hope10_remapper_options_source.py
+)
+
+add_executable(blu2usb_test_hope_remapper_flow_consolidated
+    test_hope_remapper_flow_consolidated.c)
+target_link_libraries(blu2usb_test_hope_remapper_flow_consolidated PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(
+    NAME hope_remapper_flow_consolidated
+    COMMAND blu2usb_test_hope_remapper_flow_consolidated
+)
+
+add_test(
+    NAME hope_remapper_flow_consolidated_source
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_hope_remapper_flow_consolidated_source.py
+)
