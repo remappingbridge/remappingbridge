@@ -138,6 +138,7 @@ static void pair_new_connect_hid_service(void);
 static void read_current_mouse_name(void);
 static void read_pair_new_mouse_name(void);
 static void service_vendor_output(void);
+static bool publish_status(blu2usb_ble_hogp_message_type_t type);
 static void saved_names_load(void);
 static void saved_names_remember_bond(int bond_index, const char *name);
 static void saved_names_remove_identity(bd_addr_type_t address_type,
