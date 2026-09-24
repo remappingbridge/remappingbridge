@@ -39,8 +39,12 @@ assert '"STANDARD"' in renderer
 assert "saved_current_page" in renderer
 assert "blu2usb_ble_hogp_pico_current_bond_index" in ble_h
 assert "blu2usb_ble_hogp_pico_current_bond_index" in ble
+assert "static int g_current_bond_index = -1;" in ble
+assert "SM_EVENT_IDENTITY_RESOLVING_SUCCEEDED" in ble
+assert "sm_event_identity_resolving_succeeded_get_index(packet)" in ble
+assert "g_current_bond_index = bonded_count - 1;" in ble
 assert "sm_le_device_index(g_connection_handle)" in ble
-assert "Comparing the current GAP peer address" in ble
+assert "return count == 1 ? 0 : -1;" in ble
 assert "blu2usb_ux_set_saved_current_page" in app
 
 print("HOPE-04 saved-devices source invariants: OK")
