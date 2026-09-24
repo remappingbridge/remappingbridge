@@ -217,6 +217,41 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
     }
 }
 
+static void synchronize_saved_mice(blu2usb_ux_model_t *ux, bool connected)
+{
+    if (ux == NULL) return;
+
+    const unsigned count = blu2usb_ble_hogp_pico_bonded_mouse_count();
+    blu2usb_ux_set_saved_device_count(ux, count);
+
+    for (unsigned bond = 0u;
+         bond < count && bond < BLU2USB_UX_MAX_SAVED_MICE;
+         ++bond) {
+        char name[BLU2USB_UX_MOUSE_NAME_CAPACITY];
+        if (blu2usb_ble_hogp_pico_saved_mouse_name(
+                (int)bond, name, sizeof(name))) {
+            blu2usb_ux_set_saved_mouse_name(ux, bond, name);
+        } else {
+            blu2usb_ux_set_saved_mouse_name(ux, bond, NULL);
+        }
+    }
+
+    if (connected) {
+        const int bond = blu2usb_ble_hogp_pico_current_bond_index();
+        const char *current_name = blu2usb_ble_hogp_pico_current_mouse_name();
+        blu2usb_ux_set_current_mouse_name(ux, current_name);
+        if (bond >= 0 && current_name != NULL && current_name[0] != '\0')
+            blu2usb_ux_set_saved_mouse_name(ux, (unsigned)bond, current_name);
+        blu2usb_ux_set_saved_connected_bond(ux, bond);
+    } else {
+        /* The HOME title is connection state, but saved-device names are
+         * persistent product data. Clearing the current HOME name must never
+         * erase the saved registry entry or the front page identity. */
+        blu2usb_ux_set_current_mouse_name(ux, NULL);
+        blu2usb_ux_set_saved_connected_bond(ux, -1);
+    }
+}
+
 static bool service_ble_messages(blu2usb_ux_model_t *ux,
                                  blu2usb_hid_aggregator_t *aggregator,
                                  const blu2usb_remap_t *remap,
@@ -240,14 +275,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 blu2usb_ux_set_mouse_connected(true);
                 ui_changed = true;
             }
-            if (ux != NULL) {
-                blu2usb_ux_set_saved_device_count(
-                    ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
-                blu2usb_ux_set_current_mouse_name(
-                    ux, blu2usb_ble_hogp_pico_current_mouse_name());
-                blu2usb_ux_set_saved_current_page(
-                    ux, blu2usb_ble_hogp_pico_current_bond_index());
-            }
+            if (ux != NULL)
+                synchronize_saved_mice(ux, true);
             if (ux != NULL && ux->screen == BLU2USB_SCREEN_LEARN_KEYS) {
                 /* First-ever pairing still goes through accepted HOPE-02. */
                 ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
@@ -279,10 +308,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 ui_changed = true;
             }
             if (ux != NULL) {
-                blu2usb_ux_set_saved_device_count(
-                    ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
-                blu2usb_ux_set_current_mouse_name(ux, NULL);
-                blu2usb_ux_set_saved_current_page(ux, -1);
+                synchronize_saved_mice(ux, false);
                 if (ux->screen == BLU2USB_SCREEN_HOME &&
                     ux->saved_device_count > 0u) {
                     ux->screen = BLU2USB_SCREEN_HOME_SEARCHING;
@@ -314,6 +340,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             *keyboard_valid = false;
             break;
         case BLU2USB_BLE_HOGP_EVENT_SAVED_SEARCH_STARTED:
+            if (ux != NULL)
+                synchronize_saved_mice(ux, false);
             if (ux != NULL && !blu2usb_ux_mouse_connected() &&
                 ux->saved_device_count > 0u &&
                 ux->screen == BLU2USB_SCREEN_HOME) {
@@ -348,12 +376,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             *keyboard_valid = false;
             blu2usb_ux_set_mouse_connected(true);
             if (ux != NULL) {
-                blu2usb_ux_set_saved_device_count(
-                    ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
-                blu2usb_ux_set_current_mouse_name(
-                    ux, blu2usb_ble_hogp_pico_current_mouse_name());
-                blu2usb_ux_set_saved_current_page(
-                    ux, blu2usb_ble_hogp_pico_current_bond_index());
+                synchronize_saved_mice(ux, true);
                 ux->screen = BLU2USB_SCREEN_HOME;
                 ux->selection = 0u;
                 ui_changed = true;
