@@ -131,7 +131,9 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
     ux->saved_page = 0;
     ux->saved_pages = 1;
     ux->saved_device_count = 0;
-    ux->saved_current_page = -1;
+    ux->saved_connected_bond = -1;
+    ux->saved_front_bond = -1;
+    memset(ux->saved_mouse_names, 0, sizeof(ux->saved_mouse_names));
     ux->current_mouse_name[0] = '\0';
     ux->active_profile = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
     ux->custom_dirty = false;
@@ -145,17 +147,63 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
 
 void blu2usb_ux_set_saved_device_count(blu2usb_ux_model_t *ux, unsigned count) {
     if (ux == NULL) return;
+    if (count > BLU2USB_UX_MAX_SAVED_MICE) count = BLU2USB_UX_MAX_SAVED_MICE;
     ux->saved_device_count = count;
     ux->saved_pages = count == 0 ? 1u : count;
     if (ux->saved_page >= ux->saved_pages) ux->saved_page = ux->saved_pages - 1u;
-    if (ux->saved_current_page >= (int)count) ux->saved_current_page = -1;
+    if (ux->saved_connected_bond >= (int)count) ux->saved_connected_bond = -1;
+    if (ux->saved_front_bond >= (int)count) ux->saved_front_bond = -1;
+    for (unsigned index = count; index < BLU2USB_UX_MAX_SAVED_MICE; ++index)
+        ux->saved_mouse_names[index][0] = '\0';
     if (ux->selection >= blu2usb_ux_option_count(ux)) ux->selection = 0;
 }
 
-void blu2usb_ux_set_saved_current_page(blu2usb_ux_model_t *ux, int page) {
+void blu2usb_ux_set_saved_connected_bond(blu2usb_ux_model_t *ux, int bond_index) {
     if (ux == NULL) return;
-    ux->saved_current_page =
-        page >= 0 && (unsigned)page < ux->saved_device_count ? page : -1;
+    if (bond_index >= 0 && (unsigned)bond_index < ux->saved_device_count) {
+        ux->saved_connected_bond = bond_index;
+        ux->saved_front_bond = bond_index;
+        ux->saved_page = 0u;
+    } else {
+        ux->saved_connected_bond = -1;
+    }
+}
+
+void blu2usb_ux_set_saved_mouse_name(blu2usb_ux_model_t *ux,
+                                     unsigned bond_index,
+                                     const char *name) {
+    if (ux == NULL || bond_index >= BLU2USB_UX_MAX_SAVED_MICE) return;
+    if (name == NULL) {
+        ux->saved_mouse_names[bond_index][0] = '\0';
+        return;
+    }
+    size_t i = 0u;
+    while (name[i] != '\0' && i + 1u < BLU2USB_UX_MOUSE_NAME_CAPACITY) {
+        ux->saved_mouse_names[bond_index][i] = name[i];
+        ++i;
+    }
+    ux->saved_mouse_names[bond_index][i] = '\0';
+}
+
+int blu2usb_ux_saved_bond_for_page(const blu2usb_ux_model_t *ux,
+                                   unsigned page) {
+    if (ux == NULL || page >= ux->saved_device_count) return -1;
+
+    const int front =
+        ux->saved_front_bond >= 0 &&
+        (unsigned)ux->saved_front_bond < ux->saved_device_count
+            ? ux->saved_front_bond
+            : -1;
+    if (front < 0) return (int)page;
+    if (page == 0u) return front;
+
+    unsigned remaining = page - 1u;
+    for (unsigned bond = 0u; bond < ux->saved_device_count; ++bond) {
+        if ((int)bond == front) continue;
+        if (remaining == 0u) return (int)bond;
+        --remaining;
+    }
+    return -1;
 }
 
 void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name) {
