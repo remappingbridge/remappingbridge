@@ -43,6 +43,7 @@ typedef enum {
     BLU2USB_SCREEN_FORWARD_WILL_BECOME,
     BLU2USB_SCREEN_BACKWARD_WILL_BECOME,
     BLU2USB_SCREEN_SAVED_DEVICES,
+    BLU2USB_SCREEN_REMOVE_THIS,
     BLU2USB_SCREEN_LEARN_KEYS,
     BLU2USB_SCREEN_COUNT
 } blu2usb_screen_id_t;
@@ -54,13 +55,15 @@ typedef enum {
     BLU2USB_UX_COMMAND_APPLY_DEFAULT,
     BLU2USB_UX_COMMAND_APPLY_ESCAPE,
     BLU2USB_UX_COMMAND_APPLY_CUSTOM,
-    BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET
+    BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET,
+    BLU2USB_UX_COMMAND_REMOVE_MOUSE
 } blu2usb_ux_command_kind_t;
 
 typedef struct {
     blu2usb_ux_command_kind_t kind;
     blu2usb_mouse_source_t source;
     blu2usb_mouse_target_t target;
+    int saved_bond;
 } blu2usb_ux_command_t;
 
 typedef struct {
