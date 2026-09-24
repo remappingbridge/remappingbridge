@@ -212,6 +212,23 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
                           mouse_valid, keyboard_valid))
             confirm_applied_profile(ux, profiles);
         break;
+    case BLU2USB_UX_COMMAND_REMOVE_MOUSE:
+        if (command.saved_bond >= 0) {
+            if (ux != NULL && ux->saved_connected_bond == command.saved_bond) {
+                const blu2usb_hid_source_t mouse =
+                    blu2usb_hid_source_make(BLU2USB_HID_SOURCE_MOUSE, 1u);
+                const blu2usb_hid_source_t synthetic =
+                    blu2usb_hid_source_make(
+                        BLU2USB_HID_SOURCE_SYNTHETIC_REMAP, 1u);
+                (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
+                (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
+                *mouse_valid = false;
+                *keyboard_valid = false;
+            }
+            blu2usb_ble_hogp_pico_request_remove_saved_mouse(
+                command.saved_bond);
+        }
+        break;
     default:
         break;
     }
@@ -378,6 +395,26 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             if (ux != NULL) {
                 synchronize_saved_mice(ux, true);
                 ux->screen = BLU2USB_SCREEN_HOME;
+                ux->selection = 0u;
+                ui_changed = true;
+            }
+            break;
+        case BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVED:
+            if (ux != NULL) {
+                ux->remove_pending = false;
+                ux->saved_front_bond = -1;
+                ux->saved_connected_bond = -1;
+                synchronize_saved_mice(
+                    ux, blu2usb_ux_mouse_connected());
+                if (ux->saved_device_count == 0u) {
+                    blu2usb_ux_set_mouse_connected(false);
+                    ux->screen = BLU2USB_SCREEN_LEARN_KEYS;
+                    ux->saved_page = 0u;
+                } else {
+                    ux->screen = BLU2USB_SCREEN_SAVED_DEVICES;
+                    if (ux->saved_page >= ux->saved_device_count)
+                        ux->saved_page = ux->saved_device_count - 1u;
+                }
                 ux->selection = 0u;
                 ui_changed = true;
             }
