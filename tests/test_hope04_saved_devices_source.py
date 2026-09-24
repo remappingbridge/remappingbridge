@@ -45,14 +45,27 @@ assert '"STATUS: DISCONNECTED"' in renderer
 
 assert "blu2usb_ble_hogp_pico_saved_mouse_name" in ble_h
 assert "BLE_HOGP_SAVED_REGISTRY_TAG" in ble
+assert "BLE_HOGP_SAVED_REGISTRY_VERSION 2u" in ble
 assert "btstack_tlv_get_instance" in ble
 assert "saved_names_load" in ble
 assert "saved_names_store" in ble
 assert "saved_names_remember_bond" in ble
 assert "saved_identity_for_bond" in ble
+assert "bond_slot_info" in ble
+assert "le_device_db_max_count()" in ble
+assert "bond_slot_for_ordinal" in ble
+assert "bond_ordinal_for_slot" in ble
+assert "bond_unique_count" in ble
+assert "bond_identity_equal" in ble
+assert "irk_is_nonzero" in ble
+assert "dedupe_current_bond" in ble
 assert "SM_EVENT_IDENTITY_RESOLVING_SUCCEEDED" in ble
+assert "SM_EVENT_IDENTITY_CREATED" in ble
 assert "sm_event_identity_resolving_succeeded_get_index(packet)" in ble
+assert "sm_event_identity_created_get_index(packet)" in ble
 assert "saved_names_remember_bond(g_current_bond_index, g_current_mouse_name)" in ble
+assert "return bond_ordinal_for_slot(resolve_current_bond_index());" in ble
+assert "const int count = bond_unique_count();" in ble
 
 assert "synchronize_saved_mice" in app
 assert "blu2usb_ble_hogp_pico_saved_mouse_name" in app
@@ -60,5 +73,14 @@ assert "blu2usb_ux_set_saved_connected_bond(ux, bond)" in app
 assert "blu2usb_ux_set_saved_connected_bond(ux, -1)" in app
 assert "saved-device names are" in app
 assert "persistent product data" in app
+
+# Regression for the physical bug: le_device_db_count() is a cardinality, not
+# the upper bound for valid TLV slots. Saved/reconnect enumeration must always
+# use le_device_db_max_count() and validate each slot.
+assert "for (int slot = 0; slot < le_device_db_max_count(); ++slot)" in ble
+assert "for (int index = 0; index < count; ++index)" not in ble
+assert "bonded_count - 1" not in ble
+assert "g_pair_new_unique_count_before = bond_unique_count();" in ble
+assert "pair_new_created_raw_bond()" in ble
 
 print("HOPE-04 saved-devices source invariants: OK")
