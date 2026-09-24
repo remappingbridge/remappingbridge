@@ -39,7 +39,8 @@ assert '"STANDARD"' in renderer
 assert "saved_current_page" in renderer
 assert "blu2usb_ble_hogp_pico_current_bond_index" in ble_h
 assert "blu2usb_ble_hogp_pico_current_bond_index" in ble
-assert "le_device_db_info" in ble
+assert "sm_le_device_index(g_connection_handle)" in ble
+assert "Comparing the current GAP peer address" in ble
 assert "blu2usb_ux_set_saved_current_page" in app
 
 print("HOPE-04 saved-devices source invariants: OK")
