@@ -83,6 +83,7 @@ typedef struct {
     unsigned saved_device_count;
     int saved_connected_bond;
     int saved_front_bond;
+    int remove_target_bond;
     bool remove_pending;
     char saved_mouse_names[BLU2USB_UX_MAX_SAVED_MICE][BLU2USB_UX_MOUSE_NAME_CAPACITY];
     char current_mouse_name[BLU2USB_UX_MOUSE_NAME_CAPACITY];
@@ -98,6 +99,7 @@ void blu2usb_ux_set_saved_device_count(blu2usb_ux_model_t *ux, unsigned count);
 void blu2usb_ux_set_saved_connected_bond(blu2usb_ux_model_t *ux, int bond_index);
 void blu2usb_ux_set_saved_mouse_name(blu2usb_ux_model_t *ux, unsigned bond_index, const char *name);
 int blu2usb_ux_saved_bond_for_page(const blu2usb_ux_model_t *ux, unsigned page);
+int blu2usb_ux_saved_page_for_bond(const blu2usb_ux_model_t *ux, int bond_index);
 void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name);
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target);
 void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux, blu2usb_mouse_profile_kind_t active_profile);
