@@ -1007,6 +1007,10 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
             }
 
             if (!g_saved_search_active) stop_reconnect_timer();
+            g_remote_address_type = (bd_addr_type_t)
+                gap_subevent_le_connection_complete_get_peer_address_type(packet);
+            gap_subevent_le_connection_complete_get_peer_address(
+                packet, g_remote_address);
             g_connection_handle =
                 gap_subevent_le_connection_complete_get_connection_handle(packet);
             g_state = BLE_HOGP_STATE_SECURING;
