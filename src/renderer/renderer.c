@@ -1,6 +1,7 @@
 #include "blu2usb/renderer/renderer.h"
 
-#include <stdio.h>\n#include <string.h>
+#include <stdio.h>
+#include <string.h>
 
 static const uint8_t k_alpha[26][7] = {
     {0x0e,0x11,0x11,0x1f,0x11,0x11,0x11},{0x1e,0x11,0x11,0x1e,0x11,0x11,0x1e},
@@ -271,6 +272,30 @@ static void project_saved_devices(const blu2usb_ux_model_t *ux,
     set_row_tone(frame, 4u, BLU2USB_UI_TONE_EMPHASIZED);
 }
 
+static void project_remove_this(const blu2usb_ux_model_t *ux,
+                                blu2usb_ui_frame_t *frame)
+{
+    char name[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    const int bond = ux->remove_target_bond >= 0
+        ? ux->remove_target_bond
+        : blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
+    const bool current =
+        blu2usb_ux_mouse_connected() &&
+        bond >= 0 &&
+        bond == ux->saved_connected_bond;
+    const char *saved_name =
+        bond >= 0 && (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE &&
+        ux->saved_mouse_names[bond][0] != '\0'
+            ? ux->saved_mouse_names[bond]
+            : (current ? ux->current_mouse_name : NULL);
+
+    home_title(saved_name, name);
+    clear_row(frame, 1u);
+    (void)blu2usb_ui_frame_set_text(
+        frame, 1u, 0u, name,
+        current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC);
+}
+
 static void emphasize_row(blu2usb_ui_frame_t *frame, uint8_t row)
 {
     set_row_tone(frame, row, BLU2USB_UI_TONE_EMPHASIZED);
@@ -444,6 +469,8 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
 
     if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES)
         project_saved_devices(ux, frame);
+    else if (ux->screen == BLU2USB_SCREEN_REMOVE_THIS)
+        project_remove_this(ux, frame);
 
     const uint8_t profile_row = active_profile_row(ux);
     if (profile_row != 0u) set_row_tone(frame, profile_row, BLU2USB_UI_TONE_CURRENT);
