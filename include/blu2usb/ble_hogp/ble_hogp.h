@@ -22,6 +22,7 @@ typedef enum {
     BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_STARTED = 6,
     BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_TIMEOUT = 7,
     BLU2USB_BLE_HOGP_MESSAGE_PAIR_NEW_PROMOTED = 8,
+    BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVED = 9,
 } blu2usb_ble_hogp_message_type_t;
 
 typedef enum {
@@ -74,6 +75,7 @@ typedef enum {
     BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_STARTED,
     BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_TIMEOUT,
     BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED,
+    BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVED,
 } blu2usb_ble_hogp_event_type_t;
 
 typedef struct {
@@ -135,5 +137,6 @@ void blu2usb_ble_hogp_pico_request_saved_search(void);
 void blu2usb_ble_hogp_pico_cancel_saved_search(void);
 void blu2usb_ble_hogp_pico_request_pair_new(void);
 void blu2usb_ble_hogp_pico_cancel_pair_new(void);
+void blu2usb_ble_hogp_pico_request_remove_saved_mouse(int logical_bond);
 
 #endif
