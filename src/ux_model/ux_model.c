@@ -34,19 +34,7 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_MIDDLE_WILL_BECOME] = {{"MIDDLE WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," ESCAPE"," FORWARD"," BACKWARD",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_FORWARD_WILL_BECOME] = {{"FORWARD WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," ESCAPE"," FORWARD"," BACKWARD",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_BACKWARD_WILL_BECOME] = {{"BACKWARD WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," ESCAPE"," FORWARD"," BACKWARD",EMPTY,"KEY A: APPLY AND BACK"},0},
-    [BLU2USB_SCREEN_OTHER_OPTIONS] = {{"OTHER OPTIONS"," PAIR KEYBOARD"," PAIR COMPOSITE"," SAVED DEVICES",EMPTY,EMPTY,"JOY UP\\DOWN: SELECT","JOY PRESS: ACCESS","KEY B: BACK"},0},
-    [BLU2USB_SCREEN_OTHER_OPTIONS_HELP] = {{"OTHER OPTIONS HELP","KEYBOARD IS DIFFERENT","FROM COMPOSITE.","COMPOSITE IS TOUCHPAD","AND KEYBOARD EMBEDDED","TOGETHER AND IT PAIRS","ITS OWN BLUETOOTH.",EMPTY,"ANY KEY: BACK"},0},
-    [BLU2USB_SCREEN_PAIR_KEYBOARD] = {{"PAIR KEYBOARD","SEARCHING KEYBOARD","TARGET KEYBOARD","AUTO SEARCH ACTIVE","FOUND 0 HID",EMPTY,"KEY A: RETRY ON ERROR","KEY B: CANCEL","KEY X: HELP"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
-    [BLU2USB_SCREEN_PAIR_KEYBOARD_HELP] = {{"PAIR KEYBOARD HELP",EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,"ANY KEY: BACK"},0x00fe},
-    [BLU2USB_SCREEN_KEYBOARD_SAVED] = {{"KEYBOARD SAVED","TYPE KEYBOARD","SAVED DEVICES UPDATED",EMPTY,EMPTY,EMPTY,EMPTY,"KEY B: BACK","KEY Y: LOCK"},0x007e},
-    [BLU2USB_SCREEN_PAIR_COMPOSITE] = {{"PAIR COMPOSITE","SEARCHING BLE HID","TARGET COMPOSITE","AUTO SEARCH ACTIVE","FOUND 0 HID",EMPTY,"KEY A: RETRY ON ERROR","KEY B: CANCEL","KEY X: HELP"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
-    [BLU2USB_SCREEN_PAIR_COMPOSITE_HELP] = {{"PAIR COMPOSITE HELP",EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,"ANY KEY: BACK"},0x00fe},
-    [BLU2USB_SCREEN_COMPOSITE_SAVED] = {{"COMPOSITE SAVED","TYPE COMPOSITE","SAVED DEVICES UPDATED",EMPTY,EMPTY,EMPTY,EMPTY,"KEY B: BACK","KEY Y: LOCK"},0x007e},
-    [BLU2USB_SCREEN_SAVED_DEVICES] = {{"1-4 OF 6 SAVED"," BKB-3G"," OFFICE MOUSE"," TRAVEL KEYBOARD"," GENERIC MOUSE",EMPTY,"JOY UP\\DOWN: SELECT","JOY PRESS: ACCESS","JOY RIGHT\\LEFT: PAGE"},0x003f},
-    [BLU2USB_SCREEN_DEVICE_DETAILS_MOUSE] = {{"DEVICE DETAILS","LOGITECH LIFT","TYPE: MOUSE","STATUS: CONNECTED","PROFILE: DEFAULT"," REMOVE DEVICE",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
-    [BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD] = {{"DEVICE DETAILS","BKB-3G","TYPE: KEYBOARD","STATUS: SAVED"," REMOVE DEVICE",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK","KEY Y: LOCK"},DYN(1)|DYN(2)|DYN(3)},
-    [BLU2USB_SCREEN_DEVICE_DETAILS_COMPOSITE] = {{"DEVICE DETAILS","DESK COMPOSITE","TYPE: COMPOSITE","STATUS: SAVED"," REMOVE DEVICE",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK","KEY Y: LOCK"},DYN(1)|DYN(2)|DYN(3)},
-    [BLU2USB_SCREEN_REMOVE_DEVICE] = {{"REMOVE DEVICE","BKB-3G","PAIRING AND MAPPINGS","WILL BE DELETED",EMPTY,EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY Y: LOCK"},DYN(1)},
+    [BLU2USB_SCREEN_SAVED_DEVICES] = {{"0 OF 0","UNKNOWN MOUSE","STATUS: DISCONNECTED","PROFILE: PASSTHROUGH"," REMOVE DEVICE",EMPTY,"JOY RIGHT\\LEFT: PAGE","JOY PRESS: ACCESS","KEY B: BACK"},DYN(0)|DYN(1)|DYN(2)|DYN(3)},
     [BLU2USB_SCREEN_LEARN_KEYS] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
 };
 
@@ -62,9 +50,7 @@ static bool is_help(blu2usb_screen_id_t screen) {
            screen == BLU2USB_SCREEN_HELP_PAIR_NEW ||
            screen == BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW ||
            screen == BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS ||
-           screen == BLU2USB_SCREEN_MOUSE_HELP || screen == BLU2USB_SCREEN_DEVICES_HELP ||
-           screen == BLU2USB_SCREEN_OTHER_OPTIONS_HELP ||
-           screen == BLU2USB_SCREEN_PAIR_KEYBOARD_HELP || screen == BLU2USB_SCREEN_PAIR_COMPOSITE_HELP;
+           screen == BLU2USB_SCREEN_MOUSE_HELP || screen == BLU2USB_SCREEN_DEVICES_HELP;
 }
 
 static bool is_will_become(blu2usb_screen_id_t screen) {
@@ -115,16 +101,7 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_MIDDLE_WILL_BECOME:
     case BLU2USB_SCREEN_FORWARD_WILL_BECOME:
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME: return BLU2USB_SCREEN_EDIT_CUSTOM;
-    case BLU2USB_SCREEN_OTHER_OPTIONS: return BLU2USB_SCREEN_HOME;
-    case BLU2USB_SCREEN_PAIR_KEYBOARD: return BLU2USB_SCREEN_OTHER_OPTIONS;
-    case BLU2USB_SCREEN_KEYBOARD_SAVED: return BLU2USB_SCREEN_PAIR_KEYBOARD;
-    case BLU2USB_SCREEN_PAIR_COMPOSITE: return BLU2USB_SCREEN_OTHER_OPTIONS;
-    case BLU2USB_SCREEN_COMPOSITE_SAVED: return BLU2USB_SCREEN_PAIR_COMPOSITE;
-    case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_OTHER_OPTIONS;
-    case BLU2USB_SCREEN_DEVICE_DETAILS_MOUSE:
-    case BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD:
-    case BLU2USB_SCREEN_DEVICE_DETAILS_COMPOSITE: return BLU2USB_SCREEN_SAVED_DEVICES;
-    case BLU2USB_SCREEN_REMOVE_DEVICE: return ux->return_screen;
+    case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_HOME;
     case BLU2USB_SCREEN_LEARN_KEYS: return BLU2USB_SCREEN_LEARN_KEYS;
     default: return BLU2USB_SCREEN_HOME;
     }
@@ -136,21 +113,13 @@ unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_HOME_SEARCHING:
     case BLU2USB_SCREEN_HOME_RETRY: return 3;
     case BLU2USB_SCREEN_MOUSE_OPTIONS: return 4;
-    case BLU2USB_SCREEN_OTHER_OPTIONS: return 3;
     case BLU2USB_SCREEN_EDIT_CUSTOM: return 5;
     case BLU2USB_SCREEN_LEFT_WILL_BECOME:
     case BLU2USB_SCREEN_RIGHT_WILL_BECOME:
     case BLU2USB_SCREEN_MIDDLE_WILL_BECOME:
     case BLU2USB_SCREEN_FORWARD_WILL_BECOME:
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME: return BLU2USB_MOUSE_TARGET_COUNT;
-    case BLU2USB_SCREEN_SAVED_DEVICES: {
-        unsigned start = ux->saved_page * 4u;
-        unsigned remain = ux->saved_device_count > start ? ux->saved_device_count - start : 0u;
-        return remain > 4u ? 4u : remain;
-    }
-    case BLU2USB_SCREEN_DEVICE_DETAILS_MOUSE:
-    case BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD:
-    case BLU2USB_SCREEN_DEVICE_DETAILS_COMPOSITE: return 1;
+    case BLU2USB_SCREEN_SAVED_DEVICES: return 0;
     default: return 0;
     }
 }
@@ -165,6 +134,7 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
     ux->saved_page = 0;
     ux->saved_pages = 1;
     ux->saved_device_count = 0;
+    ux->saved_current_page = -1;
     ux->current_mouse_name[0] = '\0';
     ux->active_profile = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
     ux->custom_dirty = false;
@@ -177,10 +147,18 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
 }
 
 void blu2usb_ux_set_saved_device_count(blu2usb_ux_model_t *ux, unsigned count) {
+    if (ux == NULL) return;
     ux->saved_device_count = count;
-    ux->saved_pages = count == 0 ? 1u : (count + 3u) / 4u;
+    ux->saved_pages = count == 0 ? 1u : count;
     if (ux->saved_page >= ux->saved_pages) ux->saved_page = ux->saved_pages - 1u;
+    if (ux->saved_current_page >= (int)count) ux->saved_current_page = -1;
     if (ux->selection >= blu2usb_ux_option_count(ux)) ux->selection = 0;
+}
+
+void blu2usb_ux_set_saved_current_page(blu2usb_ux_model_t *ux, int page) {
+    if (ux == NULL) return;
+    ux->saved_current_page =
+        page >= 0 && (unsigned)page < ux->saved_device_count ? page : -1;
 }
 
 void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name) {
@@ -250,18 +228,6 @@ static blu2usb_mouse_source_t custom_source_for(unsigned selection) {
         BLU2USB_MOUSE_SOURCE_FORWARD, BLU2USB_MOUSE_SOURCE_BACKWARD
     };
     return ids[selection < 5 ? selection : 0];
-}
-
-static blu2usb_screen_id_t example_saved_device_details_for(unsigned index) {
-    static const blu2usb_screen_id_t ids[6] = {
-        BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD,
-        BLU2USB_SCREEN_DEVICE_DETAILS_MOUSE,
-        BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD,
-        BLU2USB_SCREEN_DEVICE_DETAILS_MOUSE,
-        BLU2USB_SCREEN_DEVICE_DETAILS_MOUSE,
-        BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD
-    };
-    return index < 6u ? ids[index] : BLU2USB_SCREEN_DEVICE_DETAILS_COMPOSITE;
 }
 
 blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t control, bool pressed) {
@@ -485,25 +451,6 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
-    if (ux->screen == BLU2USB_SCREEN_OTHER_OPTIONS && control == BLU2USB_CONTROL_JOY_PRESS) {
-        unsigned selected = ux->selection;
-        static const blu2usb_screen_id_t dest[3] = {BLU2USB_SCREEN_PAIR_KEYBOARD,BLU2USB_SCREEN_PAIR_COMPOSITE,BLU2USB_SCREEN_SAVED_DEVICES};
-        enter(ux, dest[selected]);
-        if (selected == 0) cmd.kind = BLU2USB_UX_COMMAND_PAIR_KEYBOARD;
-        else if (selected == 1) cmd.kind = BLU2USB_UX_COMMAND_PAIR_COMPOSITE;
-        return cmd;
-    }
-
-    if (ux->screen == BLU2USB_SCREEN_PAIR_KEYBOARD || ux->screen == BLU2USB_SCREEN_PAIR_COMPOSITE) {
-        if (control == BLU2USB_CONTROL_KEY_A) { cmd.kind = BLU2USB_UX_COMMAND_RETRY; return cmd; }
-        if (control == BLU2USB_CONTROL_KEY_X) {
-            ux->return_screen = ux->screen;
-            enter(ux, ux->screen == BLU2USB_SCREEN_PAIR_KEYBOARD ?
-                      BLU2USB_SCREEN_PAIR_KEYBOARD_HELP : BLU2USB_SCREEN_PAIR_COMPOSITE_HELP);
-            return cmd;
-        }
-    }
-
     if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM) {
         if (control == BLU2USB_CONTROL_JOY_PRESS) {
             unsigned selected = ux->selection;
@@ -538,16 +485,10 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
-    if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES && control == BLU2USB_CONTROL_JOY_PRESS && count) {
-        const unsigned absolute_index = ux->saved_page * 4u + ux->selection;
-        enter(ux, example_saved_device_details_for(absolute_index));
-        return cmd;
-    }
-
-    if ((ux->screen == BLU2USB_SCREEN_DEVICE_DETAILS_MOUSE || ux->screen == BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD || ux->screen == BLU2USB_SCREEN_DEVICE_DETAILS_COMPOSITE) &&
+    if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES &&
         control == BLU2USB_CONTROL_JOY_PRESS) {
-        ux->return_screen = ux->screen;
-        enter(ux, BLU2USB_SCREEN_REMOVE_DEVICE);
+        /* HOPE-05 owns remove-this. HOPE-04 intentionally leaves ACCESS
+         * inert while preserving the canonical hint for the next gate. */
         return cmd;
     }
 
@@ -557,8 +498,6 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         cmd.kind = BLU2USB_UX_COMMAND_APPLY_DEFAULT;
     } else if (ux->screen == BLU2USB_SCREEN_APPLY_ESCAPE && control == BLU2USB_CONTROL_KEY_A) {
         cmd.kind = BLU2USB_UX_COMMAND_APPLY_ESCAPE;
-    } else if (ux->screen == BLU2USB_SCREEN_REMOVE_DEVICE && control == BLU2USB_CONTROL_KEY_A) {
-        cmd.kind = BLU2USB_UX_COMMAND_REMOVE_DEVICE;
     }
 
     return cmd;
