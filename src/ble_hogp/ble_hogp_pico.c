@@ -96,6 +96,7 @@ static bool g_pair_new_cancel_pending;
 static bool g_pair_new_resume_after_disconnect;
 static bool g_pair_new_handoff_pending;
 static int g_pair_new_bond_count_before;
+static int g_pair_new_bond_index = -1;
 static bd_addr_t g_pair_new_address;
 static bd_addr_type_t g_pair_new_address_type;
 static hci_con_handle_t g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
@@ -127,22 +128,57 @@ static void saved_names_load(void);
 static void saved_names_remember_bond(int bond_index, const char *name);
 static int resolve_current_bond_index(void);
 
-static bool saved_identity_for_bond(int bond_index,
+static bool bond_slot_info(int slot,
+                           bd_addr_type_t *address_type,
+                           bd_addr_t address,
+                           sm_key_t irk)
+{
+    if (slot < 0 || slot >= le_device_db_max_count()) return false;
+
+    int saved_type = (int)BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t saved_address;
+    sm_key_t saved_irk;
+    memset(saved_address, 0, sizeof(saved_address));
+    memset(saved_irk, 0, sizeof(saved_irk));
+    le_device_db_info(slot, &saved_type, saved_address, saved_irk);
+    if (saved_type == (int)BD_ADDR_TYPE_UNKNOWN) return false;
+
+    if (address_type != NULL) *address_type = (bd_addr_type_t)saved_type;
+    if (address != NULL) memcpy(address, saved_address, sizeof(bd_addr_t));
+    if (irk != NULL) memcpy(irk, saved_irk, sizeof(sm_key_t));
+    return true;
+}
+
+static int bond_slot_for_ordinal(int ordinal)
+{
+    if (ordinal < 0) return -1;
+    int seen = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        if (!bond_slot_info(slot, NULL, NULL, NULL)) continue;
+        if (seen == ordinal) return slot;
+        ++seen;
+    }
+    return -1;
+}
+
+static int bond_ordinal_for_slot(int wanted_slot)
+{
+    if (!bond_slot_info(wanted_slot, NULL, NULL, NULL)) return -1;
+    int ordinal = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        if (!bond_slot_info(slot, NULL, NULL, NULL)) continue;
+        if (slot == wanted_slot) return ordinal;
+        ++ordinal;
+    }
+    return -1;
+}
+
+static bool saved_identity_for_bond(int bond_slot,
                                     bd_addr_type_t *address_type,
                                     bd_addr_t address)
 {
-    const int count = le_device_db_count();
-    if (bond_index < 0 || bond_index >= count || address_type == NULL ||
-        address == NULL) return false;
-
-    int saved_type = 0;
-    sm_key_t irk;
-    memset(address, 0, sizeof(bd_addr_t));
-    memset(irk, 0, sizeof(irk));
-    le_device_db_info(bond_index, &saved_type, address, irk);
-    if (saved_type == (int)BD_ADDR_TYPE_UNKNOWN) return false;
-    *address_type = (bd_addr_type_t)saved_type;
-    return true;
+    return address_type != NULL && address != NULL &&
+        bond_slot_info(bond_slot, address_type, address, NULL);
 }
 
 static int saved_names_find(bd_addr_type_t address_type,
@@ -259,18 +295,18 @@ static int resolve_current_bond_index(void)
     if (g_state != BLE_HOGP_STATE_READY ||
         g_connection_handle == HCI_CON_HANDLE_INVALID || count <= 0) return -1;
 
-    if (g_current_bond_index >= 0 && g_current_bond_index < count)
+    if (bond_slot_info(g_current_bond_index, NULL, NULL, NULL))
         return g_current_bond_index;
 
     const int security_manager_index = sm_le_device_index(g_connection_handle);
-    if (security_manager_index >= 0 && security_manager_index < count) {
+    if (bond_slot_info(security_manager_index, NULL, NULL, NULL)) {
         g_current_bond_index = security_manager_index;
         return security_manager_index;
     }
 
     if (count == 1) {
-        g_current_bond_index = 0;
-        return 0;
+        g_current_bond_index = bond_slot_for_ordinal(0);
+        return g_current_bond_index;
     }
     return -1;
 }
