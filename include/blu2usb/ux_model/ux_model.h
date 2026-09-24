@@ -41,19 +41,7 @@ typedef enum {
     BLU2USB_SCREEN_MIDDLE_WILL_BECOME,
     BLU2USB_SCREEN_FORWARD_WILL_BECOME,
     BLU2USB_SCREEN_BACKWARD_WILL_BECOME,
-    BLU2USB_SCREEN_OTHER_OPTIONS,
-    BLU2USB_SCREEN_OTHER_OPTIONS_HELP,
-    BLU2USB_SCREEN_PAIR_KEYBOARD,
-    BLU2USB_SCREEN_PAIR_KEYBOARD_HELP,
-    BLU2USB_SCREEN_KEYBOARD_SAVED,
-    BLU2USB_SCREEN_PAIR_COMPOSITE,
-    BLU2USB_SCREEN_PAIR_COMPOSITE_HELP,
-    BLU2USB_SCREEN_COMPOSITE_SAVED,
     BLU2USB_SCREEN_SAVED_DEVICES,
-    BLU2USB_SCREEN_DEVICE_DETAILS_MOUSE,
-    BLU2USB_SCREEN_DEVICE_DETAILS_KEYBOARD,
-    BLU2USB_SCREEN_DEVICE_DETAILS_COMPOSITE,
-    BLU2USB_SCREEN_REMOVE_DEVICE,
     BLU2USB_SCREEN_LEARN_KEYS,
     BLU2USB_SCREEN_COUNT
 } blu2usb_screen_id_t;
@@ -61,15 +49,11 @@ typedef enum {
 typedef enum {
     BLU2USB_UX_COMMAND_NONE = 0,
     BLU2USB_UX_COMMAND_PAIR_MOUSE,
-    BLU2USB_UX_COMMAND_PAIR_KEYBOARD,
-    BLU2USB_UX_COMMAND_PAIR_COMPOSITE,
-    BLU2USB_UX_COMMAND_RETRY,
     BLU2USB_UX_COMMAND_APPLY_PASSTHROUGH,
     BLU2USB_UX_COMMAND_APPLY_DEFAULT,
     BLU2USB_UX_COMMAND_APPLY_ESCAPE,
     BLU2USB_UX_COMMAND_APPLY_CUSTOM,
-    BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET,
-    BLU2USB_UX_COMMAND_REMOVE_DEVICE
+    BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET
 } blu2usb_ux_command_kind_t;
 
 typedef struct {
@@ -93,6 +77,7 @@ typedef struct {
     unsigned saved_page;
     unsigned saved_pages;
     unsigned saved_device_count;
+    int saved_current_page;
     char current_mouse_name[BLU2USB_UX_MOUSE_NAME_CAPACITY];
     blu2usb_mouse_profile_kind_t active_profile;
     bool custom_dirty;
@@ -103,6 +88,7 @@ typedef struct {
 void blu2usb_ux_init(blu2usb_ux_model_t *ux);
 blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t control, bool pressed);
 void blu2usb_ux_set_saved_device_count(blu2usb_ux_model_t *ux, unsigned count);
+void blu2usb_ux_set_saved_current_page(blu2usb_ux_model_t *ux, int page);
 void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name);
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target);
 void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux, blu2usb_mouse_profile_kind_t active_profile);
