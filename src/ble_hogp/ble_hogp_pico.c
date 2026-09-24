@@ -398,6 +398,34 @@ static void saved_names_remember_bond(int bond_index, const char *name)
     (void)saved_names_store();
 }
 
+static void dedupe_current_bond(void)
+{
+    if (!bond_slot_info(g_current_bond_index, NULL, NULL, NULL)) return;
+
+    bd_addr_type_t current_type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t current_address;
+    sm_key_t current_irk;
+    if (!bond_slot_info(g_current_bond_index, &current_type,
+                        current_address, current_irk))
+        return;
+
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        if (slot == g_current_bond_index) continue;
+
+        bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t address;
+        sm_key_t irk;
+        if (!bond_slot_info(slot, &type, address, irk)) continue;
+        if (!bond_identity_equal(current_type, current_address, current_irk,
+                                 type, address, irk))
+            continue;
+
+        /* The current slot just completed a working HID session, so it is
+         * the safe canonical bond. Remove only older/equivalent duplicates. */
+        le_device_db_remove(slot);
+    }
+}
+
 static int resolve_current_bond_index(void)
 {
     const int count = le_device_db_count();
@@ -946,6 +974,7 @@ static void pair_new_finalize_promotion(void)
     g_reconnect_after_disconnect = false;
     g_idle_after_disconnect = false;
     saved_names_remember_bond(g_current_bond_index, g_current_mouse_name);
+    dedupe_current_bond();
 
     if (g_vendor_registered)
         g_vendor_backend.session(g_vendor_backend.context, true);
@@ -1138,6 +1167,7 @@ static void handle_gatt_client_event(uint8_t packet_type, uint16_t channel,
         g_reconnect_after_disconnect = false;
         g_current_bond_index = resolve_current_bond_index();
         saved_names_remember_bond(g_current_bond_index, g_current_mouse_name);
+        dedupe_current_bond();
         if (g_vendor_registered)
             g_vendor_backend.session(g_vendor_backend.context, true);
         if (!publish_status(BLU2USB_BLE_HOGP_MESSAGE_CONNECTED)) {
