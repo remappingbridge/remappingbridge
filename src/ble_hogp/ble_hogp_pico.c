@@ -17,11 +17,17 @@
 #define BLE_HOGP_MOUSE_NAME_CAPACITY 64u
 #define BLE_HOGP_SAVED_NAME_CAPACITY 32u
 #define BLE_HOGP_SAVED_REGISTRY_CAPACITY 8u
-#define BLE_HOGP_SAVED_REGISTRY_VERSION 1u
+#define BLE_HOGP_SAVED_REGISTRY_VERSION 2u
+#define BLE_HOGP_SAVED_REGISTRY_VERSION_V1 1u
 #define BLE_HOGP_SAVED_REGISTRY_TAG UINT32_C(0x4232534e) /* B2SN */
+#define BLE_HOGP_SAVED_REGISTRY_V1_ENTRY_SIZE \
+    (1u + 1u + 6u + BLE_HOGP_SAVED_NAME_CAPACITY)
+#define BLE_HOGP_SAVED_REGISTRY_ENTRY_SIZE \
+    (1u + 1u + 6u + 16u + BLE_HOGP_SAVED_NAME_CAPACITY)
+#define BLE_HOGP_SAVED_REGISTRY_V1_SERIALIZED_SIZE \
+    (1u + BLE_HOGP_SAVED_REGISTRY_CAPACITY * BLE_HOGP_SAVED_REGISTRY_V1_ENTRY_SIZE)
 #define BLE_HOGP_SAVED_REGISTRY_SERIALIZED_SIZE \
-    (1u + BLE_HOGP_SAVED_REGISTRY_CAPACITY * \
-     (1u + 1u + 6u + BLE_HOGP_SAVED_NAME_CAPACITY))
+    (1u + BLE_HOGP_SAVED_REGISTRY_CAPACITY * BLE_HOGP_SAVED_REGISTRY_ENTRY_SIZE)
 
 _Static_assert(BLE_HOGP_SAVED_REGISTRY_CAPACITY == NVM_NUM_DEVICE_DB_ENTRIES,
                "saved-name registry must cover the LE Device DB");
@@ -62,6 +68,7 @@ typedef struct {
     bool used;
     bd_addr_type_t address_type;
     bd_addr_t address;
+    sm_key_t irk;
     char name[BLE_HOGP_SAVED_NAME_CAPACITY];
 } ble_hogp_saved_name_t;
 
@@ -149,25 +156,86 @@ static bool bond_slot_info(int slot,
     return true;
 }
 
+static bool irk_is_nonzero(const sm_key_t irk)
+{
+    if (irk == NULL) return false;
+    for (unsigned index = 0u; index < sizeof(sm_key_t); ++index)
+        if (irk[index] != 0u) return true;
+    return false;
+}
+
+static bool bond_identity_equal(bd_addr_type_t left_type,
+                                const bd_addr_t left_address,
+                                const sm_key_t left_irk,
+                                bd_addr_type_t right_type,
+                                const bd_addr_t right_address,
+                                const sm_key_t right_irk)
+{
+    if (irk_is_nonzero(left_irk) && irk_is_nonzero(right_irk) &&
+        memcmp(left_irk, right_irk, sizeof(sm_key_t)) == 0)
+        return true;
+    return left_type == right_type &&
+        memcmp(left_address, right_address, sizeof(bd_addr_t)) == 0;
+}
+
+static bool bond_slot_is_first_for_identity(int slot)
+{
+    bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!bond_slot_info(slot, &type, address, irk)) return false;
+
+    for (int prior = 0; prior < slot; ++prior) {
+        bd_addr_type_t prior_type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t prior_address;
+        sm_key_t prior_irk;
+        if (!bond_slot_info(prior, &prior_type, prior_address, prior_irk)) continue;
+        if (bond_identity_equal(type, address, irk,
+                                prior_type, prior_address, prior_irk))
+            return false;
+    }
+    return true;
+}
+
 static int bond_slot_for_ordinal(int ordinal)
 {
     if (ordinal < 0) return -1;
     int seen = 0;
     for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
-        if (!bond_slot_info(slot, NULL, NULL, NULL)) continue;
+        if (!bond_slot_is_first_for_identity(slot)) continue;
         if (seen == ordinal) return slot;
         ++seen;
     }
     return -1;
 }
 
+static int bond_unique_count(void)
+{
+    int count = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot)
+        if (bond_slot_is_first_for_identity(slot)) ++count;
+    return count;
+}
+
 static int bond_ordinal_for_slot(int wanted_slot)
 {
-    if (!bond_slot_info(wanted_slot, NULL, NULL, NULL)) return -1;
+    bd_addr_type_t wanted_type = BD_ADDR_TYPE_UNKNOWN;
+    bd_addr_t wanted_address;
+    sm_key_t wanted_irk;
+    if (!bond_slot_info(wanted_slot, &wanted_type, wanted_address, wanted_irk))
+        return -1;
+
     int ordinal = 0;
     for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
-        if (!bond_slot_info(slot, NULL, NULL, NULL)) continue;
-        if (slot == wanted_slot) return ordinal;
+        if (!bond_slot_is_first_for_identity(slot)) continue;
+
+        bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t address;
+        sm_key_t irk;
+        if (!bond_slot_info(slot, &type, address, irk)) continue;
+        if (bond_identity_equal(wanted_type, wanted_address, wanted_irk,
+                                type, address, irk))
+            return ordinal;
         ++ordinal;
     }
     return -1;
