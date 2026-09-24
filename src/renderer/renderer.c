@@ -238,15 +238,21 @@ static void project_saved_devices(const blu2usb_ux_model_t *ux,
     char title[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char name[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char profile[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
     const bool current =
         blu2usb_ux_mouse_connected() &&
-        ux->saved_current_page >= 0 &&
-        ux->saved_page == (unsigned)ux->saved_current_page;
+        bond >= 0 &&
+        bond == ux->saved_connected_bond;
+    const char *saved_name =
+        bond >= 0 && (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE &&
+        ux->saved_mouse_names[bond][0] != '\0'
+            ? ux->saved_mouse_names[bond]
+            : (current ? ux->current_mouse_name : NULL);
 
     (void)snprintf(title, sizeof(title), "%u OF %u",
                    ux->saved_device_count == 0u ? 0u : ux->saved_page + 1u,
                    ux->saved_device_count);
-    home_title(current ? ux->current_mouse_name : NULL, name);
+    home_title(saved_name, name);
     (void)snprintf(profile, sizeof(profile), "PROFILE: %s",
                    saved_profile_name(ux->active_profile));
 
