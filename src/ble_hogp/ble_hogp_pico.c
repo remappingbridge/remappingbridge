@@ -51,6 +51,7 @@ static ble_hogp_state_t g_state;
 static bd_addr_t g_remote_address;
 static bd_addr_type_t g_remote_address_type;
 static hci_con_handle_t g_connection_handle = HCI_CON_HANDLE_INVALID;
+static int g_current_bond_index = -1;
 static uint16_t g_hids_cid;
 static char g_current_mouse_name[BLE_HOGP_MOUSE_NAME_CAPACITY];
 static uint8_t g_descriptor_storage[BLE_HOGP_DESCRIPTOR_STORAGE_SIZE];
@@ -294,6 +295,7 @@ static void start_scan(void)
     stop_reconnect_timer();
     g_saved_search_active = false;
     g_reconnect_cancel_pending = false;
+    g_current_bond_index = -1;
     g_state = BLE_HOGP_STATE_SCANNING;
     gap_set_scan_parameters(0u, 48u, 48u);
     gap_start_scan();
@@ -592,6 +594,12 @@ static void pair_new_connect_hid_service(void)
 
 static void pair_new_finalize_promotion(void)
 {
+    const int bonded_count = le_device_db_count();
+    if (bonded_count > g_pair_new_bond_count_before)
+        g_current_bond_index = bonded_count - 1;
+    else
+        g_current_bond_index = -1;
+
     memcpy(g_remote_address, g_pair_new_address, sizeof(bd_addr_t));
     g_remote_address_type = g_pair_new_address_type;
     g_connection_handle = g_pair_new_connection_handle;
@@ -1095,6 +1103,18 @@ static void sm_packet_handler(uint8_t packet_type, uint16_t channel,
     if (packet_type != HCI_EVENT_PACKET) return;
 
     switch (hci_event_packet_get_type(packet)) {
+    case SM_EVENT_IDENTITY_RESOLVING_SUCCEEDED: {
+        const hci_con_handle_t handle =
+            sm_event_identity_created_get_handle(packet);
+        if (handle == g_connection_handle) {
+            const int index =
+                sm_event_identity_resolving_succeeded_get_index(packet);
+            if (index >= 0 && index < le_device_db_count())
+                g_current_bond_index = index;
+        }
+        break;
+    }
+
     case SM_EVENT_JUST_WORKS_REQUEST:
         sm_just_works_confirm(
             sm_event_just_works_request_get_handle(packet));
@@ -1162,6 +1182,7 @@ static void ble_hogp_session_setup(void)
     g_rejected_next = 0u;
     g_state = BLE_HOGP_STATE_WAITING_FOR_STACK;
     g_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_current_bond_index = -1;
     g_hids_cid = 0u;
     g_current_mouse_name[0] = '\0';
     g_reconnect_timer_active = false;
@@ -1215,13 +1236,20 @@ int blu2usb_ble_hogp_pico_current_bond_index(void)
     if (g_state != BLE_HOGP_STATE_READY ||
         g_connection_handle == HCI_CON_HANDLE_INVALID) return -1;
 
-    /* Ask BTstack's Security Manager for the LE Device DB identity that
-     * belongs to this connection. Comparing the current GAP peer address
-     * against the persisted bond address is incorrect when BLE Privacy/RPA
-     * is in use: the live address may be resolvable/private while the bond
-     * stores the peer identity address. */
-    const int index = sm_le_device_index(g_connection_handle);
-    return index >= 0 && index < le_device_db_count() ? index : -1;
+    const int count = le_device_db_count();
+    if (g_current_bond_index >= 0 && g_current_bond_index < count)
+        return g_current_bond_index;
+
+    /* Defensive fallback for stacks/connections where the cached identity
+     * event was not observed by this client. */
+    const int security_manager_index = sm_le_device_index(g_connection_handle);
+    if (security_manager_index >= 0 && security_manager_index < count)
+        return security_manager_index;
+
+    /* With exactly one saved Mouse there is no ambiguity at all. This also
+     * guarantees that the connected Mouse name shown on HOME is shown on its
+     * only saved-devices page even if identity resolution is not surfaced. */
+    return count == 1 ? 0 : -1;
 }
 
 const char *blu2usb_ble_hogp_pico_current_mouse_name(void)
