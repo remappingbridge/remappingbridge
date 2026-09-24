@@ -245,6 +245,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                     ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
                 blu2usb_ux_set_current_mouse_name(
                     ux, blu2usb_ble_hogp_pico_current_mouse_name());
+                blu2usb_ux_set_saved_current_page(
+                    ux, blu2usb_ble_hogp_pico_current_bond_index());
             }
             if (ux != NULL && ux->screen == BLU2USB_SCREEN_LEARN_KEYS) {
                 /* First-ever pairing still goes through accepted HOPE-02. */
@@ -280,6 +282,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 blu2usb_ux_set_saved_device_count(
                     ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
                 blu2usb_ux_set_current_mouse_name(ux, NULL);
+                blu2usb_ux_set_saved_current_page(ux, -1);
                 if (ux->screen == BLU2USB_SCREEN_HOME &&
                     ux->saved_device_count > 0u) {
                     ux->screen = BLU2USB_SCREEN_HOME_SEARCHING;
@@ -349,6 +352,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                     ux, blu2usb_ble_hogp_pico_bonded_mouse_count());
                 blu2usb_ux_set_current_mouse_name(
                     ux, blu2usb_ble_hogp_pico_current_mouse_name());
+                blu2usb_ux_set_saved_current_page(
+                    ux, blu2usb_ble_hogp_pico_current_bond_index());
                 ux->screen = BLU2USB_SCREEN_HOME;
                 ux->selection = 0u;
                 ui_changed = true;
