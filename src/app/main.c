@@ -402,6 +402,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
         case BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVED:
             if (ux != NULL) {
                 ux->remove_pending = false;
+                ux->remove_target_bond = -1;
                 ux->saved_front_bond = -1;
                 ux->saved_connected_bond = -1;
                 synchronize_saved_mice(
