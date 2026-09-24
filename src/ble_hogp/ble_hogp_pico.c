@@ -399,15 +399,11 @@ static void reject_address(const bd_addr_t address, bd_addr_type_t type)
 
 static bool address_is_saved(const bd_addr_t address, bd_addr_type_t type)
 {
-    const int count = le_device_db_count();
-    for (int index = 0; index < count; ++index) {
-        int saved_type = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t saved_type = BD_ADDR_TYPE_UNKNOWN;
         bd_addr_t saved_address;
-        sm_key_t irk;
-        memset(saved_address, 0, sizeof(saved_address));
-        memset(irk, 0, sizeof(irk));
-        le_device_db_info(index, &saved_type, saved_address, irk);
-        if ((bd_addr_type_t)saved_type == type &&
+        if (!bond_slot_info(slot, &saved_type, saved_address, NULL)) continue;
+        if (saved_type == type &&
             memcmp(saved_address, address, sizeof(bd_addr_t)) == 0) {
             return true;
         }
@@ -417,17 +413,19 @@ static bool address_is_saved(const bd_addr_t address, bd_addr_type_t type)
 
 static void remove_pair_new_bond(void)
 {
-    const int count = le_device_db_count();
-    for (int index = 0; index < count; ++index) {
-        int saved_type = 0;
+    if (bond_slot_info(g_pair_new_bond_index, NULL, NULL, NULL)) {
+        le_device_db_remove(g_pair_new_bond_index);
+        g_pair_new_bond_index = -1;
+        return;
+    }
+
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t saved_type = BD_ADDR_TYPE_UNKNOWN;
         bd_addr_t saved_address;
-        sm_key_t irk;
-        memset(saved_address, 0, sizeof(saved_address));
-        memset(irk, 0, sizeof(irk));
-        le_device_db_info(index, &saved_type, saved_address, irk);
-        if ((bd_addr_type_t)saved_type == g_pair_new_address_type &&
+        if (!bond_slot_info(slot, &saved_type, saved_address, NULL)) continue;
+        if (saved_type == g_pair_new_address_type &&
             memcmp(saved_address, g_pair_new_address, sizeof(bd_addr_t)) == 0) {
-            le_device_db_remove(index);
+            le_device_db_remove(slot);
             break;
         }
     }
@@ -451,6 +449,7 @@ static void pair_new_clear_candidate(void)
     g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_pair_new_mouse_name[0] = '\0';
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_bond_index = -1;
     g_pair_new_hids_cid = 0u;
     g_pair_new_mouse_name[0] = '\0';
     memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
@@ -564,27 +563,24 @@ static void pair_new_timeout_handler(btstack_timer_source_t *timer)
 
 static bool start_bonded_reconnect(void)
 {
-    const int count = le_device_db_count();
-    if (count <= 0) return false;
+    if (le_device_db_count() <= 0) return false;
 
     stop_reconnect_timer();
     g_reconnect_cancel_pending = false;
+    g_current_bond_index = -1;
     (void)gap_whitelist_clear();
     (void)gap_load_resolving_list_from_le_device_db();
 
     unsigned added = 0u;
-    for (int index = 0; index < count; ++index) {
-        int address_type = 0;
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
         bd_addr_t address;
-        sm_key_t irk;
-        memset(address, 0, sizeof(address));
-        memset(irk, 0, sizeof(irk));
-        le_device_db_info(index, &address_type, address, irk);
-        if (gap_whitelist_add((bd_addr_type_t)address_type, address) != ERROR_CODE_SUCCESS)
+        if (!bond_slot_info(slot, &address_type, address, NULL)) continue;
+        if (gap_whitelist_add(address_type, address) != ERROR_CODE_SUCCESS)
             continue;
         if (added == 0u) {
             memcpy(g_remote_address, address, sizeof(bd_addr_t));
-            g_remote_address_type = (bd_addr_type_t)address_type;
+            g_remote_address_type = address_type;
         }
         ++added;
     }
@@ -628,6 +624,7 @@ static bool start_pair_new(void)
     g_pair_new_active = true;
     g_pair_new_state = BLE_PAIR_NEW_SCANNING;
     g_pair_new_bond_count_before = le_device_db_count();
+    g_pair_new_bond_index = -1;
 
     btstack_run_loop_set_timer(&g_pair_new_timer, BLE_HOGP_PAIR_NEW_TIMEOUT_MS);
     btstack_run_loop_add_timer(&g_pair_new_timer);
