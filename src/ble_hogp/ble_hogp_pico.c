@@ -1206,6 +1206,26 @@ unsigned blu2usb_ble_hogp_pico_bonded_mouse_count(void)
     return count > 0 ? (unsigned)count : 0u;
 }
 
+int blu2usb_ble_hogp_pico_current_bond_index(void)
+{
+    if (g_state != BLE_HOGP_STATE_READY ||
+        g_connection_handle == HCI_CON_HANDLE_INVALID) return -1;
+
+    const int count = le_device_db_count();
+    for (int index = 0; index < count; ++index) {
+        int saved_type = 0;
+        bd_addr_t saved_address;
+        sm_key_t irk;
+        memset(saved_address, 0, sizeof(saved_address));
+        memset(irk, 0, sizeof(irk));
+        le_device_db_info(index, &saved_type, saved_address, irk);
+        if ((bd_addr_type_t)saved_type == g_remote_address_type &&
+            memcmp(saved_address, g_remote_address, sizeof(bd_addr_t)) == 0)
+            return index;
+    }
+    return -1;
+}
+
 const char *blu2usb_ble_hogp_pico_current_mouse_name(void)
 {
     return g_current_mouse_name;
