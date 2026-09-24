@@ -127,6 +127,9 @@ bool blu2usb_ble_hogp_register_vendor_backend(
 bool blu2usb_ble_hogp_start(void);
 unsigned blu2usb_ble_hogp_pico_bonded_mouse_count(void);
 int blu2usb_ble_hogp_pico_current_bond_index(void);
+bool blu2usb_ble_hogp_pico_saved_mouse_name(int bond_index,
+                                            char *out,
+                                            size_t out_capacity);
 const char *blu2usb_ble_hogp_pico_current_mouse_name(void);
 void blu2usb_ble_hogp_pico_request_saved_search(void);
 void blu2usb_ble_hogp_pico_cancel_saved_search(void);
