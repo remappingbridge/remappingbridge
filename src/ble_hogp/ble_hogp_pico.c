@@ -798,11 +798,13 @@ static void pair_new_connect_hid_service(void)
 
 static void pair_new_finalize_promotion(void)
 {
-    const int bonded_count = le_device_db_count();
-    if (bonded_count > g_pair_new_bond_count_before)
-        g_current_bond_index = bonded_count - 1;
-    else
-        g_current_bond_index = -1;
+    int promoted_bond_index = g_pair_new_bond_index;
+    if (!bond_slot_info(promoted_bond_index, NULL, NULL, NULL))
+        promoted_bond_index = sm_le_device_index(g_pair_new_connection_handle);
+    g_current_bond_index =
+        bond_slot_info(promoted_bond_index, NULL, NULL, NULL)
+            ? promoted_bond_index
+            : -1;
 
     memcpy(g_remote_address, g_pair_new_address, sizeof(bd_addr_t));
     g_remote_address_type = g_pair_new_address_type;
@@ -813,6 +815,7 @@ static void pair_new_finalize_promotion(void)
            sizeof(g_current_mouse_name));
 
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
+    g_pair_new_bond_index = -1;
     g_pair_new_hids_cid = 0u;
     memset(&g_pair_new_parser, 0, sizeof(g_pair_new_parser));
     g_pair_new_mouse_name[0] = '\0';
@@ -1314,11 +1317,26 @@ static void sm_packet_handler(uint8_t packet_type, uint16_t channel,
     case SM_EVENT_IDENTITY_RESOLVING_SUCCEEDED: {
         const hci_con_handle_t handle =
             sm_event_identity_created_get_handle(packet);
-        if (handle == g_connection_handle) {
-            const int index =
-                sm_event_identity_resolving_succeeded_get_index(packet);
-            if (index >= 0 && index < le_device_db_count())
+        const int index =
+            sm_event_identity_resolving_succeeded_get_index(packet);
+        if (bond_slot_info(index, NULL, NULL, NULL)) {
+            if (handle == g_connection_handle)
                 g_current_bond_index = index;
+            if (handle == g_pair_new_connection_handle)
+                g_pair_new_bond_index = index;
+        }
+        break;
+    }
+
+    case SM_EVENT_IDENTITY_CREATED: {
+        const hci_con_handle_t handle =
+            sm_event_identity_created_get_handle(packet);
+        const int index = sm_event_identity_created_get_index(packet);
+        if (bond_slot_info(index, NULL, NULL, NULL)) {
+            if (handle == g_connection_handle)
+                g_current_bond_index = index;
+            if (handle == g_pair_new_connection_handle)
+                g_pair_new_bond_index = index;
         }
         break;
     }
@@ -1409,6 +1427,7 @@ static void ble_hogp_session_setup(void)
     g_pair_new_resume_after_disconnect = false;
     g_pair_new_handoff_pending = false;
     g_pair_new_bond_count_before = 0;
+    g_pair_new_bond_index = -1;
     memset(g_pair_new_address, 0, sizeof(g_pair_new_address));
     g_pair_new_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_pair_new_connection_handle = HCI_CON_HANDLE_INVALID;
@@ -1443,7 +1462,7 @@ unsigned blu2usb_ble_hogp_pico_bonded_mouse_count(void)
 
 int blu2usb_ble_hogp_pico_current_bond_index(void)
 {
-    return resolve_current_bond_index();
+    return bond_ordinal_for_slot(resolve_current_bond_index());
 }
 
 bool blu2usb_ble_hogp_pico_saved_mouse_name(int bond_index,
@@ -1454,9 +1473,10 @@ bool blu2usb_ble_hogp_pico_saved_mouse_name(int bond_index,
     out[0] = '\0';
     saved_names_load();
 
+    const int db_slot = bond_slot_for_ordinal(bond_index);
     bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
     bd_addr_t address;
-    if (!saved_identity_for_bond(bond_index, &address_type, address)) return false;
+    if (!saved_identity_for_bond(db_slot, &address_type, address)) return false;
 
     const int slot = saved_names_find(address_type, address);
     if (slot < 0 || g_saved_names[slot].name[0] == '\0') return false;
