@@ -140,6 +140,7 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
     ux->saved_device_count = 0;
     ux->saved_connected_bond = -1;
     ux->saved_front_bond = -1;
+    ux->remove_pending = false;
     memset(ux->saved_mouse_names, 0, sizeof(ux->saved_mouse_names));
     ux->current_mouse_name[0] = '\0';
     ux->active_profile = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
@@ -395,6 +396,13 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
+    if (ux->screen == BLU2USB_SCREEN_REMOVE_THIS &&
+        control == BLU2USB_CONTROL_KEY_B) {
+        if (!ux->remove_pending)
+            enter(ux, BLU2USB_SCREEN_SAVED_DEVICES);
+        return cmd;
+    }
+
     if (control == BLU2USB_CONTROL_KEY_Y && lock_allowed(ux->screen)) {
         blu2usb_interaction_lock(&ux->interaction);
         return cmd;
@@ -540,14 +548,17 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES &&
         control == BLU2USB_CONTROL_JOY_PRESS &&
         ux->saved_device_count > 0u) {
+        ux->remove_pending = false;
         enter(ux, BLU2USB_SCREEN_REMOVE_THIS);
         return cmd;
     }
 
     if (ux->screen == BLU2USB_SCREEN_REMOVE_THIS &&
         control == BLU2USB_CONTROL_KEY_A) {
+        if (ux->remove_pending) return cmd;
         const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
         if (bond >= 0) {
+            ux->remove_pending = true;
             cmd.kind = BLU2USB_UX_COMMAND_REMOVE_MOUSE;
             cmd.saved_bond = bond;
         }
