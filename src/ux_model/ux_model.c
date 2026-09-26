@@ -1,5 +1,7 @@
 #include "blu2usb/ux_model/ux_model.h"
 
+#include <string.h>
+
 #define DYN(row) ((uint16_t)(1u << (row)))
 #define EMPTY ""
 
