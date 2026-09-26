@@ -55,7 +55,7 @@ static void test_retained_pixel_relocation(void)
     assert(blu2usb_renderer_text_y(&frame,8)==214u);
     assert(blu2usb_renderer_separator_boundary_y(&frame)==151u);
 
-    ux.screen=BLU2USB_SCREEN_LEARN_KEYS; blu2usb_ui_project(&ux,&frame);
+    ux.screen=BLU2USB_SCREEN_SEARCHING_FIRST; blu2usb_ui_project(&ux,&frame);
     assert(blu2usb_renderer_text_y(&frame,0)==8u);
     assert(blu2usb_renderer_text_y(&frame,1)==39u);
     assert(blu2usb_renderer_text_y(&frame,2)==64u);
@@ -65,7 +65,7 @@ static void test_retained_pixel_relocation(void)
 
 static void test_learn_projection_and_feedback(void)
 {
-    blu2usb_ux_model_t ux; blu2usb_ui_frame_t frame; blu2usb_ux_init(&ux); ux.screen=BLU2USB_SCREEN_LEARN_KEYS;
+    blu2usb_ux_model_t ux; blu2usb_ui_frame_t frame; blu2usb_ux_init(&ux); ux.screen=BLU2USB_SCREEN_SEARCHING_FIRST;
     blu2usb_ui_project(&ux,&frame);
     assert(frame.learn_background&&frame.hint_start_row==9u);
     assert_text(&frame,0,0,"PRESS TO LEARN A KEY");
