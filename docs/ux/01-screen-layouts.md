@@ -1,3 +1,5 @@
+> **Historical pre-HOPE/G06 reference.** This file is retained as implementation history and is not the final runtime screen contract. The authoritative final inventory is `../hope/00-final-screen-inventory.md`. In particular, legacy MOUSE STATUS/DEVICES screens and the user-facing LEARN THE KEYS route are not part of the final HOPE product.
+
 # Canonical screen layouts
 
 This file is the normative 9x21 screen and control-map contract. Unless a section says **example/dynamic body**, its text block is literal. Visible hints and hidden controls are both functional requirements.
