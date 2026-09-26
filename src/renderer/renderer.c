@@ -415,7 +415,7 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     if (ux == NULL || frame == NULL) return;
     const blu2usb_screen_template_t *screen = blu2usb_ux_screen_template(ux->screen);
     if (screen == NULL) return;
-    const bool searching_first = ux->screen == BLU2USB_SCREEN_LEARN_KEYS;
+    const bool searching_first = ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST;
     const bool first_mouse_connected = ux->screen == BLU2USB_SCREEN_MOUSE_SAVED;
     const bool didactic_full_background = searching_first;
     const bool success_feedback = is_success_feedback(ux->screen) && !first_mouse_connected;
