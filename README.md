@@ -1,23 +1,22 @@
-# blu2usb-picow
+# RemappingBridge
 
-Firmware plug-and-play para Raspberry Pi Pico 2 W que recebe dispositivos HID Bluetooth e expõe uma identidade USB HID estável ao host, sem software no sistema operacional.
+Firmware plug-and-play para Raspberry Pi Pico 2 W que recebe Mouse HID Bluetooth e expõe uma identidade USB HID estável ao host, sem software no sistema operacional.
 
-## Estado do projeto
+## Versão estável
 
-Este repositório é uma reconstrução limpa e madura do trabalho experimental anterior. O código antigo não é base estrutural: somente evidências físicas, decisões já aceitas e soluções comprovadas podem ser reexpressas sob os contratos deste repositório.
+**RemappingBridge 1.0.0** é a primeira versão estável concluída após a série HOPE.
 
-A implementação começa somente depois do **BLU2USB-G00 — Contract Freeze**.
+O firmware final inclui pareamento/reconexão de Mouse, Saved Devices persistentes, remoção de dispositivos, perfis Passthrough/Standard/Escape/Custom, Logitech Lift HID++, Lock/Help e a UX final de 29 telas canônicas.
 
 ## Fontes normativas
 
-A precedência documental é:
+Para a versão 1.0, a precedência documental é:
 
-1. `docs/ux/01-screen-layouts.md` — layouts literais e regras específicas por tela;
-2. `docs/product/00-product-contract.md` — comportamento de produto e perfis;
-3. `docs/ux/00-interaction-visual-contract.md` — interação, navegação e cores;
-4. `docs/technical/00-architecture-contract.md` — fronteiras técnicas;
-5. `plan/gates.md` — ordem e critérios de implementação;
-6. `docs/reference/00-reuse-evidence.md` — conhecimento reaproveitável, nunca autoridade sobre os contratos acima.
+1. `docs/hope/00-final-screen-inventory.md` — inventário final das 29 telas;
+2. `docs/hope/02-final-navigation.md` — navegação e regras de controle;
+3. `docs/hope/01-final-architecture.md` — arquitetura efetivamente implementada;
+4. documentos Gxx/pré-HOPE — histórico e evidência, somente quando não conflitarem com `docs/hope/`;
+5. `docs/reference/00-reuse-evidence.md` — conhecimento reaproveitável, nunca autoridade sobre a UX final.
 
 Em caso de conflito, não se interpreta silenciosamente: a implementação para e o contrato é corrigido antes do código.
 
