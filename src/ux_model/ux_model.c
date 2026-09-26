@@ -10,10 +10,6 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_HOME_SEARCHING_HELP] = {{"HOME SEARCHING HELP","THE MATCHING ATTEMPT","TOOK PLACE ONLY FOR","DEVICES ALREADY SAVED","IN THE PREFERENCES,","BUT NOT FOR DEVICES","THAT WERE NOT SAVED.",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_HOME_RETRY] = {{"DEVICE NOT FOUND"," SAVED DEVICES"," PAIR NEW MOUSE",EMPTY,EMPTY,"KEY A: RETRY SEARCH","JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY X: HELP"},0},
     [BLU2USB_SCREEN_HOME_RETRY_HELP] = {{"HOME RETRY HELP","THE MATCHING ATTEMPT","TOOK PLACE ONLY FOR","DEVICES ALREADY SAVED","IN THE PREFERENCES,","BUT NOT FOR DEVICES","THAT WERE NOT SAVED.",EMPTY,"ANY KEY: BACK"},0},
-    [BLU2USB_SCREEN_MOUSE_STATUS] = {{"MOUSE STATUS","MOUSE NOT CONNECTED","PROFILE: PASSTHROUGH","FWD: AUTO HIDPP","BACK: AUTO STD",EMPTY,"JOY RIGHT\\LEFT: PAGE","KEY B: BACK","KEY X: MOUSE HELP"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
-    [BLU2USB_SCREEN_OTHER_DEVICES_STATUS] = {{"OTHER DEVICES STATUS","KEYBOARD","CONNECTED","COMPOSITE","NOT CONNECTED",EMPTY,"JOY RIGHT\\LEFT: PAGE","KEY B: BACK","KEY X: DEVICES HELP"},DYN(1)|DYN(2)|DYN(3)|DYN(4)},
-    [BLU2USB_SCREEN_MOUSE_HELP] = {{"MOUSE HELP",EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,EMPTY,"ANY KEY: BACK"},0x00fe},
-    [BLU2USB_SCREEN_DEVICES_HELP] = {{"DEVICES HELP","KEYBOARD IS DIFFERENT","FROM COMPOSITE.","COMPOSITE IS TOUCHPAD","AND KEYBOARD EMBEDDED","TOGETHER AND IT PAIRS","ITS OWN BLUETOOTH.",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_MOUSE_OPTIONS] = {{"REMAPPING OPTIONS"," PASSTHROUGH"," STANDARD REMAP"," ESCAPE REMAP"," CUSTOM REMAP",EMPTY,"JOY PRESS: ACCESS","KEY B: BACK","KEY X: HELP"},0},
     [BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS] = {{"REMAPPER OPTIONS HELP","CHOOSE FROM THE","OPTIONS TO CHANGE THE","FUNCTIONS OF THE","MOUSE BUTTONS.","PASSTHROUGH IS THE","DEFAULT OPTION.",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_PAIR_MOUSE] = {{"PAIR NEW MOUSE","TRYING TO CONNECT","A NEW MOUSE THAT","IS NOT LISTED","IN SAVED DEVICES",EMPTY,"KEY B: CANCEL","KEY X: HELP","KEY Y: LOCK"},0},
@@ -28,7 +24,6 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_APPLY_ESCAPE] = {{"APPLY ESCAPE REMAP","FORWARD IS LEFT","BACKWARD IS RIGHT","LEFT IS ESCAPE","RIGHT IS BACKWARD","MIDDLE IS FORWARD",EMPTY,"KEY A: APPLY","KEY B: CANCEL"},0},
     [BLU2USB_SCREEN_ESCAPE_APPLIED] = {{"ESCAPE APPLIED ACTIVE","FORWARD IS LEFT","BACKWARD IS RIGHT","LEFT IS ESCAPE","RIGHT IS BACKWARD","MIDDLE IS FORWARD",EMPTY,"KEY B: BACK","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_EDIT_CUSTOM] = {{"EDIT CUSTOM REMAP"," LEFT IS LEFT"," RIGHT IS RIGHT"," MIDDLE IS MIDDLE"," FORWARD IS FORWARD"," BACKWARD IS BACKWARD",EMPTY,"JOY PRESS: ACCESS","KEY A: APPLY CUSTOM"},DYN(1)|DYN(2)|DYN(3)|DYN(4)|DYN(5)},
-    [BLU2USB_SCREEN_CUSTOM_APPLIED] = {{"EDIT CUSTOM REMAP"," LEFT IS LEFT"," RIGHT IS RIGHT"," MIDDLE IS MIDDLE"," FORWARD IS FORWARD"," BACKWARD IS BACKWARD",EMPTY,"JOY PRESS: ACCESS","KEY A: APPLY CUSTOM"},DYN(1)|DYN(2)|DYN(3)|DYN(4)|DYN(5)},
     [BLU2USB_SCREEN_LEFT_WILL_BECOME] = {{"LEFT WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," ESCAPE"," FORWARD"," BACKWARD",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_RIGHT_WILL_BECOME] = {{"RIGHT WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," ESCAPE"," FORWARD"," BACKWARD",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_MIDDLE_WILL_BECOME] = {{"MIDDLE WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," ESCAPE"," FORWARD"," BACKWARD",EMPTY,"KEY A: APPLY AND BACK"},0},
@@ -37,7 +32,7 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_SAVED_DEVICES] = {{"0 OF 0","UNKNOWN MOUSE","STATUS: DISCONNECTED","PROFILE: PASSTHROUGH"," REMOVE DEVICE",EMPTY,"JOY RIGHT\\LEFT: PAGE","JOY PRESS: ACCESS","KEY B: BACK"},DYN(0)|DYN(1)|DYN(2)|DYN(3)},
     [BLU2USB_SCREEN_REMOVE_THIS] = {{"REMOVE THIS MOUSE","UNKNOWN MOUSE",EMPTY,"PAIRING AND MAPPINGS","WILL BE DELETED",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY X: HELP"},DYN(1)},
     [BLU2USB_SCREEN_HELP_REMOVE_THIS] = {{"REMOVE MOUSE HELP","COMPLETELY REMOVE THE","AUTOMATIC CONNECTION","WHEN TURNING ON THE","DEVICE AND DELETE ITS","BUTTON REMAPPING","PROFILE.",EMPTY,"ANY KEY: BACK"},0},
-    [BLU2USB_SCREEN_LEARN_KEYS] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
+    [BLU2USB_SCREEN_SEARCHING_FIRST] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
 };
 
 static blu2usb_ux_command_t no_command(void) {
@@ -57,8 +52,7 @@ static bool is_help(blu2usb_screen_id_t screen) {
            screen == BLU2USB_SCREEN_HELP_PAIR_NEW ||
            screen == BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW ||
            screen == BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS ||
-           screen == BLU2USB_SCREEN_HELP_REMOVE_THIS ||
-           screen == BLU2USB_SCREEN_MOUSE_HELP || screen == BLU2USB_SCREEN_DEVICES_HELP;
+           screen == BLU2USB_SCREEN_HELP_REMOVE_THIS;
 }
 
 static bool is_will_become(blu2usb_screen_id_t screen) {
@@ -66,14 +60,14 @@ static bool is_will_become(blu2usb_screen_id_t screen) {
 }
 
 static bool lock_allowed(blu2usb_screen_id_t screen) {
-    return !is_help(screen) && screen != BLU2USB_SCREEN_LEARN_KEYS;
+    return !is_help(screen) && screen != BLU2USB_SCREEN_SEARCHING_FIRST;
 }
 
 static void enter(blu2usb_ux_model_t *ux, blu2usb_screen_id_t screen) {
     if (screen == BLU2USB_SCREEN_HOME) {
         if (blu2usb_ux_mouse_connected()) screen = BLU2USB_SCREEN_HOME;
         else if (ux->saved_device_count > 0u) screen = BLU2USB_SCREEN_HOME_SEARCHING;
-        else screen = BLU2USB_SCREEN_LEARN_KEYS;
+        else screen = BLU2USB_SCREEN_SEARCHING_FIRST;
     }
     ux->screen = screen;
     ux->selection = 0;
@@ -85,10 +79,6 @@ static unsigned wrap_next(unsigned value, unsigned count) { return count ? (valu
 static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     switch (ux->screen) {
     case BLU2USB_SCREEN_HOME: return BLU2USB_SCREEN_HOME;
-    case BLU2USB_SCREEN_MOUSE_STATUS:
-    case BLU2USB_SCREEN_OTHER_DEVICES_STATUS: return BLU2USB_SCREEN_HOME;
-    case BLU2USB_SCREEN_MOUSE_HELP:
-    case BLU2USB_SCREEN_DEVICES_HELP:
     case BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS:
     case BLU2USB_SCREEN_HELP_REMOVE_THIS: return ux->return_screen;
     case BLU2USB_SCREEN_MOUSE_OPTIONS: return BLU2USB_SCREEN_HOME;
@@ -98,7 +88,6 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_APPLY_DEFAULT:
     case BLU2USB_SCREEN_APPLY_ESCAPE:
     case BLU2USB_SCREEN_EDIT_CUSTOM:
-    case BLU2USB_SCREEN_CUSTOM_APPLIED:
     case BLU2USB_SCREEN_PASSTHROUGH_APPLIED:
     case BLU2USB_SCREEN_DEFAULT_APPLIED:
     case BLU2USB_SCREEN_ESCAPE_APPLIED: return BLU2USB_SCREEN_MOUSE_OPTIONS;
@@ -109,7 +98,7 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME: return BLU2USB_SCREEN_EDIT_CUSTOM;
     case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_HOME;
     case BLU2USB_SCREEN_REMOVE_THIS: return BLU2USB_SCREEN_SAVED_DEVICES;
-    case BLU2USB_SCREEN_LEARN_KEYS: return BLU2USB_SCREEN_LEARN_KEYS;
+    case BLU2USB_SCREEN_SEARCHING_FIRST: return BLU2USB_SCREEN_SEARCHING_FIRST;
     default: return BLU2USB_SCREEN_HOME;
     }
 }
@@ -137,7 +126,6 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
     ux->return_screen = BLU2USB_SCREEN_HOME;
     ux->return_selection = 0u;
     ux->selection = 0;
-    ux->status_page = 0;
     ux->saved_page = 0;
     ux->saved_pages = 1;
     ux->saved_device_count = 0;
@@ -334,7 +322,7 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
-    if (ux->screen == BLU2USB_SCREEN_LEARN_KEYS) {
+    if (ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST) {
         /* HOPE-01 replaces the legacy LEARN THE KEYS presentation in-place.
          * All controls are didactic only on SEARCHING FIRST MOUSE. */
         return cmd;
@@ -487,19 +475,6 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
-    if ((ux->screen == BLU2USB_SCREEN_MOUSE_STATUS || ux->screen == BLU2USB_SCREEN_OTHER_DEVICES_STATUS) &&
-        (control == BLU2USB_CONTROL_JOY_LEFT || control == BLU2USB_CONTROL_JOY_RIGHT)) {
-        ux->status_page = ux->status_page ? 0u : 1u;
-        enter(ux, ux->status_page ? BLU2USB_SCREEN_OTHER_DEVICES_STATUS : BLU2USB_SCREEN_MOUSE_STATUS);
-        return cmd;
-    }
-    if (ux->screen == BLU2USB_SCREEN_MOUSE_STATUS && control == BLU2USB_CONTROL_KEY_X) {
-        ux->return_screen = ux->screen; enter(ux, BLU2USB_SCREEN_MOUSE_HELP); return cmd;
-    }
-    if (ux->screen == BLU2USB_SCREEN_OTHER_DEVICES_STATUS && control == BLU2USB_CONTROL_KEY_X) {
-        ux->return_screen = ux->screen; enter(ux, BLU2USB_SCREEN_DEVICES_HELP); return cmd;
-    }
-
     if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS &&
         control == BLU2USB_CONTROL_KEY_X) {
         ux->return_screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
@@ -612,7 +587,7 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
 }
 
 uint16_t blu2usb_ux_learn_white_span_mask(const blu2usb_ux_model_t *ux) {
-    if (ux->screen != BLU2USB_SCREEN_LEARN_KEYS) return 0;
+    if (ux->screen != BLU2USB_SCREEN_SEARCHING_FIRST) return 0;
     uint16_t mask = 0;
     for (unsigned c = 0; c < BLU2USB_CONTROL_COUNT; ++c) {
         if (blu2usb_interaction_is_pressed(&ux->interaction, (blu2usb_control_t)c)) {
