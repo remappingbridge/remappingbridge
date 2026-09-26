@@ -51,7 +51,7 @@ static void test_static_layout_and_no_legacy_home(void)
 
     assert(strcmp(screen->rows[2], " SAVED DEVICES") == 0);
     assert(strcmp(screen->rows[3], " PAIR NEW MOUSE") == 0);
-    assert(strcmp(screen->rows[4], " LEARN THE KEYS") == 0);
+    assert(strcmp(screen->rows[4], "") == 0);
     assert(strcmp(screen->rows[6], "JOY UP / DOWN: SELECT") == 0);
     assert(strcmp(screen->rows[7], "JOY PRESS: ACCESS") == 0);
     assert(strcmp(screen->rows[8], "KEY X: HELP TO REMOVE") == 0);
@@ -131,9 +131,9 @@ static void test_navigation_and_future_help(void)
     blu2usb_ux_model_t ux;
     init_home(&ux);
 
-    assert(blu2usb_ux_option_count(&ux) == 4u);
+    assert(blu2usb_ux_option_count(&ux) == 3u);
     tap(&ux, BLU2USB_CONTROL_JOY_UP);
-    assert(ux.selection == 3u);
+    assert(ux.selection == 2u);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.selection == 0u);
 
@@ -150,11 +150,6 @@ static void test_navigation_and_future_help(void)
     ux.selection = 2u;
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_PAIR_MOUSE);
-
-    init_home(&ux);
-    ux.selection = 3u;
-    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
 
     init_home(&ux);
     ux.selection = 2u;
