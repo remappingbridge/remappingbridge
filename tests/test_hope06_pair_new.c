@@ -115,7 +115,7 @@ static void test_pair_new_controls(void)
     blu2usb_ux_set_saved_device_count(&ux, 0u);
     ux.screen = BLU2USB_SCREEN_PAIR_MOUSE;
     tap(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
+    assert(ux.screen == BLU2USB_SCREEN_SEARCHING_FIRST);
 }
 
 static void test_pair_new_entry_paths(void)
