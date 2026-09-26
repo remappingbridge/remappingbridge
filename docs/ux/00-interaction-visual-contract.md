@@ -1,3 +1,5 @@
+> **Historical pre-HOPE/G06 reference.** Final navigation/control authority is `../hope/02-final-navigation.md`; final architecture and screen inventory are under `../hope/`. Statements below about MOUSE STATUS, Keyboard/Composite UX, or a user-facing LEARN THE KEYS option describe the earlier baseline and are superseded.
+
 # Interaction and visual contract
 
 ## Grid and retained pixel relocation

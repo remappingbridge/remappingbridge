@@ -123,10 +123,10 @@ static void test_first_mouse_automatic_search_is_preserved(void)
      * screen. It is automatic only; no HOME route may expose it. */
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
     tap(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
+    assert(ux.screen == BLU2USB_SCREEN_SEARCHING_FIRST);
 
     const blu2usb_screen_template_t *searching =
-        blu2usb_ux_screen_template(BLU2USB_SCREEN_LEARN_KEYS);
+        blu2usb_ux_screen_template(BLU2USB_SCREEN_SEARCHING_FIRST);
     assert(searching != NULL);
     assert(strcmp(searching->rows[0], "SEARCHING FIRST MOUSE") == 0);
 }

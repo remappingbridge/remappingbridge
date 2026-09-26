@@ -52,17 +52,6 @@ static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
     }
 }
 
-static const char *profile_name(blu2usb_mouse_profile_kind_t profile)
-{
-    switch (profile) {
-    case BLU2USB_MOUSE_PROFILE_PASSTHROUGH: return "PASSTHROUGH";
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return "DEFAULT";
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return "ESCAPE";
-    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return "CUSTOM";
-    default: return "PASSTHROUGH";
-    }
-}
-
 static const char *custom_source_name(unsigned source)
 {
     static const char *const names[BLU2USB_MOUSE_SOURCE_COUNT] = {
@@ -122,22 +111,6 @@ static void project_custom_rows(const blu2usb_ux_model_t *ux,
         clear_row(frame, 8u);
 }
 
-static void project_mouse_status(const blu2usb_ux_model_t *ux,
-                                 blu2usb_ui_frame_t *frame)
-{
-    char profile[BLU2USB_RENDERER_TEXT_COLS + 1u];
-
-    clear_row(frame, 1u);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 1u, 0u,
-        blu2usb_ux_mouse_connected() ? "MOUSE CONNECTED" : "MOUSE NOT CONNECTED",
-        blu2usb_ux_mouse_connected() ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC);
-
-    (void)snprintf(profile, sizeof(profile), "PROFILE: %s", profile_name(ux->active_profile));
-    clear_row(frame, 2u);
-    (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, profile, BLU2USB_UI_TONE_STATIC);
-}
-
 void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
                                                  blu2usb_ui_frame_t *frame)
 {
@@ -150,9 +123,6 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
         for (uint8_t row = 1u; row < end; ++row)
             set_row_current_preserving_selection(frame, row);
     }
-
-    if (ux->screen == BLU2USB_SCREEN_MOUSE_STATUS)
-        project_mouse_status(ux, frame);
 
     if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS) {
         /* Rebuild all four option tones from authoritative state on every
@@ -171,8 +141,7 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
                 BLU2USB_UI_TONE_EMPHASIZED);
     }
 
-    if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM ||
-        ux->screen == BLU2USB_SCREEN_CUSTOM_APPLIED)
+    if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM)
         project_custom_rows(ux, frame, false);
 
     if (ux->screen >= BLU2USB_SCREEN_LEFT_WILL_BECOME &&

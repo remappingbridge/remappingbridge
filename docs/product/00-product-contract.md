@@ -1,3 +1,5 @@
+> **Historical product baseline.** This file records the broader pre-HOPE/G06 product direction. Final HOPE UX is Mouse-only and is documented under `../hope/`; Keyboard/Composite pairing UX described below is not part of the final screen inventory.
+
 # Product contract
 
 ## Purpose

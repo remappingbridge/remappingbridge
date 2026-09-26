@@ -294,7 +294,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             if (ux != NULL)
                 synchronize_saved_mice(ux, true);
-            if (ux != NULL && ux->screen == BLU2USB_SCREEN_LEARN_KEYS) {
+            if (ux != NULL && ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST) {
                 /* First-ever pairing still goes through accepted HOPE-02. */
                 ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
                 ux->selection = 0u;
@@ -409,7 +409,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                     ux, blu2usb_ux_mouse_connected());
                 if (ux->saved_device_count == 0u) {
                     blu2usb_ux_set_mouse_connected(false);
-                    ux->screen = BLU2USB_SCREEN_LEARN_KEYS;
+                    ux->screen = BLU2USB_SCREEN_SEARCHING_FIRST;
                     ux->saved_page = 0u;
                 } else {
                     ux->screen = BLU2USB_SCREEN_SAVED_DEVICES;
@@ -455,7 +455,7 @@ int main(void)
 
     blu2usb_ux_init(&ux);
     blu2usb_ux_set_mouse_connected(false);
-    ux.screen = BLU2USB_SCREEN_LEARN_KEYS;
+    ux.screen = BLU2USB_SCREEN_SEARCHING_FIRST;
     blu2usb_hid_aggregator_init(&aggregator);
     blu2usb_profiles_init(&profiles);
     (void)restore_profiles(&profiles);
@@ -482,7 +482,7 @@ int main(void)
     blu2usb_ux_set_saved_device_count(&ux, saved_mouse_count);
     ux.screen = saved_mouse_count > 0u
         ? BLU2USB_SCREEN_HOME_SEARCHING
-        : BLU2USB_SCREEN_LEARN_KEYS;
+        : BLU2USB_SCREEN_SEARCHING_FIRST;
     ux.selection = 0u;
 
     (void)render_state(&display, &ux);

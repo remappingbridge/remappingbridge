@@ -1,3 +1,5 @@
+> **Historical architecture proposal.** HOPE implementation did not create every proposed module in this document. The architecture that actually exists after HOPE-31 is documented in `../hope/01-final-architecture.md`, which is authoritative where this proposal differs.
+
 # Technical architecture contract
 
 ## Target

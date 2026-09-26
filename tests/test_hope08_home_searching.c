@@ -72,18 +72,18 @@ static void test_home_resolution(void)
 
     blu2usb_ux_set_mouse_connected(false);
     blu2usb_ux_init(&ux);
-    ux.screen = BLU2USB_SCREEN_MOUSE_STATUS;
+    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
     tap(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
+    assert(ux.screen == BLU2USB_SCREEN_SEARCHING_FIRST);
 
     blu2usb_ux_init(&ux);
     blu2usb_ux_set_saved_device_count(&ux, 1u);
-    ux.screen = BLU2USB_SCREEN_MOUSE_STATUS;
+    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
     tap(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_HOME_SEARCHING);
 
     blu2usb_ux_set_mouse_connected(true);
-    ux.screen = BLU2USB_SCREEN_MOUSE_STATUS;
+    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
     tap(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_HOME);
     blu2usb_ux_set_mouse_connected(false);
