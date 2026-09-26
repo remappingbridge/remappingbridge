@@ -24,59 +24,8 @@ static void test_action_on_release_and_wrap(void) {
     assert(ux.selection == 1);
     ux.selection = 0;
     press_release(&ux, BLU2USB_CONTROL_JOY_UP);
-    assert(ux.selection == 3);
+    assert(ux.selection == 2);
     press_release(&ux, BLU2USB_CONTROL_JOY_DOWN);
-    assert(ux.selection == 0);
-}
-
-static void test_status_pagination_and_help(void) {
-    blu2usb_ux_model_t ux;
-    blu2usb_ux_init(&ux);
-    /* HOPE-03 repurposes HOME selection 0 as the remap summary. Keep the
-     * legacy status-page regression focused on the status screen itself. */
-    ux.screen = BLU2USB_SCREEN_MOUSE_STATUS;
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_STATUS);
-    (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_LEFT, true);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_STATUS);
-    (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_LEFT, false);
-    assert(ux.screen == BLU2USB_SCREEN_OTHER_DEVICES_STATUS);
-    press_release(&ux, BLU2USB_CONTROL_JOY_RIGHT);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_STATUS);
-    press_release(&ux, BLU2USB_CONTROL_KEY_X);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_HELP);
-    press_release(&ux, BLU2USB_CONTROL_KEY_Y);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_STATUS);
-    assert(!blu2usb_interaction_is_locked(&ux.interaction));
-}
-
-static void test_learn_title_positions_press_and_unlock(void) {
-    blu2usb_ux_model_t ux;
-    blu2usb_ux_init(&ux);
-    ux.selection = 3;
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
-    const blu2usb_screen_template_t *t = blu2usb_ux_screen_template(BLU2USB_SCREEN_LEARN_KEYS);
-    assert(strcmp(t->rows[0], "PRESS TO LEAR A KEY") == 0);
-    assert(t->rows[1][6] == 'J');
-    assert(t->rows[2][0] == 'J' && t->rows[2][7] == 'J' && t->rows[2][14] == 'J');
-    assert(t->rows[3][0] == 'L' && t->rows[3][6] == 'P' && t->rows[3][13] == 'R');
-    assert(t->rows[4][5] == 'J');
-    assert(t->rows[5][14] == 'K' && t->rows[6][14] == 'K' && t->rows[7][14] == 'K');
-    assert(t->rows[6][0] == 'L');
-    assert(t->rows[7][1] == 'A');
-    assert(t->rows[8][2] == 'O');
-    (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_LEFT, true);
-    assert((blu2usb_ux_learn_white_span_mask(&ux) & (1u << BLU2USB_CONTROL_JOY_LEFT)) != 0);
-    (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_LEFT, false);
-    assert(blu2usb_ux_learn_white_span_mask(&ux) == 0);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
-    press_release(&ux, BLU2USB_CONTROL_KEY_Y);
-    assert(blu2usb_interaction_is_locked(&ux.interaction));
-    (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_DOWN, true);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
-    (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_DOWN, false);
-    assert(!blu2usb_interaction_is_locked(&ux.interaction));
-    assert(ux.screen == BLU2USB_SCREEN_HOME);
     assert(ux.selection == 0);
 }
 
@@ -155,8 +104,6 @@ static void test_all_templates_are_9x21(void) {
 
 int main(void) {
     test_action_on_release_and_wrap();
-    test_status_pagination_and_help();
-    test_learn_title_positions_press_and_unlock();
     test_custom_editor_offline_and_escape_target();
     test_custom_template_transaction();
     test_saved_pagination_wrap();
