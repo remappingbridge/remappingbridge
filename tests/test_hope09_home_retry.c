@@ -32,7 +32,7 @@ static void test_layout_and_selection(void)
         "DEVICE NOT FOUND",
         " SAVED DEVICES",
         " PAIR NEW MOUSE",
-        " LEARN THE KEYS",
+        "",
         "",
         "KEY A: RETRY SEARCH",
         "JOY UP / DOWN: SELECT",
@@ -62,10 +62,10 @@ static void test_layout_and_selection(void)
 
     assert(frame.cells[0][0].tone == BLU2USB_UI_TONE_TITLE);
     assert(frame.cells[1][1].tone == BLU2USB_UI_TONE_EMPHASIZED);
-    assert(blu2usb_ux_option_count(&ux) == 3u);
+    assert(blu2usb_ux_option_count(&ux) == 2u);
 
     tap(&ux, BLU2USB_CONTROL_JOY_UP);
-    assert(ux.selection == 2u);
+    assert(ux.selection == 1u);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.selection == 0u);
 }
@@ -107,10 +107,6 @@ static void test_destinations(void)
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_PAIR_MOUSE);
 
-    ux.screen = BLU2USB_SCREEN_HOME_RETRY;
-    ux.selection = 2u;
-    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
 }
 
 static void test_lock_unlock_resolves_searching(void)
