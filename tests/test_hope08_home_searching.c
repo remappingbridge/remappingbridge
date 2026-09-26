@@ -32,7 +32,7 @@ static void test_layout_and_selection(void)
         "SEARCHING SAVED MOUSE",
         " SAVED DEVICES",
         " PAIR NEW MOUSE",
-        " LEARN THE KEYS",
+        "",
         "",
         "KEY B: CANCEL SEARCH",
         "JOY UP / DOWN: SELECT",
@@ -58,10 +58,10 @@ static void test_layout_and_selection(void)
         assert(strcmp(actual, expected[row]) == 0);
     }
     assert(frame.cells[1][1].tone == BLU2USB_UI_TONE_EMPHASIZED);
-    assert(blu2usb_ux_option_count(&ux) == 3u);
+    assert(blu2usb_ux_option_count(&ux) == 2u);
 
     tap(&ux, BLU2USB_CONTROL_JOY_UP);
-    assert(ux.selection == 2u);
+    assert(ux.selection == 1u);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.selection == 0u);
 }
@@ -121,10 +121,6 @@ static void test_cancel_lock_unlock_and_destinations(void)
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_PAIR_MOUSE);
 
-    ux.screen = BLU2USB_SCREEN_HOME_SEARCHING;
-    ux.selection = 2u;
-    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_LEARN_KEYS);
 }
 
 int main(void)
