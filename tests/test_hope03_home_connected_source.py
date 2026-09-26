@@ -10,7 +10,7 @@ ble_h = (root / "include/blu2usb/ble_hogp/ble_hogp.h").read_text(encoding="utf-8
 
 # HOME is replaced in-place; no parallel HOME_CONNECTED enum is introduced.
 assert "BLU2USB_SCREEN_HOME_CONNECTED" not in ux_h
-assert '[BLU2USB_SCREEN_HOME] = {{"UNKNOWN MOUSE"," NO REMAP PASSTHROUGH"," SAVED DEVICES"," PAIR NEW MOUSE"," LEARN THE KEYS"' in ux
+assert '[BLU2USB_SCREEN_HOME] = {{"UNKNOWN MOUSE"," NO REMAP PASSTHROUGH"," SAVED DEVICES"," PAIR NEW MOUSE",EMPTY,EMPTY' in ux
 assert '{"HOME"," STATUS"," MOUSE OPTIONS"," OTHER OPTIONS"' not in ux
 
 # Dynamic identity/profile presentation.
@@ -22,12 +22,11 @@ assert '" REMAPPED TO ESCAPE"' in renderer
 assert '" REMAPPED TO CUSTOM"' in renderer
 assert '" NO REMAP PASSTHROUGH"' in renderer
 
-# HOME navigation is the canonical four-row order.
-home_dest = """static const blu2usb_screen_id_t dest[4] = {
+# HOPE-23 removes the cancelled learn-the-keys user-facing route from HOME.
+home_dest = """static const blu2usb_screen_id_t dest[3] = {
             BLU2USB_SCREEN_MOUSE_OPTIONS,
             BLU2USB_SCREEN_SAVED_DEVICES,
-            BLU2USB_SCREEN_PAIR_MOUSE,
-            BLU2USB_SCREEN_LEARN_KEYS
+            BLU2USB_SCREEN_PAIR_MOUSE
         };"""
 assert home_dest in ux
 
