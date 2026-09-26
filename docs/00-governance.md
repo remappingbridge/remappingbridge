@@ -1,5 +1,8 @@
 # Documentation governance
 
+> **Final HOPE authority:** after HOPE-31, current product UX/architecture is defined by `docs/hope/00-final-screen-inventory.md`, `docs/hope/01-final-architecture.md`, and `docs/hope/02-final-navigation.md`. Earlier Gxx and pre-HOPE documents remain historical evidence only where they conflict with these final documents.
+
+
 ## Contract-first rule
 
 No product behavior is implemented from memory, from an old repository or from an inferred convention. A behavior must be supported by the frozen documentation in this repository.
