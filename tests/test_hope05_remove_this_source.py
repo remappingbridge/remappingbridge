@@ -51,7 +51,7 @@ assert "blu2usb_ble_hogp_pico_request_remove_saved_mouse" in app
 assert "blu2usb_hid_aggregator_release_source" in app
 assert "case BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVED:" in app
 assert "ux->remove_pending = false;" in app
-assert "BLU2USB_SCREEN_LEARN_KEYS" in app
+assert "BLU2USB_SCREEN_SEARCHING_FIRST" in app
 assert "BLU2USB_SCREEN_SAVED_DEVICES" in app
 
 print("HOPE-05 remove-this source invariants: OK")
