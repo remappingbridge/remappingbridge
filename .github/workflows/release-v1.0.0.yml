@@ -1,0 +1,96 @@
+name: Publish RemappingBridge v1.0.0
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release-v1:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check whether v1.0.0 already exists
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify release version
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'project(blu2usb_picow VERSION 1.0.0 LANGUAGES C CXX ASM)' CMakeLists.txt
+          grep -F 'BLU2USB_VERSION_STRING="1.0.0"' CMakeLists.txt
+
+      - name: Configure host build
+        if: steps.existing.outputs.exists != 'true'
+        run: >-
+          cmake -S . -B build-host
+          -DBLU2USB_BUILD_PICO=OFF
+          -DBLU2USB_BUILD_TESTS=ON
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build host tests
+        if: steps.existing.outputs.exists != 'true'
+        run: cmake --build build-host --parallel
+
+      - name: Run host and architecture tests
+        if: steps.existing.outputs.exists != 'true'
+        run: ctest --test-dir build-host --output-on-failure
+
+      - name: Install pinned ARM toolchain
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ci/toolchain.env
+          sudo apt-get update
+          sudo apt-get install -y             "gcc-arm-none-eabi=${ARM_GCC_PACKAGE_VERSION}"             libnewlib-arm-none-eabi             libstdc++-arm-none-eabi-newlib
+          test "$(dpkg-query -W -f='${Version}' gcc-arm-none-eabi)" = "${ARM_GCC_PACKAGE_VERSION}"
+          arm-none-eabi-gcc --version | head -n 1
+
+      - name: Fetch pinned Pico SDK
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ci/toolchain.env
+          git clone --depth 1 --branch "${PICO_SDK_VERSION}"             https://github.com/raspberrypi/pico-sdk.git "${RUNNER_TEMP}/pico-sdk"
+          git -C "${RUNNER_TEMP}/pico-sdk" submodule update --init --depth 1
+          test "$(git -C "${RUNNER_TEMP}/pico-sdk" describe --tags --exact-match)" = "${PICO_SDK_VERSION}"
+
+      - name: Build Pico 2 W release firmware
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PICO_SDK_PATH="${RUNNER_TEMP}/pico-sdk"
+          cmake -S . -B build-pico             -DBLU2USB_BUILD_PICO=ON             -DBLU2USB_BUILD_TESTS=OFF             -DPICO_BOARD=pico2_w             -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-pico --parallel
+          test -s build-pico/blu2usb_picow.uf2
+          mkdir -p dist
+          cp build-pico/blu2usb_picow.uf2 dist/remappingbridge-v1.0.0-pico2w.uf2
+          sha256sum dist/remappingbridge-v1.0.0-pico2w.uf2 | tee dist/SHA256SUMS.txt
+
+      - name: Publish GitHub release v1.0.0
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create v1.0.0             dist/remappingbridge-v1.0.0-pico2w.uf2             dist/SHA256SUMS.txt             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "RemappingBridge 1.0"             --notes-file docs/releases/v1.0.0.md
