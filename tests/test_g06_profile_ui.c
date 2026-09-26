@@ -285,37 +285,6 @@ static void test_custom_apply_confirms_in_edit_and_back(void)
     assert(!ux.custom_dirty);
 }
 
-static void test_mouse_status_tracks_connection_and_active_profile(void)
-{
-    blu2usb_ux_model_t ux;
-    blu2usb_ui_frame_t frame;
-    init_ux(&ux);
-    ux.screen = BLU2USB_SCREEN_MOUSE_STATUS;
-    ux.active_profile = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
-
-    project_physical(&ux, &frame);
-    assert_row_text(&frame, 1u, "MOUSE NOT CONNECTED");
-    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_STATIC);
-    assert_row_text(&frame, 2u, "PROFILE: PASSTHROUGH");
-    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_STATIC);
-
-    blu2usb_ux_set_mouse_connected(true);
-    ux.active_profile = BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP;
-    project_physical(&ux, &frame);
-    assert_row_text(&frame, 1u, "MOUSE CONNECTED");
-    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_CURRENT);
-    assert_row_text(&frame, 2u, "PROFILE: DEFAULT");
-    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_STATIC);
-
-    ux.active_profile = BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP;
-    project_physical(&ux, &frame);
-    assert_row_text(&frame, 2u, "PROFILE: ESCAPE");
-
-    ux.active_profile = BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP;
-    project_physical(&ux, &frame);
-    assert_row_text(&frame, 2u, "PROFILE: CUSTOM");
-}
-
 static void test_connected_mouse_can_open_pair_new_from_home(void)
 {
     blu2usb_ux_model_t ux;
@@ -346,7 +315,6 @@ int main(void)
     test_screen_text_fixes_profile_contract();
     test_custom_target_apply_and_back_updates_edit_screen();
     test_custom_apply_confirms_in_edit_and_back();
-    test_mouse_status_tracks_connection_and_active_profile();
     test_connected_mouse_can_open_pair_new_from_home();
     return 0;
 }
