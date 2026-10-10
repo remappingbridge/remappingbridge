@@ -5,10 +5,10 @@ ux_h = (root / "include/blu2usb/ux_model/ux_model.h").read_text(encoding="utf-8"
 ux = (root / "src/ux_model/ux_model.c").read_text(encoding="utf-8")
 
 assert "BLU2USB_SCREEN_HELP_REMOVE_THIS" in ux_h
-assert '"REMOVE MOUSE HELP","COMPLETELY REMOVE THE","AUTOMATIC CONNECTION","WHEN TURNING ON THE","DEVICE AND DELETE ITS","BUTTON REMAPPING","PROFILE.",EMPTY,"ANY KEY: BACK"' in ux
+assert '"REMOVE MOUSE HELP","COMPLETELY REMOVE THE","AUTOMATIC CONNECTION","WHEN TURNING ON THE","DEVICE AND DELETE ITS","BUTTON REMAPPING AND","CUSTOM MOVEMENTS",EMPTY,"ANY KEY: BACK"' in ux
 assert "screen == BLU2USB_SCREEN_HELP_REMOVE_THIS" in ux
 assert "case BLU2USB_SCREEN_HELP_REMOVE_THIS: return ux->return_screen;" in ux
-assert "control == BLU2USB_CONTROL_KEY_X" in ux
+assert "control == BLU2USB_CONTROL_KEY_Y" in ux
 assert "!ux->remove_pending" in ux
 assert "ux->return_screen = BLU2USB_SCREEN_REMOVE_THIS;" in ux
 assert "enter(ux, BLU2USB_SCREEN_HELP_REMOVE_THIS);" in ux
