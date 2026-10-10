@@ -304,3 +304,10 @@ add_test(NAME mov02_vector_math COMMAND blu2usb_test_mov02_math)
 add_executable(blu2usb_test_mov03_complete_flow test_mov03_complete_flow.c)
 target_link_libraries(blu2usb_test_mov03_complete_flow PRIVATE blu2usb_renderer blu2usb_ux_model)
 add_test(NAME mov03_complete_flow COMMAND blu2usb_test_mov03_complete_flow)
+
+add_executable(blu2usb_test_mov02_horizontal_slow test_mov02_horizontal_slow.c)
+target_link_libraries(blu2usb_test_mov02_horizontal_slow PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mov02_horizontal_slow_physical_flow COMMAND blu2usb_test_mov02_horizontal_slow)
