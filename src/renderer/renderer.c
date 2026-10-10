@@ -582,6 +582,28 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
             if (row_has_control(screen->rows[row],(blu2usb_control_t)control)) emphasize_row(frame,row);
         }
     }
+
+    /* Saved Devices uses a deliberately restrained identity-only highlight:
+     * the currently CONNECTED mouse's NAME is cyan, while every other
+     * nonblank character on every saved-device page uses the system's
+     * standard off-white/yellow (STATIC) tone. This includes the page
+     * counter, profile, DPI, rotation, remove action and navigation hints.
+     * Apply after generic selection/pressed-key highlighting so no stale
+     * emphasis leaks into the page. Other screens keep their v1.0 rules. */
+    if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES) {
+        const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
+        const bool connected_name = blu2usb_ux_mouse_connected() &&
+            bond >= 0 && bond == ux->saved_connected_bond;
+        for (uint8_t row = 0u; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
+            for (uint8_t col = 0u; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
+                if (frame->cells[row][col].character == ' ') continue;
+                frame->cells[row][col].tone =
+                    row == 1u && connected_name
+                        ? BLU2USB_UI_TONE_CURRENT
+                        : BLU2USB_UI_TONE_STATIC;
+            }
+        }
+    }
 }
 
 uint16_t blu2usb_renderer_tone_rgb565(blu2usb_ui_tone_t tone)
