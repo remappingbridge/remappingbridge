@@ -296,3 +296,7 @@ add_test(
 add_executable(blu2usb_test_mov01_connected_entry test_mov01_connected_entry.c)
 target_link_libraries(blu2usb_test_mov01_connected_entry PRIVATE blu2usb_renderer blu2usb_ux_model)
 add_test(NAME mov01_connected_entry COMMAND blu2usb_test_mov01_connected_entry)
+
+add_executable(blu2usb_test_mov02_math test_mov02_math.c)
+target_link_libraries(blu2usb_test_mov02_math PRIVATE blu2usb_movement)
+add_test(NAME mov02_vector_math COMMAND blu2usb_test_mov02_math)
