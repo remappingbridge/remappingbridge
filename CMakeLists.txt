@@ -39,6 +39,9 @@ target_compile_definitions(blu2usb_contract PUBLIC BLU2USB_VERSION_STRING="1.0.0
 # Regression marker consumed by the inherited G05 architecture check only:
 # BLU2USB_VERSION_STRING="0.5.0-g05"
 
+add_library(blu2usb_movement STATIC src/movement/movement.c)
+target_include_directories(blu2usb_movement PUBLIC include)
+
 add_library(blu2usb_hid_aggregator STATIC
     src/hid_aggregator/hid_aggregator.c
     src/hid_aggregator/relative.c
@@ -166,6 +169,7 @@ if(BLU2USB_BUILD_PICO)
     target_link_libraries(blu2usb_picow PRIVATE
         pico_stdlib
         blu2usb_contract
+        blu2usb_movement
         blu2usb_module_app
     )
     target_compile_definitions(blu2usb_picow PRIVATE CYW43_LWIP=0)
