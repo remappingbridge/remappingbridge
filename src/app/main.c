@@ -37,22 +37,32 @@ static int8_t clamp_i8(int32_t value)
 }
 
 static void service_usb_mouse(blu2usb_hid_aggregator_t *aggregator,
+                              blu2usb_movement_pipeline_t *motion,
+                              blu2usb_movement_settings_t settings,
                               uint8_t *last_buttons,
                               bool *last_valid)
 {
     blu2usb_hid_output_state_t output;
     blu2usb_hid_aggregator_snapshot(aggregator, &output);
-    const int8_t dx = clamp_i8(output.dx);
-    const int8_t dy = clamp_i8(output.dy);
+    /* Own the exact raw deltas in a quarter-step output accumulator.
+     * Never re-transform unsent USB deltas when the endpoint is busy. */
+    if (output.dx || output.dy) {
+        blu2usb_movement_pipeline_push(motion, settings, output.dx, output.dy);
+        (void)blu2usb_hid_aggregator_consume_relative(aggregator,
+                                                       output.dx, output.dy, 0, 0);
+    }
+    int8_t dx = 0, dy = 0;
+    blu2usb_movement_pipeline_next(motion, &dx, &dy);
     const int8_t wheel = clamp_i8(output.wheel_vertical);
     const int8_t pan = clamp_i8(output.wheel_horizontal);
-    const bool relative = dx != 0 || dy != 0 || wheel != 0 || pan != 0;
+    const bool relative = dx || dy || wheel || pan;
     const bool buttons_changed = !*last_valid || output.mouse_buttons != *last_buttons;
     if (!relative && !buttons_changed) return;
     blu2usb_usb_mouse_report_t report;
     blu2usb_usb_hid_build_mouse_report(&report, output.mouse_buttons, dx, dy, wheel, pan);
     if (!blu2usb_usb_hid_pico_send_mouse(&report)) return;
-    (void)blu2usb_hid_aggregator_consume_relative(aggregator, dx, dy, wheel, pan);
+    blu2usb_movement_pipeline_ack(motion, dx, dy);
+    (void)blu2usb_hid_aggregator_consume_relative(aggregator, 0, 0, wheel, pan);
     *last_buttons = output.mouse_buttons;
     *last_valid = true;
 }
@@ -212,6 +222,18 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
                           mouse_valid, keyboard_valid))
             confirm_applied_profile(ux, profiles);
         break;
+    case BLU2USB_UX_COMMAND_APPLY_MOVEMENT:
+        /* Save first. On TLV failure leave current pointer behavior and cyan
+         * marker unchanged, keeping the selector open for a retry. */
+        if (blu2usb_ux_mouse_connected() &&
+            blu2usb_ble_hogp_pico_set_current_movement(command.movement)) {
+            blu2usb_ux_set_movement(ux, command.movement);
+            if (ux->screen != BLU2USB_SCREEN_MOVEMENT_OPTIONS) {
+                ux->screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
+                ux->selection = 0u;
+            }
+        }
+        break;
     case BLU2USB_UX_COMMAND_REMOVE_MOUSE:
         if (command.saved_bond >= 0) {
             if (ux != NULL && ux->saved_connected_bond == command.saved_bond) {
@@ -240,6 +262,9 @@ static void synchronize_saved_mice(blu2usb_ux_model_t *ux, bool connected)
 
     const unsigned count = blu2usb_ble_hogp_pico_bonded_mouse_count();
     blu2usb_ux_set_saved_device_count(ux, count);
+    for (unsigned i = 0u; i < count; ++i)
+        blu2usb_ux_set_saved_movement(
+            ux, i, blu2usb_ble_hogp_pico_saved_movement((int)i));
 
     for (unsigned bond = 0u;
          bond < count && bond < BLU2USB_UX_MAX_SAVED_MICE;
@@ -260,17 +285,21 @@ static void synchronize_saved_mice(blu2usb_ux_model_t *ux, bool connected)
         if (bond >= 0 && current_name != NULL && current_name[0] != '\0')
             blu2usb_ux_set_saved_mouse_name(ux, (unsigned)bond, current_name);
         blu2usb_ux_set_saved_connected_bond(ux, bond);
+        blu2usb_ux_set_movement(
+            ux, blu2usb_ble_hogp_pico_saved_movement(bond));
     } else {
         /* The HOME title is connection state, but saved-device names are
          * persistent product data. Clearing the current HOME name must never
          * erase the saved registry entry or the front page identity. */
         blu2usb_ux_set_current_mouse_name(ux, NULL);
         blu2usb_ux_set_saved_connected_bond(ux, -1);
+        blu2usb_ux_set_movement(ux, blu2usb_movement_defaults());
     }
 }
 
 static bool service_ble_messages(blu2usb_ux_model_t *ux,
                                  blu2usb_hid_aggregator_t *aggregator,
+                                 blu2usb_movement_pipeline_t *motion,
                                  const blu2usb_remap_t *remap,
                                  bool *mouse_valid,
                                  bool *keyboard_valid)
@@ -288,6 +317,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
         if (!blu2usb_ble_hogp_decode_runtime_message(&message, &event)) continue;
         switch (event.type) {
         case BLU2USB_BLE_HOGP_EVENT_CONNECTED:
+            blu2usb_movement_pipeline_clear(motion);
             if (!blu2usb_ux_mouse_connected()) {
                 blu2usb_ux_set_mouse_connected(true);
                 ui_changed = true;
@@ -320,6 +350,14 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             break;
         case BLU2USB_BLE_HOGP_EVENT_DISCONNECTED:
+            blu2usb_movement_pipeline_clear(motion);
+            if (ux != NULL && (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS ||
+                (ux->screen >= BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI &&
+                 ux->screen <= BLU2USB_SCREEN_HELP_ROTATION))) {
+                ux->screen = BLU2USB_SCREEN_HOME_SEARCHING;
+                ux->selection = 0u;
+                ui_changed = true;
+            }
             if (blu2usb_ux_mouse_connected()) {
                 blu2usb_ux_set_mouse_connected(false);
                 ui_changed = true;
@@ -385,6 +423,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             break;
         case BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED:
+            blu2usb_movement_pipeline_clear(motion);
             /* Atomic product-side half of the handoff: neutralize any held
              * old Mouse/Escape output before candidate reports are consumed. */
             (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
@@ -448,6 +487,7 @@ int main(void)
     blu2usb_hid_aggregator_t aggregator;
     blu2usb_profiles_t profiles;
     blu2usb_remap_t remap;
+    blu2usb_movement_pipeline_t motion = {0};
     uint8_t last_mouse_buttons = 0u;
     bool last_mouse_valid = false;
     blu2usb_usb_keyboard_report_t last_keyboard = {0};
@@ -491,11 +531,12 @@ int main(void)
     for (;;) {
         blu2usb_usb_hid_pico_task();
         const bool ble_ui_changed =
-            service_ble_messages(&ux, &aggregator, &remap,
+            service_ble_messages(&ux, &aggregator, &motion, &remap,
                                  &last_mouse_valid, &last_keyboard_valid);
         if (ble_ui_changed && !blu2usb_interaction_is_locked(&ux.interaction))
             (void)render_state(&display, &ux);
-        service_usb_mouse(&aggregator, &last_mouse_buttons, &last_mouse_valid);
+        service_usb_mouse(&aggregator, &motion, ux.movement_current,
+                          &last_mouse_buttons, &last_mouse_valid);
         service_usb_keyboard(&aggregator, &last_keyboard, &last_keyboard_valid);
 
         blu2usb_hat_pico_task();
