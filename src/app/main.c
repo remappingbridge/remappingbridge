@@ -438,6 +438,15 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                 ui_changed = true;
             }
             break;
+        case BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVE_FAILED:
+            if (ux != NULL) {
+                ux->remove_pending = false;
+                ux->screen = BLU2USB_SCREEN_SAVED_DEVICES;
+                ux->selection = 0u;
+                synchronize_saved_mice(ux, blu2usb_ux_mouse_connected());
+                ui_changed = true;
+            }
+            break;
         case BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVED:
             if (ux != NULL) {
                 ux->remove_pending = false;
