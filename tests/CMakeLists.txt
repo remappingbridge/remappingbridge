@@ -300,3 +300,7 @@ add_test(NAME mov01_connected_entry COMMAND blu2usb_test_mov01_connected_entry)
 add_executable(blu2usb_test_mov02_math test_mov02_math.c)
 target_link_libraries(blu2usb_test_mov02_math PRIVATE blu2usb_movement)
 add_test(NAME mov02_vector_math COMMAND blu2usb_test_mov02_math)
+
+add_executable(blu2usb_test_mov03_complete_flow test_mov03_complete_flow.c)
+target_link_libraries(blu2usb_test_mov03_complete_flow PRIVATE blu2usb_renderer blu2usb_ux_model)
+add_test(NAME mov03_complete_flow COMMAND blu2usb_test_mov03_complete_flow)
