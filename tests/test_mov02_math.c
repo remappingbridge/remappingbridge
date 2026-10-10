@@ -46,6 +46,6 @@ int main(void)
     blu2usb_movement_pipeline_push(&p,(blu2usb_movement_settings_t){12,12,3},INT32_MIN,INT32_MAX);
     int8_t sx, sy;
     blu2usb_movement_pipeline_next(&p,&sx,&sy);
-    assert(sx==-128 && sy==-128); /* no overflow in wide math */
+    assert(sx==-128 && sy==127); /* no overflow in wide math */
     return 0;
 }
