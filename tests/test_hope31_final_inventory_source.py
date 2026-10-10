@@ -35,7 +35,7 @@ enum_match = re.search(
 )
 assert enum_match
 ids = re.findall(r"BLU2USB_SCREEN_[A-Z0-9_]+", enum_match.group(1))
-assert len(ids) == 30, ids
+assert len(ids) == 38, ids
 assert len(set(ids)) == 30
 
 assert "29 canonical runtime screens" in inventory
