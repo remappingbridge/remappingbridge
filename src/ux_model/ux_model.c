@@ -492,6 +492,12 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     }
 
     if (ux->screen == BLU2USB_SCREEN_REMOVE_THIS &&
+        control == BLU2USB_CONTROL_KEY_Y && ux->remove_pending) {
+        /* Pending removal disables Help and must not invoke global Lock. */
+        return cmd;
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_REMOVE_THIS &&
         control == BLU2USB_CONTROL_KEY_B) {
         if (!ux->remove_pending) {
             const int page = blu2usb_ux_saved_page_for_bond(
