@@ -204,6 +204,12 @@ static int selected_row(const blu2usb_ux_model_t *ux)
         return (int)(1u + ux->selection);
     case BLU2USB_SCREEN_MOVEMENT_OPTIONS:
         return (int)(ux->selection == 2u ? 4u : 1u + ux->selection);
+    case BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI:
+    case BLU2USB_SCREEN_HORIZONTAL_FAST_DPI:
+    case BLU2USB_SCREEN_VERTICAL_SLOW_DPI:
+    case BLU2USB_SCREEN_VERTICAL_FAST_DPI:
+    case BLU2USB_SCREEN_ROTATION:
+        return (int)(ux->selection + 1u);
     default: return -1;
     }
 }
@@ -272,6 +278,72 @@ static void project_saved_devices(const blu2usb_ux_model_t *ux,
     (void)blu2usb_ui_frame_set_text(
         frame, 3u, 0u, profile, BLU2USB_UI_TONE_STATIC);
     set_row_tone(frame, 4u, BLU2USB_UI_TONE_EMPHASIZED);
+}
+
+
+static const char *movement_gain_name(uint8_t quarter)
+{
+    switch (quarter) {
+    case 1u: return "0.25X";
+    case 2u: return "0.5X";
+    case 3u: return "0.75X";
+    case 4u: return "1X";
+    case 5u: return "1.25X";
+    case 6u: return "1.5X";
+    case 8u: return "2X";
+    case 12u: return "3X";
+    default: return "1X";
+    }
+}
+
+static void project_movement_options(const blu2usb_ux_model_t *ux,
+                                     blu2usb_ui_frame_t *frame)
+{
+    char line[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    clear_row(frame, 1u);
+    (void)snprintf(line, sizeof(line), " HORIZONTAL DPI %s",
+                   movement_gain_name(ux->movement_current.horizontal_quarters));
+    (void)blu2usb_ui_frame_set_text(frame, 1u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
+    (void)blu2usb_ui_frame_set_tone_span(frame, 1u, 16u,
+                (uint8_t)strlen(movement_gain_name(ux->movement_current.horizontal_quarters)),
+                BLU2USB_UI_TONE_CURRENT);
+    clear_row(frame, 2u);
+    (void)snprintf(line, sizeof(line), " VERTICAL DPI %s",
+                   movement_gain_name(ux->movement_current.vertical_quarters));
+    (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
+    (void)blu2usb_ui_frame_set_tone_span(frame, 2u, 14u,
+                (uint8_t)strlen(movement_gain_name(ux->movement_current.vertical_quarters)),
+                BLU2USB_UI_TONE_CURRENT);
+    clear_row(frame, 4u);
+    (void)snprintf(line, sizeof(line), " ROTATION %u-DEGREE",
+                   (unsigned)ux->movement_current.rotation_quadrants * 90u);
+    (void)blu2usb_ui_frame_set_text(frame, 4u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
+    (void)blu2usb_ui_frame_set_tone_span(frame, 4u, 10u,
+                (uint8_t)(strlen(line) - 10u), BLU2USB_UI_TONE_CURRENT);
+}
+
+static void project_movement_current_choice(const blu2usb_ux_model_t *ux,
+                                            blu2usb_ui_frame_t *frame)
+{
+    const uint8_t h = ux->movement_current.horizontal_quarters;
+    const uint8_t v = ux->movement_current.vertical_quarters;
+    const uint8_t val = ux->screen == BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI ||
+                        ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ? h : v;
+    if (ux->screen == BLU2USB_SCREEN_ROTATION) {
+        set_row_tone(frame, (uint8_t)(ux->movement_current.rotation_quadrants+1u),
+                     BLU2USB_UI_TONE_CURRENT);
+        return;
+    }
+    const bool fast = ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ||
+                      ux->screen == BLU2USB_SCREEN_VERTICAL_FAST_DPI;
+    static const uint8_t slow_values[4] = {4,3,2,1};
+    static const uint8_t fast_values[4] = {5,6,8,12};
+    for (unsigned i = 0; i < 4u; ++i) {
+        if (val == (fast ? fast_values[i] : slow_values[i])) {
+            set_row_tone(frame, (uint8_t)(i + 1u), BLU2USB_UI_TONE_CURRENT);
+            break;
+        }
+    }
 }
 
 static void project_remove_this(const blu2usb_ux_model_t *ux,
@@ -483,13 +555,14 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         set_row_tone(frame, current_row, BLU2USB_UI_TONE_CURRENT);
     }
 
-    if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS) {
-        /* All displayed values are the actual passthrough defaults until
-         * the identity-scoped movement persistence gate is integrated. */
-        (void)blu2usb_ui_frame_set_tone_span(frame, 1u, 16u, 2u, BLU2USB_UI_TONE_CURRENT);
-        (void)blu2usb_ui_frame_set_tone_span(frame, 2u, 14u, 2u, BLU2USB_UI_TONE_CURRENT);
-        (void)blu2usb_ui_frame_set_tone_span(frame, 4u, 10u, 8u, BLU2USB_UI_TONE_CURRENT);
-    }
+    if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS)
+        project_movement_options(ux, frame);
+    else if (ux->screen == BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI ||
+             ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ||
+             ux->screen == BLU2USB_SCREEN_VERTICAL_SLOW_DPI ||
+             ux->screen == BLU2USB_SCREEN_VERTICAL_FAST_DPI ||
+             ux->screen == BLU2USB_SCREEN_ROTATION)
+        project_movement_current_choice(ux, frame);
 
     const int selected = selected_row(ux);
     if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && ux->selection == 2u)
