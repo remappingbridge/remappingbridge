@@ -202,6 +202,8 @@ static int selected_row(const blu2usb_ux_model_t *ux)
     case BLU2USB_SCREEN_FORWARD_WILL_BECOME:
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME:
         return (int)(1u + ux->selection);
+    case BLU2USB_SCREEN_MOVEMENT_OPTIONS:
+        return (int)(ux->selection == 2u ? 4u : 1u + ux->selection);
     default: return -1;
     }
 }
@@ -481,7 +483,17 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         set_row_tone(frame, current_row, BLU2USB_UI_TONE_CURRENT);
     }
 
+    if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS) {
+        /* All displayed values are the actual passthrough defaults until
+         * the identity-scoped movement persistence gate is integrated. */
+        (void)blu2usb_ui_frame_set_tone_span(frame, 1u, 16u, 2u, BLU2USB_UI_TONE_CURRENT);
+        (void)blu2usb_ui_frame_set_tone_span(frame, 2u, 14u, 2u, BLU2USB_UI_TONE_CURRENT);
+        (void)blu2usb_ui_frame_set_tone_span(frame, 4u, 10u, 8u, BLU2USB_UI_TONE_CURRENT);
+    }
+
     const int selected = selected_row(ux);
+    if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && ux->selection == 2u)
+        emphasize_row(frame, 3u);
     if (selected >= 0 && selected < (int)BLU2USB_RENDERER_TEXT_ROWS) emphasize_row(frame,(uint8_t)selected);
 
     for (unsigned control = 0; control < BLU2USB_CONTROL_COUNT; ++control) {
