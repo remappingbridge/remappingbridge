@@ -35,6 +35,14 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_REMOVE_THIS] = {{"REMOVE THIS MOUSE","UNKNOWN MOUSE",EMPTY,"PAIRING AND MAPPINGS","WILL BE DELETED",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY X: HELP"},DYN(1)},
     [BLU2USB_SCREEN_HELP_REMOVE_THIS] = {{"REMOVE MOUSE HELP","COMPLETELY REMOVE THE","AUTOMATIC CONNECTION","WHEN TURNING ON THE","DEVICE AND DELETE ITS","BUTTON REMAPPING","PROFILE.",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_MOVEMENT_OPTIONS] = {{"MOVEMENT OPTIONS"," HORIZONTAL DPI 1X"," VERTICAL DPI 1X"," COUNTERCLOCKWISE"," ROTATION 0-DEGREE",EMPTY,"JOY PRESS: ACCESS","KEY A: RESET ALL","KEY B: BACK"},0},
+    [BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI] = {{"HORIZONTAL SLOW DPI"," NORMAL        1x"," SLIGHTLY SLOW 0.75x"," SLOW          0.5x"," VERY SLOW     0.25x","","JOY LEFT\\RIGHT: PAGE","KEY A: APPLY AND BACK","KEY X: HELP SLOW DPI"},0},
+    [BLU2USB_SCREEN_HORIZONTAL_FAST_DPI] = {{"HORIZONTAL FAST DPI"," SLIGHTLY FAST  1.25x"," FAST           1.5x"," VERY FAST      2x"," EXTREMELY FAST 3x","","JOY LEFT\\RIGHT: PAGE","KEY A: APPLY AND BACK","KEY X: HELP FAST DPI"},0},
+    [BLU2USB_SCREEN_VERTICAL_SLOW_DPI] = {{"VERTICAL SLOW DPI"," NORMAL        1x"," SLIGHTLY SLOW 0.75x"," SLOW          0.5x"," VERY SLOW     0.25x","","JOY LEFT\\RIGHT: PAGE","KEY A: APPLY AND BACK","KEY X: HELP SLOW DPI"},0},
+    [BLU2USB_SCREEN_VERTICAL_FAST_DPI] = {{"VERTICAL FAST DPI"," SLIGHTLY FAST  1.25x"," FAST           1.5x"," VERY FAST      2x"," EXTREMELY FAST 3x","","JOY LEFT\\RIGHT: PAGE","KEY A: APPLY AND BACK","KEY X: HELP FAST DPI"},0},
+    [BLU2USB_SCREEN_ROTATION] = {{"ROTATION"," 0-DEGREE"," 90-DEGREE"," 180-DEGREE"," 270-DEGREE","","KEY A: APPLY","KEY B: CANCEL","KEY X: HELP"},0},
+    [BLU2USB_SCREEN_HELP_SLOW_DPI] = {{"SLOW DPI HELP","SLOWER DPI POINTER","ARE RECOMMENDED","FOR MOVEMENTS THAT","REQUIRE GREATER","SENSITIVITY AND","PRECISION","","ANY KEY: BACK"},0},
+    [BLU2USB_SCREEN_HELP_FAST_DPI] = {{"FAST DPI HELP","FASTER DPI POINTER","IS RECOMMENDED FOR","HIGH-RESOLUTION","DESKTOP AND","WIDESCREEN","ENVIRONMENTS","","ANY KEY: BACK"},0},
+    [BLU2USB_SCREEN_HELP_ROTATION] = {{"ROTATION HELP","MOUSE MOVEMENT","CHANGES DIRECTION","EVERY 90 DEGREES","FROM THE PREVIOUS","DIRECTION","ANTICLOCKWISE","","ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_SEARCHING_FIRST] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
 };
 
@@ -55,7 +63,10 @@ static bool is_help(blu2usb_screen_id_t screen) {
            screen == BLU2USB_SCREEN_HELP_PAIR_NEW ||
            screen == BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW ||
            screen == BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS ||
-           screen == BLU2USB_SCREEN_HELP_REMOVE_THIS;
+           screen == BLU2USB_SCREEN_HELP_REMOVE_THIS ||
+           screen == BLU2USB_SCREEN_HELP_SLOW_DPI ||
+           screen == BLU2USB_SCREEN_HELP_FAST_DPI ||
+           screen == BLU2USB_SCREEN_HELP_ROTATION;
 }
 
 static bool is_will_become(blu2usb_screen_id_t screen) {
@@ -86,6 +97,11 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_HELP_REMOVE_THIS: return ux->return_screen;
     case BLU2USB_SCREEN_MOUSE_OPTIONS:
     case BLU2USB_SCREEN_MOVEMENT_OPTIONS: return BLU2USB_SCREEN_HOME;
+    case BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI:
+    case BLU2USB_SCREEN_HORIZONTAL_FAST_DPI:
+    case BLU2USB_SCREEN_VERTICAL_SLOW_DPI:
+    case BLU2USB_SCREEN_VERTICAL_FAST_DPI:
+    case BLU2USB_SCREEN_ROTATION: return BLU2USB_SCREEN_MOVEMENT_OPTIONS;
     case BLU2USB_SCREEN_PAIR_MOUSE:
     case BLU2USB_SCREEN_MOUSE_SAVED: return BLU2USB_SCREEN_MOUSE_OPTIONS;
     case BLU2USB_SCREEN_APPLY_PASSTHROUGH:
@@ -111,6 +127,11 @@ unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux) {
     switch (ux->screen) {
     case BLU2USB_SCREEN_HOME: return 4;
     case BLU2USB_SCREEN_MOVEMENT_OPTIONS: return 3;
+    case BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI:
+    case BLU2USB_SCREEN_HORIZONTAL_FAST_DPI:
+    case BLU2USB_SCREEN_VERTICAL_SLOW_DPI:
+    case BLU2USB_SCREEN_VERTICAL_FAST_DPI:
+    case BLU2USB_SCREEN_ROTATION: return 4;
     case BLU2USB_SCREEN_HOME_SEARCHING:
     case BLU2USB_SCREEN_HOME_RETRY: return 2;
     case BLU2USB_SCREEN_MOUSE_OPTIONS: return 4;
@@ -141,6 +162,10 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
     memset(ux->saved_mouse_names, 0, sizeof(ux->saved_mouse_names));
     ux->current_mouse_name[0] = '\0';
     ux->active_profile = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
+    ux->movement_current = blu2usb_movement_defaults();
+    for (unsigned m = 0u; m < BLU2USB_UX_MAX_SAVED_MICE; ++m)
+        ux->saved_movements[m] = blu2usb_movement_defaults();
+    memset(ux->movement_dpi_selections, 0, sizeof(ux->movement_dpi_selections));
     ux->custom_dirty = false;
     ux->custom_source = BLU2USB_MOUSE_SOURCE_LEFT;
     ux->custom_targets[BLU2USB_MOUSE_SOURCE_LEFT] = BLU2USB_MOUSE_TARGET_LEFT;
@@ -234,6 +259,57 @@ void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name)
     ux->current_mouse_name[i] = '\0';
 }
 
+
+void blu2usb_ux_set_movement(blu2usb_ux_model_t *ux,
+                             blu2usb_movement_settings_t settings)
+{
+    if (ux == NULL || !blu2usb_movement_valid(settings)) return;
+    ux->movement_current = settings;
+    if (ux->saved_connected_bond >= 0 &&
+        (unsigned)ux->saved_connected_bond < BLU2USB_UX_MAX_SAVED_MICE)
+        ux->saved_movements[ux->saved_connected_bond] = settings;
+}
+
+void blu2usb_ux_set_saved_movement(blu2usb_ux_model_t *ux, unsigned logical_bond,
+                                   blu2usb_movement_settings_t settings)
+{
+    if (ux == NULL || logical_bond >= BLU2USB_UX_MAX_SAVED_MICE ||
+        !blu2usb_movement_valid(settings)) return;
+    ux->saved_movements[logical_bond] = settings;
+}
+
+static bool dpi_screen(blu2usb_screen_id_t screen)
+{
+    return screen == BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI ||
+           screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ||
+           screen == BLU2USB_SCREEN_VERTICAL_SLOW_DPI ||
+           screen == BLU2USB_SCREEN_VERTICAL_FAST_DPI;
+}
+
+static unsigned dpi_slot(blu2usb_screen_id_t screen)
+{
+    switch (screen) {
+    case BLU2USB_SCREEN_HORIZONTAL_FAST_DPI: return 1u;
+    case BLU2USB_SCREEN_VERTICAL_SLOW_DPI: return 2u;
+    case BLU2USB_SCREEN_VERTICAL_FAST_DPI: return 3u;
+    default: return 0u;
+    }
+}
+
+static uint8_t gain_from_selection(bool fast, unsigned selection)
+{
+    static const uint8_t slow[4] = {4,3,2,1};
+    static const uint8_t fast_gains[4] = {5,6,8,12};
+    return (fast ? fast_gains : slow)[selection % 4u];
+}
+
+static unsigned selection_from_gain(uint8_t gain, bool fast)
+{
+    for (unsigned i = 0u; i < 4u; ++i)
+        if (gain_from_selection(fast, i) == gain) return i;
+    return 0u;
+}
+
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target) {
     if ((unsigned)source < BLU2USB_MOUSE_SOURCE_COUNT && (unsigned)target < BLU2USB_MOUSE_TARGET_COUNT) {
         if (ux->custom_targets[source] != target) ux->custom_dirty = true;
@@ -323,7 +399,11 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     }
 
     if (is_help(ux->screen)) {
-        enter(ux, ux->return_screen);
+        const unsigned selection = ux->return_selection;
+        const blu2usb_screen_id_t previous = ux->return_screen;
+        enter(ux, previous);
+        if (dpi_screen(previous) || previous == BLU2USB_SCREEN_ROTATION)
+            ux->selection = selection % 4u;
         return cmd;
     }
 
@@ -524,11 +604,67 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         return cmd;
     }
 
+
     if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS) {
-        /* MOV staging: this screen is reachable from HOME. Until the
-         * per-identity backend and selectors are integrated, pressing A or
-         * entering a choice MUST NOT change unrelated product settings. */
+        if (control == BLU2USB_CONTROL_KEY_A) {
+            cmd.kind = BLU2USB_UX_COMMAND_APPLY_MOVEMENT;
+            cmd.movement = blu2usb_movement_defaults();
+        } else if (control == BLU2USB_CONTROL_JOY_PRESS) {
+            const unsigned axis = ux->selection;
+            if (axis == 2u) {
+                enter(ux, BLU2USB_SCREEN_ROTATION);
+                ux->selection = ux->movement_current.rotation_quadrants;
+            } else {
+                const uint8_t gain = axis == 0u ?
+                    ux->movement_current.horizontal_quarters :
+                    ux->movement_current.vertical_quarters;
+                const bool fast = gain > 4u;
+                const blu2usb_screen_id_t target = axis == 0u ?
+                    (fast ? BLU2USB_SCREEN_HORIZONTAL_FAST_DPI : BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI) :
+                    (fast ? BLU2USB_SCREEN_VERTICAL_FAST_DPI : BLU2USB_SCREEN_VERTICAL_SLOW_DPI);
+                enter(ux, target);
+                ux->selection = selection_from_gain(gain, fast);
+                ux->movement_dpi_selections[dpi_slot(target)] = (uint8_t)ux->selection;
+            }
+        }
         return cmd;
+    }
+
+    if (dpi_screen(ux->screen) || ux->screen == BLU2USB_SCREEN_ROTATION) {
+        const bool dpi = dpi_screen(ux->screen);
+        const bool fast = ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ||
+                          ux->screen == BLU2USB_SCREEN_VERTICAL_FAST_DPI;
+        if (dpi && (control == BLU2USB_CONTROL_JOY_LEFT ||
+                    control == BLU2USB_CONTROL_JOY_RIGHT)) {
+            ux->movement_dpi_selections[dpi_slot(ux->screen)] = (uint8_t)ux->selection;
+            const blu2usb_screen_id_t dest =
+                ux->screen == BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI ? BLU2USB_SCREEN_HORIZONTAL_FAST_DPI :
+                ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ? BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI :
+                ux->screen == BLU2USB_SCREEN_VERTICAL_SLOW_DPI ? BLU2USB_SCREEN_VERTICAL_FAST_DPI :
+                BLU2USB_SCREEN_VERTICAL_SLOW_DPI;
+            enter(ux, dest);
+            ux->selection = ux->movement_dpi_selections[dpi_slot(dest)];
+            return cmd;
+        }
+        if (control == BLU2USB_CONTROL_KEY_X) {
+            ux->return_screen = ux->screen;
+            ux->return_selection = ux->selection;
+            enter(ux, !dpi ? BLU2USB_SCREEN_HELP_ROTATION :
+                      fast ? BLU2USB_SCREEN_HELP_FAST_DPI :
+                      BLU2USB_SCREEN_HELP_SLOW_DPI);
+            return cmd;
+        }
+        if (control == BLU2USB_CONTROL_KEY_A) {
+            cmd.kind = BLU2USB_UX_COMMAND_APPLY_MOVEMENT;
+            cmd.movement = ux->movement_current;
+            if (!dpi) cmd.movement.rotation_quadrants = (uint8_t)ux->selection;
+            else if (ux->screen == BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI ||
+                     ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI)
+                cmd.movement.horizontal_quarters = gain_from_selection(fast, ux->selection);
+            else
+                cmd.movement.vertical_quarters = gain_from_selection(fast, ux->selection);
+            return cmd;
+        }
     }
 
     if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM) {
