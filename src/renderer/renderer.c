@@ -241,45 +241,52 @@ static const char *saved_profile_name(blu2usb_mouse_profile_kind_t profile)
     }
 }
 
+static const char *movement_gain_name(uint8_t quarter);
+
 static void project_saved_devices(const blu2usb_ux_model_t *ux,
                                   blu2usb_ui_frame_t *frame)
 {
     char title[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char name[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char profile[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    char dpi[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    char rot[BLU2USB_RENDERER_TEXT_COLS + 1u];
     const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
-    const bool current =
-        blu2usb_ux_mouse_connected() &&
-        bond >= 0 &&
-        bond == ux->saved_connected_bond;
+    const bool current = blu2usb_ux_mouse_connected() &&
+                         bond >= 0 && bond == ux->saved_connected_bond;
     const char *saved_name =
         bond >= 0 && (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE &&
         ux->saved_mouse_names[bond][0] != '\0'
             ? ux->saved_mouse_names[bond]
             : (current ? ux->current_mouse_name : NULL);
-
+    const blu2usb_movement_settings_t settings =
+        bond >= 0 && (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE ?
+        ux->saved_movements[bond] : blu2usb_movement_defaults();
+    char h[7], v[7];
+    (void)snprintf(h, sizeof(h), "%s", movement_gain_name(settings.horizontal_quarters));
+    (void)snprintf(v, sizeof(v), "%s", movement_gain_name(settings.vertical_quarters));
+    h[strlen(h)-1u] = '\0';
+    v[strlen(v)-1u] = '\0';
     (void)snprintf(title, sizeof(title), "%u OF %u",
-                   ux->saved_device_count == 0u ? 0u : ux->saved_page + 1u,
+                   ux->saved_device_count ? ux->saved_page + 1u : 0u,
                    ux->saved_device_count);
     home_title(saved_name, name);
     (void)snprintf(profile, sizeof(profile), "PROFILE: %s",
                    saved_profile_name(ux->active_profile));
+    (void)snprintf(dpi, sizeof(dpi), "DPI: H %s - V %s", h, v);
+    (void)snprintf(rot, sizeof(rot), "ROTATION: %u DEGREE",
+                   (unsigned)settings.rotation_quadrants * 90u);
 
-    for (uint8_t row = 0u; row <= 3u; ++row) clear_row(frame, row);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 0u, 0u, title, BLU2USB_UI_TONE_TITLE);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 1u, 0u, name,
-        current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 2u, 0u,
-        current ? "STATUS: CONNECTED" : "STATUS: DISCONNECTED",
-        BLU2USB_UI_TONE_STATIC);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 3u, 0u, profile, BLU2USB_UI_TONE_STATIC);
-    set_row_tone(frame, 4u, BLU2USB_UI_TONE_EMPHASIZED);
+    for (uint8_t row = 0u; row <= 5u; ++row) clear_row(frame, row);
+    (void)blu2usb_ui_frame_set_text(frame, 0u, 0u, title, BLU2USB_UI_TONE_TITLE);
+    (void)blu2usb_ui_frame_set_text(frame, 1u, 0u, name,
+                                   current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC);
+    (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, profile, BLU2USB_UI_TONE_STATIC);
+    (void)blu2usb_ui_frame_set_text(frame, 3u, 0u, dpi, BLU2USB_UI_TONE_CURRENT);
+    (void)blu2usb_ui_frame_set_text(frame, 4u, 0u, rot, BLU2USB_UI_TONE_CURRENT);
+    (void)blu2usb_ui_frame_set_text(frame, 5u, 0u, " REMOVE DEVICE",
+                                   BLU2USB_UI_TONE_EMPHASIZED);
 }
-
 
 static const char *movement_gain_name(uint8_t quarter)
 {
