@@ -6,7 +6,7 @@
 #define EMPTY ""
 
 static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
-    [BLU2USB_SCREEN_HOME] = {{"UNKNOWN MOUSE"," NO REMAP PASSTHROUGH"," SAVED DEVICES"," PAIR NEW MOUSE",EMPTY,EMPTY,"JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY X: HELP TO REMOVE"},DYN(0)|DYN(1)},
+    [BLU2USB_SCREEN_HOME] = {{"UNKNOWN MOUSE"," NO REMAP PASSTHROUGH"," MOVEMENT OPTIONS"," SAVED DEVICES"," PAIR NEW MOUSE",EMPTY,"JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY X: HELP TO REMOVE"},DYN(0)|DYN(1)},
     [BLU2USB_SCREEN_HELP_HOME_CONNECTED] = {{"REMOVE CONNECTED HELP","TO DISCONNECT THE","CURRENTLY CONNECTED","MOUSE NAVIGATE TO:","STEP 1. SAVED DEVICES","STEP 2. REMOVE DEVICE","STEP 3. KEY A: REMOVE",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_HOME_SEARCHING] = {{"SEARCHING SAVED MOUSE"," SAVED DEVICES"," PAIR NEW MOUSE",EMPTY,EMPTY,"KEY B: CANCEL SEARCH","JOY UP / DOWN: SELECT","JOY PRESS: ACCESS","KEY X: HELP"},0},
     [BLU2USB_SCREEN_HOME_SEARCHING_HELP] = {{"HOME SEARCHING HELP","THE MATCHING ATTEMPT","TOOK PLACE ONLY FOR","DEVICES ALREADY SAVED","IN THE PREFERENCES,","BUT NOT FOR DEVICES","THAT WERE NOT SAVED.",EMPTY,"ANY KEY: BACK"},0},
@@ -34,6 +34,7 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_SAVED_DEVICES] = {{"0 OF 0","UNKNOWN MOUSE","STATUS: DISCONNECTED","PROFILE: PASSTHROUGH"," REMOVE DEVICE",EMPTY,"JOY RIGHT\\LEFT: PAGE","JOY PRESS: ACCESS","KEY B: BACK"},DYN(0)|DYN(1)|DYN(2)|DYN(3)},
     [BLU2USB_SCREEN_REMOVE_THIS] = {{"REMOVE THIS MOUSE","UNKNOWN MOUSE",EMPTY,"PAIRING AND MAPPINGS","WILL BE DELETED",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY X: HELP"},DYN(1)},
     [BLU2USB_SCREEN_HELP_REMOVE_THIS] = {{"REMOVE MOUSE HELP","COMPLETELY REMOVE THE","AUTOMATIC CONNECTION","WHEN TURNING ON THE","DEVICE AND DELETE ITS","BUTTON REMAPPING","PROFILE.",EMPTY,"ANY KEY: BACK"},0},
+    [BLU2USB_SCREEN_MOVEMENT_OPTIONS] = {{"MOVEMENT OPTIONS"," HORIZONTAL DPI 1X"," VERTICAL DPI 1X"," COUNTERCLOCKWISE"," ROTATION 0-DEGREE",EMPTY,"JOY PRESS: ACCESS","KEY A: RESET ALL","KEY B: BACK"},0},
     [BLU2USB_SCREEN_SEARCHING_FIRST] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
 };
 
@@ -83,7 +84,8 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_HOME: return BLU2USB_SCREEN_HOME;
     case BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS:
     case BLU2USB_SCREEN_HELP_REMOVE_THIS: return ux->return_screen;
-    case BLU2USB_SCREEN_MOUSE_OPTIONS: return BLU2USB_SCREEN_HOME;
+    case BLU2USB_SCREEN_MOUSE_OPTIONS:
+    case BLU2USB_SCREEN_MOVEMENT_OPTIONS: return BLU2USB_SCREEN_HOME;
     case BLU2USB_SCREEN_PAIR_MOUSE:
     case BLU2USB_SCREEN_MOUSE_SAVED: return BLU2USB_SCREEN_MOUSE_OPTIONS;
     case BLU2USB_SCREEN_APPLY_PASSTHROUGH:
@@ -107,7 +109,8 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
 
 unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux) {
     switch (ux->screen) {
-    case BLU2USB_SCREEN_HOME: return 3;
+    case BLU2USB_SCREEN_HOME: return 4;
+    case BLU2USB_SCREEN_MOVEMENT_OPTIONS: return 3;
     case BLU2USB_SCREEN_HOME_SEARCHING:
     case BLU2USB_SCREEN_HOME_RETRY: return 2;
     case BLU2USB_SCREEN_MOUSE_OPTIONS: return 4;
@@ -308,7 +311,7 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         const unsigned selection = ux->return_selection;
         enter(ux, target);
         if (ux->screen == BLU2USB_SCREEN_HOME)
-            ux->selection = selection % 3u;
+            ux->selection = selection % 4u;
         return cmd;
     }
 
@@ -452,8 +455,9 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     }
 
     if (ux->screen == BLU2USB_SCREEN_HOME && control == BLU2USB_CONTROL_JOY_PRESS) {
-        static const blu2usb_screen_id_t dest[3] = {
+        static const blu2usb_screen_id_t dest[4] = {
             BLU2USB_SCREEN_MOUSE_OPTIONS,
+            BLU2USB_SCREEN_MOVEMENT_OPTIONS,
             BLU2USB_SCREEN_SAVED_DEVICES,
             BLU2USB_SCREEN_PAIR_MOUSE
         };
@@ -517,6 +521,13 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         default:
             break;
         }
+        return cmd;
+    }
+
+    if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS) {
+        /* MOV staging: this screen is reachable from HOME. Until the
+         * per-identity backend and selectors are integrated, pressing A or
+         * entering a choice MUST NOT change unrelated product settings. */
         return cmd;
     }
 
