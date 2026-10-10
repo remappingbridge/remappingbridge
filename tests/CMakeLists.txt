@@ -292,3 +292,7 @@ add_test(
     COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test_hope31_final_inventory_source.py
 )
+
+add_executable(blu2usb_test_mov01_connected_entry test_mov01_connected_entry.c)
+target_link_libraries(blu2usb_test_mov01_connected_entry PRIVATE blu2usb_renderer blu2usb_ux_model)
+add_test(NAME mov01_connected_entry COMMAND blu2usb_test_mov01_connected_entry)
