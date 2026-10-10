@@ -41,7 +41,10 @@ int main(void) {
     assert(frame.cells[4][1].tone == BLU2USB_UI_TONE_EMPHASIZED);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.selection == 0u);
-    tap(&ux, BLU2USB_CONTROL_KEY_A);
+    (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_KEY_A, true);
+    const blu2usb_ux_command_t reset = blu2usb_ux_input(&ux, BLU2USB_CONTROL_KEY_A, false);
+    assert(reset.kind == BLU2USB_UX_COMMAND_APPLY_MOVEMENT);
+    assert(blu2usb_movement_valid(reset.movement));
     assert(ux.screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS);
     tap(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_HOME);
