@@ -20,6 +20,10 @@
 #define BLE_HOGP_SAVED_REGISTRY_VERSION 2u
 #define BLE_HOGP_SAVED_REGISTRY_VERSION_V1 1u
 #define BLE_HOGP_SAVED_REGISTRY_TAG UINT32_C(0x4232534e) /* B2SN */
+#define BLE_HOGP_MOVEMENT_TAG UINT32_C(0x42324d56) /* B2MV */
+#define BLE_HOGP_MOVEMENT_VERSION 1u
+#define BLE_HOGP_MOVEMENT_ENTRY_SIZE (1u + 1u + 6u + 16u + 3u)
+#define BLE_HOGP_MOVEMENT_PAYLOAD_SIZE (1u + 8u * BLE_HOGP_MOVEMENT_ENTRY_SIZE)
 #define BLE_HOGP_SAVED_REGISTRY_V1_ENTRY_SIZE \
     (1u + 1u + 6u + BLE_HOGP_SAVED_NAME_CAPACITY)
 #define BLE_HOGP_SAVED_REGISTRY_ENTRY_SIZE \
@@ -85,6 +89,16 @@ static ble_hogp_rejected_device_t g_rejected_devices[BLE_HOGP_REJECTED_DEVICE_CA
 static size_t g_rejected_next;
 static ble_hogp_saved_name_t g_saved_names[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
 static bool g_saved_names_loaded;
+
+typedef struct {
+    bool used;
+    bd_addr_type_t address_type;
+    bd_addr_t address;
+    sm_key_t irk;
+    blu2usb_movement_settings_t settings;
+} ble_hogp_saved_movement_t;
+static ble_hogp_saved_movement_t g_movements[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+static bool g_movements_loaded;
 static btstack_packet_callback_registration_t g_hci_registration;
 static btstack_packet_callback_registration_t g_sm_registration;
 static btstack_timer_source_t g_vendor_timer;
@@ -466,10 +480,133 @@ static bool current_matches_identity(bd_addr_type_t address_type,
                             address_type, address, irk);
 }
 
+
+/* Movement preferences live in their own TLV record, preserving the v1.0
+ * saved-name/IRK registry and product profile storage format byte-for-byte. */
+static void movements_load(void)
+{
+    if (g_movements_loaded) return;
+    g_movements_loaded = true;
+    memset(g_movements, 0, sizeof(g_movements));
+    const btstack_tlv_t *tlv = NULL;
+    void *context = NULL;
+    btstack_tlv_get_instance(&tlv, &context);
+    if (tlv == NULL || context == NULL) return;
+    uint8_t bytes[BLE_HOGP_MOVEMENT_PAYLOAD_SIZE] = {0};
+    const int n = tlv->get_tag(context, BLE_HOGP_MOVEMENT_TAG, bytes, sizeof(bytes));
+    if (n != (int)sizeof(bytes) || bytes[0] != BLE_HOGP_MOVEMENT_VERSION) return;
+    size_t p = 1u;
+    for (unsigned i = 0; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+        ble_hogp_saved_movement_t *item = &g_movements[i];
+        item->used = bytes[p++] != 0u;
+        item->address_type = (bd_addr_type_t)bytes[p++];
+        memcpy(item->address, &bytes[p], 6u); p += 6u;
+        memcpy(item->irk, &bytes[p], 16u); p += 16u;
+        item->settings.horizontal_quarters = bytes[p++];
+        item->settings.vertical_quarters = bytes[p++];
+        item->settings.rotation_quadrants = bytes[p++];
+        if (!item->used || !blu2usb_movement_valid(item->settings))
+            memset(item, 0, sizeof(*item));
+    }
+}
+
+static bool movements_store(void)
+{
+    const btstack_tlv_t *tlv = NULL;
+    void *context = NULL;
+    btstack_tlv_get_instance(&tlv, &context);
+    if (tlv == NULL || context == NULL) return false;
+    uint8_t bytes[BLE_HOGP_MOVEMENT_PAYLOAD_SIZE] = {0};
+    bytes[0] = BLE_HOGP_MOVEMENT_VERSION;
+    size_t p = 1u;
+    for (unsigned i = 0; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+        const ble_hogp_saved_movement_t *item = &g_movements[i];
+        bytes[p++] = item->used ? 1u : 0u;
+        bytes[p++] = (uint8_t)item->address_type;
+        memcpy(&bytes[p], item->address, 6u); p += 6u;
+        memcpy(&bytes[p], item->irk, 16u); p += 16u;
+        bytes[p++] = item->settings.horizontal_quarters;
+        bytes[p++] = item->settings.vertical_quarters;
+        bytes[p++] = item->settings.rotation_quadrants;
+    }
+    return tlv->store_tag(context, BLE_HOGP_MOVEMENT_TAG, bytes, sizeof(bytes)) == 0;
+}
+
+static int movements_find(bd_addr_type_t type, const bd_addr_t addr, const sm_key_t irk)
+{
+    for (unsigned i = 0; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+        const ble_hogp_saved_movement_t *m = &g_movements[i];
+        if (m->used && bond_identity_equal(m->address_type, m->address, m->irk,
+                                          type, addr, irk)) return (int)i;
+    }
+    return -1;
+}
+
+blu2usb_movement_settings_t blu2usb_ble_hogp_pico_saved_movement(int logical_bond)
+{
+    const blu2usb_movement_settings_t defaults = blu2usb_movement_defaults();
+    movements_load();
+    const int db_slot = bond_slot_for_ordinal(logical_bond);
+    bd_addr_type_t type;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(db_slot, &type, address, irk)) return defaults;
+    const int idx = movements_find(type, address, irk);
+    return idx < 0 ? defaults : g_movements[idx].settings;
+}
+
+bool blu2usb_ble_hogp_pico_set_current_movement(blu2usb_movement_settings_t settings)
+{
+    if (!blu2usb_movement_valid(settings) ||
+        g_state != BLE_HOGP_STATE_READY) return false;
+    const int db_slot = resolve_current_bond_index();
+    bd_addr_type_t type;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(db_slot, &type, address, irk)) return false;
+    movements_load();
+    int idx = movements_find(type, address, irk);
+    if (idx < 0) {
+        for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i)
+            if (!g_movements[i].used) { idx = (int)i; break; }
+    }
+    if (idx < 0) return false;
+    const ble_hogp_saved_movement_t old = g_movements[idx];
+    ble_hogp_saved_movement_t *item = &g_movements[idx];
+    memset(item, 0, sizeof(*item));
+    item->used = true;
+    item->address_type = type;
+    memcpy(item->address, address, 6u);
+    memcpy(item->irk, irk, 16u);
+    item->settings = settings;
+    if (movements_store()) return true;
+    g_movements[idx] = old;
+    return false;
+}
+
+static bool movements_remove_identity(bd_addr_type_t type, const bd_addr_t addr, const sm_key_t irk)
+{
+    movements_load();
+    const int idx = movements_find(type, addr, irk);
+    if (idx < 0) return true;
+    const ble_hogp_saved_movement_t prior = g_movements[idx];
+    memset(&g_movements[idx], 0, sizeof(g_movements[idx]));
+    if (movements_store()) return true;
+    g_movements[idx] = prior;
+    return false;
+}
+
 static void complete_remove_target(void)
 {
     if (!g_remove_target_valid) return;
 
+    /* Do not delete credentials if clearing the identity's preferences fails.
+     * The operator can retry removal without settings leaking to a future bond. */
+    if (!movements_remove_identity(g_remove_target_type, g_remove_target_address,
+                                   g_remove_target_irk)) {
+        g_remove_target_valid = false;
+        return;
+    }
     saved_names_remove_identity(g_remove_target_type,
                                 g_remove_target_address,
                                 g_remove_target_irk);
@@ -1708,6 +1845,8 @@ static void ble_hogp_session_setup(void)
     memset(g_rejected_devices, 0, sizeof(g_rejected_devices));
     memset(g_saved_names, 0, sizeof(g_saved_names));
     g_saved_names_loaded = false;
+    memset(g_movements, 0, sizeof(g_movements));
+    g_movements_loaded = false;
     memset(g_remote_address, 0, sizeof(g_remote_address));
     g_remote_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_rejected_next = 0u;
