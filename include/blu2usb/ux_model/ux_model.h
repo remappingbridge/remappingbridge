@@ -7,6 +7,7 @@
 #include "blu2usb/domain/control.h"
 #include "blu2usb/domain/profile.h"
 #include "blu2usb/interaction/interaction.h"
+#include "blu2usb/movement/movement.h"
 
 #define BLU2USB_UX_MOUSE_NAME_CAPACITY 64u
 #define BLU2USB_UX_MAX_SAVED_MICE 8u
@@ -42,6 +43,14 @@ typedef enum {
     BLU2USB_SCREEN_HELP_REMOVE_THIS,
     BLU2USB_SCREEN_SEARCHING_FIRST,
     BLU2USB_SCREEN_MOVEMENT_OPTIONS,
+    BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI,
+    BLU2USB_SCREEN_HORIZONTAL_FAST_DPI,
+    BLU2USB_SCREEN_VERTICAL_SLOW_DPI,
+    BLU2USB_SCREEN_VERTICAL_FAST_DPI,
+    BLU2USB_SCREEN_ROTATION,
+    BLU2USB_SCREEN_HELP_SLOW_DPI,
+    BLU2USB_SCREEN_HELP_FAST_DPI,
+    BLU2USB_SCREEN_HELP_ROTATION,
     BLU2USB_SCREEN_COUNT
 } blu2usb_screen_id_t;
 
@@ -53,7 +62,8 @@ typedef enum {
     BLU2USB_UX_COMMAND_APPLY_ESCAPE,
     BLU2USB_UX_COMMAND_APPLY_CUSTOM,
     BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET,
-    BLU2USB_UX_COMMAND_REMOVE_MOUSE
+    BLU2USB_UX_COMMAND_REMOVE_MOUSE,
+    BLU2USB_UX_COMMAND_APPLY_MOVEMENT
 } blu2usb_ux_command_kind_t;
 
 typedef struct {
@@ -61,6 +71,7 @@ typedef struct {
     blu2usb_mouse_source_t source;
     blu2usb_mouse_target_t target;
     int saved_bond;
+    blu2usb_movement_settings_t movement;
 } blu2usb_ux_command_t;
 
 typedef struct {
@@ -84,6 +95,9 @@ typedef struct {
     char saved_mouse_names[BLU2USB_UX_MAX_SAVED_MICE][BLU2USB_UX_MOUSE_NAME_CAPACITY];
     char current_mouse_name[BLU2USB_UX_MOUSE_NAME_CAPACITY];
     blu2usb_mouse_profile_kind_t active_profile;
+    blu2usb_movement_settings_t movement_current;
+    blu2usb_movement_settings_t saved_movements[BLU2USB_UX_MAX_SAVED_MICE];
+    uint8_t movement_dpi_selections[4]; /* last selected index per axis/page */
     bool custom_dirty;
     blu2usb_mouse_source_t custom_source;
     blu2usb_mouse_target_t custom_targets[BLU2USB_MOUSE_SOURCE_COUNT];
@@ -97,6 +111,9 @@ void blu2usb_ux_set_saved_mouse_name(blu2usb_ux_model_t *ux, unsigned bond_index
 int blu2usb_ux_saved_bond_for_page(const blu2usb_ux_model_t *ux, unsigned page);
 int blu2usb_ux_saved_page_for_bond(const blu2usb_ux_model_t *ux, int bond_index);
 void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name);
+void blu2usb_ux_set_movement(blu2usb_ux_model_t *ux, blu2usb_movement_settings_t settings);
+void blu2usb_ux_set_saved_movement(blu2usb_ux_model_t *ux, unsigned logical_bond,
+                                   blu2usb_movement_settings_t settings);
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target);
 void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux, blu2usb_mouse_profile_kind_t active_profile);
 void blu2usb_ux_restore_profile_state(
