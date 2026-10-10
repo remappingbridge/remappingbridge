@@ -605,6 +605,7 @@ static void complete_remove_target(void)
     if (!movements_remove_identity(g_remove_target_type, g_remove_target_address,
                                    g_remove_target_irk)) {
         g_remove_target_valid = false;
+        (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
         return;
     }
     saved_names_remove_identity(g_remove_target_type,
