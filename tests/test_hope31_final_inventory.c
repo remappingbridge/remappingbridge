@@ -38,12 +38,13 @@ static const screen_expectation_t expected[] = {
     {BLU2USB_SCREEN_REMOVE_THIS, "REMOVE THIS MOUSE"},
     {BLU2USB_SCREEN_HELP_REMOVE_THIS, "REMOVE MOUSE HELP"},
     {BLU2USB_SCREEN_SEARCHING_FIRST, "SEARCHING FIRST MOUSE"},
+    {BLU2USB_SCREEN_MOVEMENT_OPTIONS, "MOVEMENT OPTIONS"},
 };
 
-_Static_assert(BLU2USB_SCREEN_COUNT == 29,
-               "HOPE-31 final inventory must contain exactly 29 screens");
+_Static_assert(BLU2USB_SCREEN_COUNT == 30,
+               "HOPE-31 final inventory must contain the original 29 screens plus Movement Options");
 _Static_assert(sizeof(expected) / sizeof(expected[0]) == 29,
-               "HOPE-31 expected-title inventory must contain 29 screens");
+               "HOPE-31 expected-title inventory must contain 30 screens");
 
 static void test_exact_inventory(void)
 {
@@ -71,7 +72,7 @@ static void test_final_home_counts(void)
     blu2usb_ux_init(&ux);
 
     ux.screen = BLU2USB_SCREEN_HOME;
-    assert(blu2usb_ux_option_count(&ux) == 3u);
+    assert(blu2usb_ux_option_count(&ux) == 4u);
 
     ux.screen = BLU2USB_SCREEN_HOME_SEARCHING;
     assert(blu2usb_ux_option_count(&ux) == 2u);
