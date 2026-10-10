@@ -30,11 +30,11 @@ static void assert_no_learn_option(blu2usb_screen_id_t screen_id,
     }
 }
 
-static void test_home_connected_has_three_routes(void)
+static void test_home_connected_has_four_routes(void)
 {
     blu2usb_ux_model_t ux;
 
-    assert_no_learn_option(BLU2USB_SCREEN_HOME, 3u);
+    assert_no_learn_option(BLU2USB_SCREEN_HOME, 4u);
 
     blu2usb_ux_set_mouse_connected(true);
     blu2usb_ux_init(&ux);
@@ -42,7 +42,7 @@ static void test_home_connected_has_three_routes(void)
     ux.screen = BLU2USB_SCREEN_HOME;
 
     tap(&ux, BLU2USB_CONTROL_JOY_UP);
-    assert(ux.selection == 2u);
+    assert(ux.selection == 3u);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.selection == 0u);
 
@@ -53,10 +53,15 @@ static void test_home_connected_has_three_routes(void)
     ux.screen = BLU2USB_SCREEN_HOME;
     ux.selection = 1u;
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_SAVED_DEVICES);
+    assert(ux.screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS);
 
     ux.screen = BLU2USB_SCREEN_HOME;
     ux.selection = 2u;
+    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen == BLU2USB_SCREEN_SAVED_DEVICES);
+
+    ux.screen = BLU2USB_SCREEN_HOME;
+    ux.selection = 3u;
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_PAIR_MOUSE);
 }
@@ -131,7 +136,7 @@ static void test_first_mouse_automatic_search_is_preserved(void)
     assert(strcmp(searching->rows[0], "SEARCHING FIRST MOUSE") == 0);
 }
 
-static void test_home_help_clamps_to_three_options(void)
+static void test_home_help_clamps_to_four_options(void)
 {
     blu2usb_ux_model_t ux;
 
