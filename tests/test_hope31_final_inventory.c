@@ -43,7 +43,7 @@ static const screen_expectation_t expected[] = {
 
 _Static_assert(BLU2USB_SCREEN_COUNT == 30,
                "HOPE-31 final inventory must contain the original 29 screens plus Movement Options");
-_Static_assert(sizeof(expected) / sizeof(expected[0]) == 29,
+_Static_assert(sizeof(expected) / sizeof(expected[0]) == 30,
                "HOPE-31 expected-title inventory must contain 30 screens");
 
 static void test_exact_inventory(void)
