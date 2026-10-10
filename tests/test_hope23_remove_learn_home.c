@@ -155,10 +155,10 @@ static void test_home_help_clamps_to_four_options(void)
 
 int main(void)
 {
-    test_home_connected_has_three_routes();
+    test_home_connected_has_four_routes();
     test_home_searching_has_two_routes();
     test_home_retry_has_two_routes();
     test_first_mouse_automatic_search_is_preserved();
-    test_home_help_clamps_to_three_options();
+    test_home_help_clamps_to_four_options();
     return 0;
 }
