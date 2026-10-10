@@ -1,5 +1,6 @@
 #include "blu2usb/movement/movement.h"
 #include <limits.h>
+#include <stddef.h>
 
 blu2usb_movement_settings_t blu2usb_movement_defaults(void)
 {
