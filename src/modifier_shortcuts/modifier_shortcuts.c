@@ -9,6 +9,11 @@ static blu2usb_hid_source_t shortcut_source(void)
 {
     return blu2usb_hid_source_make(BLU2USB_HID_SOURCE_SYNTHETIC_SHORTCUT, 1u);
 }
+/* Separate mouse-only source so keyboard release never lifts a drag. */
+static blu2usb_hid_source_t area_drag_source(void)
+{
+    return blu2usb_hid_source_make(BLU2USB_HID_SOURCE_SYNTHETIC_SHORTCUT, 2u);
+}
 
 static int physical_source(blu2usb_mouse_button_t button)
 {
@@ -53,13 +58,19 @@ void blu2usb_modifier_shortcuts_cancel(blu2usb_modifier_shortcuts_t *state,
                                       blu2usb_hid_aggregator_t *aggregator)
 {
     if (state == NULL) return;
-    if (aggregator != NULL)
+    if (aggregator != NULL) {
         (void)blu2usb_hid_aggregator_release_source(aggregator, shortcut_source());
+        (void)blu2usb_hid_aggregator_release_source(aggregator, area_drag_source());
+    }
     state->modifier_down = false;
     state->secondary_used = false;
     state->consumed_buttons = 0u;
     state->physical_buttons = 0u;
     state->tap_motion = 0u;
+    state->area_selection = false;
+    state->area_trigger_ready = false;
+    state->area_drag_down = false;
+    state->area_trigger_source = BLU2USB_MOUSE_SOURCE_COUNT;
     state->gesture_latched = false;
     state->motion_seen = false;
     state->gesture_x = state->gesture_y = 0;
@@ -150,6 +161,8 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
                 state->modifier_down = false;
                 state->secondary_used = false;
                 state->tap_motion = 0u;
+                state->area_selection = false;
+                state->area_trigger_ready = false;
                 state->gesture_latched = false;
                 state->motion_seen = false;
                 state->gesture_x = state->gesture_y = 0;
@@ -172,6 +185,16 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
             blu2usb_modifier_shortcuts_action_supported(state->assignments[combo])) {
             if ((state->consumed_buttons & bit) == 0u) {
                 state->consumed_buttons |= bit;
+                if (state->assignments[combo] == 15u) {
+                    /* The first combo starts Spectacle's rectangular overlay.
+                     * Keep pointer movement live even when MOVE is assigned;
+                     * the next distinct click of this physical button is
+                     * mapped to a synthetic LEFT down/up for drag selection. */
+                    state->area_selection = true;
+                    state->area_trigger_source = (uint8_t)source;
+                    state->area_trigger_ready = false;
+                    state->area_drag_down = false;
+                }
                 queue_action(state, state->assignments[combo]); /* edge, no repeat */
             }
             return false;
@@ -255,10 +278,58 @@ bool blu2usb_modifier_shortcuts_process_event(
 {
     if (state == NULL || event == NULL || forwarded == NULL) return false;
     *forwarded = *event; /* normal Mouse reports remain byte-preserved */
-    if (event->type == BLU2USB_MOUSE_EVENT_BUTTON)
-        return blu2usb_modifier_shortcuts_process(state, event);
+    if (event->type == BLU2USB_MOUSE_EVENT_BUTTON) {
+        const int physical = physical_source(event->data.button.button);
+        if (state->area_selection && state->modifier_down &&
+            state->area_trigger_ready &&
+            physical == (int)state->area_trigger_source) {
+            const uint8_t bit = (uint8_t)(1u << (unsigned)physical);
+            const bool was_pressed = (state->physical_buttons & bit) != 0u;
+            if (event->data.button.pressed) state->physical_buttons |= bit;
+            else state->physical_buttons &= (uint8_t)~bit;
+            if (!event->data.button.pressed && state->area_drag_down) {
+                state->area_drag_down = false;
+                forwarded->source = area_drag_source();
+                forwarded->data.button.button = BLU2USB_MOUSE_BUTTON_LEFT;
+                return true;
+            }
+            if (event->data.button.pressed && !was_pressed &&
+                !state->area_drag_down) {
+                state->area_drag_down = true;
+                forwarded->source = area_drag_source();
+                forwarded->data.button.button = BLU2USB_MOUSE_BUTTON_LEFT;
+                return true;
+            }
+            return false; /* duplicated physical edges are never mouse clicks */
+        }
+        const bool was_selection = state->area_selection;
+        const bool down = state->area_drag_down;
+        const bool pass = blu2usb_modifier_shortcuts_process(state, event);
+        if (state->area_selection && state->modifier_down &&
+            physical == (int)state->area_trigger_source &&
+            !event->data.button.pressed)
+            state->area_trigger_ready = true;
+        if (was_selection && !state->area_selection && down) {
+            /* Modifier was released during rectangle drag: no stuck LEFT. */
+            state->area_drag_down = false;
+            forwarded->source = area_drag_source();
+            forwarded->data.button.button = BLU2USB_MOUSE_BUTTON_LEFT;
+            forwarded->data.button.pressed = false;
+            return true;
+        }
+        return pass;
+    }
     if (!state->enabled || !state->modifier_down)
         return true;
+    if (state->area_selection) {
+        /* Spectacle is now responsible for region UI: gesture classifier
+         * must NOT freeze or consume pointer movement while held. */
+        if (event->type == BLU2USB_MOUSE_EVENT_MOVE) {
+            if (event->data.move.dx || event->data.move.dy)
+                state->secondary_used = true;
+        }
+        return true;
+    }
     if (event->type == BLU2USB_MOUSE_EVENT_WHEEL) {
         const int32_t vertical = event->data.wheel.vertical;
         if (vertical != 0 || event->data.wheel.horizontal != 0)
