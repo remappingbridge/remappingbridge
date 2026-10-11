@@ -15,8 +15,9 @@ assert '" REMAPPED TO STANDARD"' not in renderer
 assert '" REMAPPED TO ESCAPE"' not in renderer
 assert 'return "STANDARD";' not in renderer
 assert 'return "ESCAPE";' not in renderer
-assert "profiles.active_kind = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;" in app
-assert "if (profiles.active_kind == BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP ||" in app
+assert "blu2usb_profiles_restore_any" in app
+assert "blu2usb_profiles_serialize_v3" in app
+assert "candidate.active_kind = BLU2USB_MOUSE_PROFILE_PASSTHROUGH" in (root/"src/profiles/profiles.c").read_text(encoding="utf-8")
 start=ux.index("if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS && control == BLU2USB_CONTROL_JOY_PRESS)")
 end=ux.index("if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM",start)
 flow=ux[start:end]
