@@ -147,7 +147,15 @@ void blu2usb_profiles_activate(blu2usb_profiles_t *profiles,
         config->kind < BLU2USB_MOUSE_PROFILE_PASSTHROUGH ||
         config->kind > BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP) return;
     if (config->kind == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP) {
-        if (!unique_modifier(config->targets)) return;
+        /* Legacy v2 tests still activate historical ESCAPE targets before
+         * invoking the legacy serializer. The v3 writer rejects ESCAPE. */
+        unsigned count_modifier = 0u;
+        for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i) {
+            if (!target_valid(config->targets[i])) return;
+            if (config->targets[i] == BLU2USB_MOUSE_TARGET_MODIFIER)
+                ++count_modifier;
+        }
+        if (count_modifier > 1u) return;
         memcpy(profiles->custom_targets, config->targets, sizeof(profiles->custom_targets));
         memcpy(profiles->draft_targets, config->targets, sizeof(profiles->draft_targets));
         profiles->draft_valid = false;
