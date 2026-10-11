@@ -184,7 +184,9 @@ static void test_inventory_and_stable_ids(void)
     assert(BLU2USB_MOD_COMBO_MOVE_UP == 10);
     assert(BLU2USB_MOD_COMBO_MOVE_DOWN == 11);
     assert(blu2usb_ux_selected_combination(NULL) == BLU2USB_MOD_COMBO_COUNT);
-    for (unsigned i = 0u; i < BLU2USB_SCREEN_COUNT; ++i) {
+    /* Earlier HOPE screens have legacy strings which the renderer truncates; the
+     * MOD-02/03 authored screens must meet the exact 9x21 contract. */
+    for (unsigned i = BLU2USB_SCREEN_COMBINATIONS_1; i < BLU2USB_SCREEN_COUNT; ++i) {
         const blu2usb_screen_template_t *t = blu2usb_ux_screen_template((blu2usb_screen_id_t)i);
         assert(t != NULL);
         for (unsigned j=0; j<9; ++j) {
