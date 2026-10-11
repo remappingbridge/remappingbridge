@@ -95,7 +95,8 @@ static void test_pages_and_commit(void)
     assert_picker(&ux,4,0); /* left wrap */
     tap(&ux,BLU2USB_CONTROL_JOY_DOWN);
     assert_picker(&ux,4,1);
-    tap(&ux,BLU2USB_CONTROL_JOY_DOWN);
+    tap(&ux,BLU2USB_CONTROL_JOY_UP);
+    assert_picker(&ux,4,0);
     tap(&ux,BLU2USB_CONTROL_JOY_UP);
     assert_picker(&ux,4,5); /* 0 -> 5 wrap */
 
