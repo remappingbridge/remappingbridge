@@ -54,6 +54,7 @@ void blu2usb_modifier_shortcuts_cancel(blu2usb_modifier_shortcuts_t *state,
     state->modifier_down = false;
     state->secondary_used = false;
     state->consumed_buttons = 0u;
+    state->physical_buttons = 0u;
     state->queue_head = state->queue_size = 0u;
     state->usb_phase = BLU2USB_MOD05_USB_IDLE;
     state->running_action = 0u;
@@ -115,11 +116,18 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
                 state->secondary_used = true;
             return true;
         }
+        const uint8_t bit = (uint8_t)(1u << (unsigned)source);
+        const bool was_pressed = (state->physical_buttons & bit) != 0u;
+        if (event->data.button.pressed)
+            state->physical_buttons |= bit;
+        else
+            state->physical_buttons &= (uint8_t)~bit;
         if ((unsigned)source == state->modifier_source) {
             if (event->data.button.pressed) {
                 if (!state->modifier_down) {
                     state->modifier_down = true;
-                    state->secondary_used = false;
+                    state->secondary_used =
+                        (state->physical_buttons & (uint8_t)~bit) != 0u;
                 }
             } else if (state->modifier_down) {
                 if (!state->secondary_used)
@@ -129,7 +137,6 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
             }
             return false; /* Never leak physical modifier click */
         }
-        const uint8_t bit = (uint8_t)(1u << (unsigned)source);
         if (!event->data.button.pressed) {
             if (state->consumed_buttons & bit) {
                 state->consumed_buttons &= (uint8_t)~bit;
@@ -138,7 +145,9 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
             return true;
         }
         if (!state->modifier_down) return true;
-        state->secondary_used = true; /* Even an unassigned secondary aborts TAP */
+        state->secondary_used = true;
+        if (was_pressed) return (state->consumed_buttons & bit) == 0u;
+        /* Never interpret a repeated HID pressed report as a fresh chord. */ /* Even an unassigned secondary aborts TAP */
         const unsigned combo = button_combo(source);
         if (combo < BLU2USB_SHORTCUT_SLOT_COUNT &&
             blu2usb_modifier_shortcuts_action_supported(state->assignments[combo])) {
