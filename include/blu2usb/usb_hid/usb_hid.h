@@ -11,6 +11,9 @@
 #define BLU2USB_USB_HID_MOUSE_INTERFACE 0u
 #define BLU2USB_USB_HID_KEYBOARD_INTERFACE 1u
 #define BLU2USB_USB_HID_KEYCODE_COUNT 6u
+#define BLU2USB_USB_REPORT_ID_KEYBOARD 1u
+#define BLU2USB_USB_REPORT_ID_CONSUMER 2u
+#define BLU2USB_USB_CONSUMER_PAYLOAD_SIZE 2u
 #define BLU2USB_USB_MANUFACTURER "BLU2USB"
 #define BLU2USB_USB_PRODUCT "BLU2USB Mouse + Keyboard"
 
@@ -46,5 +49,9 @@ void blu2usb_usb_hid_pico_task(void);
 bool blu2usb_usb_hid_pico_mounted(void);
 bool blu2usb_usb_hid_pico_send_mouse(const blu2usb_usb_mouse_report_t *report);
 bool blu2usb_usb_hid_pico_send_keyboard(const blu2usb_usb_keyboard_report_t *report);
+/* Shares Keyboard interface, distinct Report ID 2; never pretends to
+ * work in Boot Keyboard mode, where only the 8-byte report is legal. */
+bool blu2usb_usb_hid_pico_send_consumer(uint16_t usage);
+bool blu2usb_usb_hid_pico_consumer_available(void);
 
 #endif

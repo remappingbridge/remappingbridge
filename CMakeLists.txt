@@ -14,7 +14,7 @@ if(BLU2USB_BUILD_PICO)
     include("${PICO_SDK_PATH}/external/pico_sdk_import.cmake")
 endif()
 
-project(blu2usb_picow VERSION 2.0.0 LANGUAGES C CXX ASM)
+project(blu2usb_picow VERSION 3.0.0 LANGUAGES C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -35,7 +35,7 @@ blu2usb_declare_contract_modules()
 
 add_library(blu2usb_contract STATIC src/domain/version.c)
 target_include_directories(blu2usb_contract PUBLIC include)
-target_compile_definitions(blu2usb_contract PUBLIC BLU2USB_VERSION_STRING="2.0.0")
+target_compile_definitions(blu2usb_contract PUBLIC BLU2USB_VERSION_STRING="3.0.0")
 # Regression marker consumed by the inherited G05 architecture check only:
 # BLU2USB_VERSION_STRING="0.5.0-g05"
 
@@ -57,6 +57,14 @@ target_include_directories(blu2usb_profiles PUBLIC include)
 add_library(blu2usb_remap STATIC src/remap/remap.c)
 target_include_directories(blu2usb_remap PUBLIC include)
 target_link_libraries(blu2usb_remap PUBLIC blu2usb_profiles)
+
+add_library(blu2usb_modifier_shortcuts STATIC
+    src/modifier_shortcuts/modifier_shortcuts.c
+    src/modifier_shortcuts/keyboard_catalog.c
+    src/modifier_shortcuts/consumer_catalog.c
+)
+target_include_directories(blu2usb_modifier_shortcuts PUBLIC include)
+target_link_libraries(blu2usb_modifier_shortcuts PUBLIC blu2usb_hid_aggregator blu2usb_profiles blu2usb_movement)
 
 add_library(blu2usb_storage STATIC src/storage/storage.c)
 target_include_directories(blu2usb_storage PUBLIC include)
@@ -170,6 +178,7 @@ if(BLU2USB_BUILD_PICO)
         pico_stdlib
         blu2usb_contract
         blu2usb_movement
+        blu2usb_modifier_shortcuts
         blu2usb_module_app
     )
     target_compile_definitions(blu2usb_picow PRIVATE CYW43_LWIP=0)

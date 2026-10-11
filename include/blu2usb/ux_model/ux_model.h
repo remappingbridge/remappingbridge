@@ -28,10 +28,6 @@ typedef enum {
     BLU2USB_SCREEN_MOUSE_SAVED,
     BLU2USB_SCREEN_APPLY_PASSTHROUGH,
     BLU2USB_SCREEN_PASSTHROUGH_APPLIED,
-    BLU2USB_SCREEN_APPLY_DEFAULT,
-    BLU2USB_SCREEN_DEFAULT_APPLIED,
-    BLU2USB_SCREEN_APPLY_ESCAPE,
-    BLU2USB_SCREEN_ESCAPE_APPLIED,
     BLU2USB_SCREEN_EDIT_CUSTOM,
     BLU2USB_SCREEN_LEFT_WILL_BECOME,
     BLU2USB_SCREEN_RIGHT_WILL_BECOME,
@@ -51,19 +47,53 @@ typedef enum {
     BLU2USB_SCREEN_HELP_SLOW_DPI,
     BLU2USB_SCREEN_HELP_FAST_DPI,
     BLU2USB_SCREEN_HELP_ROTATION,
+    BLU2USB_SCREEN_COMBINATIONS_1,
+    BLU2USB_SCREEN_COMBINATIONS_2,
+    BLU2USB_SCREEN_COMBINATIONS_3,
+    BLU2USB_SCREEN_COMBINATIONS_4,
+    BLU2USB_SCREEN_COMBINATIONS_5,
+    BLU2USB_SCREEN_COMBINATIONS_6,
+    BLU2USB_SCREEN_SHORTCUTS_1,
+    BLU2USB_SCREEN_SHORTCUTS_2,
+    BLU2USB_SCREEN_SHORTCUTS_3,
+    BLU2USB_SCREEN_SHORTCUTS_4,
+    BLU2USB_SCREEN_SHORTCUTS_5,
     BLU2USB_SCREEN_COUNT
 } blu2usb_screen_id_t;
+
+/* Stable modifier-combination ordinals.  Slots/assignments are added in
+ * MOD-03; MOD-02 presents the editor with all slots NOT CUSTOMIZED. */
+typedef enum {
+    BLU2USB_MOD_COMBO_RELEASED = 0,
+    BLU2USB_MOD_COMBO_MIDDLE,
+    BLU2USB_MOD_COMBO_LEFT,
+    BLU2USB_MOD_COMBO_RIGHT,
+    BLU2USB_MOD_COMBO_FORWARD,
+    BLU2USB_MOD_COMBO_BACKWARD,
+    BLU2USB_MOD_COMBO_WHEEL_UP,
+    BLU2USB_MOD_COMBO_WHEEL_DOWN,
+    BLU2USB_MOD_COMBO_MOVE_LEFT,
+    BLU2USB_MOD_COMBO_MOVE_RIGHT,
+    BLU2USB_MOD_COMBO_MOVE_UP,
+    BLU2USB_MOD_COMBO_MOVE_DOWN,
+    BLU2USB_MOD_COMBO_COUNT
+} blu2usb_modifier_combo_id_t;
+
+#define BLU2USB_COMBINATIONS_PAGE_COUNT 6u
+#define BLU2USB_COMBINATIONS_PER_PAGE 2u
+#define BLU2USB_SHORTCUTS_PAGE_COUNT 5u
+#define BLU2USB_SHORTCUTS_PER_PAGE 6u
 
 typedef enum {
     BLU2USB_UX_COMMAND_NONE = 0,
     BLU2USB_UX_COMMAND_PAIR_MOUSE,
     BLU2USB_UX_COMMAND_APPLY_PASSTHROUGH,
-    BLU2USB_UX_COMMAND_APPLY_DEFAULT,
-    BLU2USB_UX_COMMAND_APPLY_ESCAPE,
     BLU2USB_UX_COMMAND_APPLY_CUSTOM,
     BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET,
     BLU2USB_UX_COMMAND_REMOVE_MOUSE,
-    BLU2USB_UX_COMMAND_APPLY_MOVEMENT
+    BLU2USB_UX_COMMAND_APPLY_MOVEMENT,
+    BLU2USB_UX_COMMAND_SET_SHORTCUT,
+    BLU2USB_UX_COMMAND_RESET_SHORTCUT
 } blu2usb_ux_command_kind_t;
 
 typedef struct {
@@ -72,6 +102,8 @@ typedef struct {
     blu2usb_mouse_target_t target;
     int saved_bond;
     blu2usb_movement_settings_t movement;
+    uint8_t combination_id;
+    uint8_t shortcut_id; /* 1..30 for SET; 0 for RESET */
 } blu2usb_ux_command_t;
 
 typedef struct {
@@ -101,6 +133,9 @@ typedef struct {
     bool custom_dirty;
     blu2usb_mouse_source_t custom_source;
     blu2usb_mouse_target_t custom_targets[BLU2USB_MOUSE_SOURCE_COUNT];
+    uint8_t shortcut_assignments[BLU2USB_MOD_COMBO_COUNT];
+    uint8_t editing_combination; /* stable combo ID; 0..11 */
+    int8_t modifier_source; /* -1 none, 0..4 source from persisted Custom */
 } blu2usb_ux_model_t;
 
 void blu2usb_ux_init(blu2usb_ux_model_t *ux);
@@ -124,6 +159,18 @@ void blu2usb_ux_set_mouse_connected(bool connected);
 bool blu2usb_ux_mouse_connected(void);
 const blu2usb_screen_template_t *blu2usb_ux_screen_template(blu2usb_screen_id_t screen);
 unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux);
+bool blu2usb_ux_is_combinations_screen(blu2usb_screen_id_t screen);
+blu2usb_modifier_combo_id_t blu2usb_ux_selected_combination(const blu2usb_ux_model_t *ux);
+bool blu2usb_ux_is_shortcuts_screen(blu2usb_screen_id_t screen);
+uint8_t blu2usb_ux_selected_shortcut(const blu2usb_ux_model_t *ux);
+const char *blu2usb_ux_shortcut_name(uint8_t shortcut_id);
+bool blu2usb_ux_combination_unavailable(const blu2usb_ux_model_t *ux, unsigned combination_id);
+void blu2usb_ux_set_modifier_source(blu2usb_ux_model_t *ux, int source);
+void blu2usb_ux_custom_target_committed(blu2usb_ux_model_t *ux,
+    blu2usb_mouse_source_t source,
+    const blu2usb_mouse_target_t targets[BLU2USB_MOUSE_SOURCE_COUNT]);
+void blu2usb_ux_shortcut_committed(blu2usb_ux_model_t *ux,
+    uint8_t combination_id, uint8_t shortcut_id);
 uint16_t blu2usb_ux_learn_white_span_mask(const blu2usb_ux_model_t *ux);
 
 #endif

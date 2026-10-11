@@ -35,9 +35,7 @@ static void set_row_current_preserving_selection(blu2usb_ui_frame_t *frame,
 
 static bool is_success_feedback(blu2usb_screen_id_t screen)
 {
-    return screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED ||
-           screen == BLU2USB_SCREEN_DEFAULT_APPLIED ||
-           screen == BLU2USB_SCREEN_ESCAPE_APPLIED;
+    return screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED;
 }
 
 static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
@@ -45,9 +43,7 @@ static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
     if (ux == NULL || ux->screen != BLU2USB_SCREEN_MOUSE_OPTIONS) return 0u;
     switch (ux->active_profile) {
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH: return 1u;
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return 2u;
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return 3u;
-    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 4u;
+    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 2u;
     default: return 0u;
     }
 }
@@ -62,23 +58,30 @@ static const char *custom_source_name(unsigned source)
 
 static uint8_t custom_target_row(blu2usb_mouse_target_t target)
 {
+    /* WILL BECOME display order is NOT the persisted target enum order. */
     switch (target) {
     case BLU2USB_MOUSE_TARGET_LEFT: return 1u;
     case BLU2USB_MOUSE_TARGET_RIGHT: return 2u;
     case BLU2USB_MOUSE_TARGET_MIDDLE: return 3u;
-    case BLU2USB_MOUSE_TARGET_ESCAPE: return 4u;
-    case BLU2USB_MOUSE_TARGET_FORWARD: return 5u;
-    case BLU2USB_MOUSE_TARGET_BACKWARD: return 6u;
-    default: return 1u;
+    case BLU2USB_MOUSE_TARGET_FORWARD: return 4u;
+    case BLU2USB_MOUSE_TARGET_BACKWARD: return 5u;
+    case BLU2USB_MOUSE_TARGET_MODIFIER: return 6u;
+    default: return 0u; /* Retired ESCAPE has no WILL BECOME choice. */
     }
 }
 
 static const char *custom_target_name(blu2usb_mouse_target_t target)
 {
-    static const char *const names[BLU2USB_MOUSE_TARGET_COUNT] = {
-        "LEFT", "RIGHT", "MIDDLE", "BACKWARD", "FORWARD", "ESCAPE"
-    };
-    return (unsigned)target < BLU2USB_MOUSE_TARGET_COUNT ? names[target] : "LEFT";
+    switch (target) {
+    case BLU2USB_MOUSE_TARGET_LEFT: return "LEFT";
+    case BLU2USB_MOUSE_TARGET_RIGHT: return "RIGHT";
+    case BLU2USB_MOUSE_TARGET_MIDDLE: return "MIDDLE";
+    case BLU2USB_MOUSE_TARGET_FORWARD: return "FORWARD";
+    case BLU2USB_MOUSE_TARGET_BACKWARD: return "BACKWARD";
+    case BLU2USB_MOUSE_TARGET_MODIFIER: return "MODIFIER";
+    case BLU2USB_MOUSE_TARGET_ESCAPE: return "ESCAPE"; /* legacy decoder */
+    default: return "?";
+    }
 }
 
 static void project_custom_rows(const blu2usb_ux_model_t *ux,
@@ -107,8 +110,6 @@ static void project_custom_rows(const blu2usb_ux_model_t *ux,
         (void)blu2usb_ui_frame_set_text(frame, row, 0u, text, tone);
     }
 
-    if (!applied_feedback && clean_applied)
-        clear_row(frame, 8u);
 }
 
 void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
@@ -125,17 +126,17 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
     }
 
     if (ux->screen == BLU2USB_SCREEN_MOUSE_OPTIONS) {
-        /* Rebuild all four option tones from authoritative state on every
+        /* Rebuild all three option tones from authoritative state on every
          * projection. This prevents a previously-active profile from
          * retaining cyan after another profile is confirmed. */
-        for (uint8_t row = 1u; row <= 4u; ++row)
+        for (uint8_t row = 1u; row <= 3u; ++row)
             set_row_tone(frame, row, BLU2USB_UI_TONE_ACTIONABLE);
 
         const uint8_t profile_row = active_profile_row(ux);
         if (profile_row != 0u)
             set_row_tone(frame, profile_row, BLU2USB_UI_TONE_CURRENT);
 
-        if (ux->selection < 4u)
+        if (ux->selection < 3u)
             set_row_tone(
                 frame, (uint8_t)(1u + ux->selection),
                 BLU2USB_UI_TONE_EMPHASIZED);
@@ -146,8 +147,17 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
 
     if (ux->screen >= BLU2USB_SCREEN_LEFT_WILL_BECOME &&
         ux->screen <= BLU2USB_SCREEN_BACKWARD_WILL_BECOME) {
+        /* Rebuild every candidate tone on every frame, then overlay exactly
+         * one persisted/draft value and one selection. This avoids stale
+         * cyan at the previously selected item after another commit. */
+        for (uint8_t row = 1u; row <= 6u; ++row)
+            set_row_tone(frame, row, BLU2USB_UI_TONE_ACTIONABLE);
         const uint8_t current_row =
             custom_target_row(ux->custom_targets[ux->custom_source]);
-        set_row_current_preserving_selection(frame, current_row);
+        if (current_row != 0u)
+            set_row_tone(frame, current_row, BLU2USB_UI_TONE_CURRENT);
+        if (ux->selection < 6u)
+            set_row_tone(frame, (uint8_t)(1u + ux->selection),
+                         BLU2USB_UI_TONE_EMPHASIZED);
     }
 }

@@ -10,6 +10,7 @@
 #include "blu2usb/hat/hat.h"
 #include "blu2usb/hid_aggregator/hid_aggregator.h"
 #include "blu2usb/logitech_hidpp/logitech_hidpp.h"
+#include "blu2usb/modifier_shortcuts/modifier_shortcuts.h"
 #include "blu2usb/profiles/profiles.h"
 #include "blu2usb/remap/remap.h"
 #include "blu2usb/renderer/renderer.h"
@@ -81,7 +82,22 @@ static void build_keyboard_report(const blu2usb_hid_output_state_t *output,
     blu2usb_usb_hid_build_keyboard_report(report, output->modifiers, keys);
 }
 
-static void service_usb_keyboard(blu2usb_hid_aggregator_t *aggregator,
+/* USB unplug, BLE overflow and disconnect must discard transient motion,
+ * not replay old wheel/pointer movement in a fresh session. Button and
+ * Keyboard ownership are separate and remain under their source owners. */
+static void discard_stale_mouse_motion(blu2usb_hid_aggregator_t *aggregator,
+                                       blu2usb_movement_pipeline_t *motion)
+{
+    if (aggregator == NULL || motion == NULL) return;
+    blu2usb_movement_pipeline_clear(motion);
+    blu2usb_hid_output_state_t snapshot;
+    blu2usb_hid_aggregator_snapshot(aggregator, &snapshot);
+    (void)blu2usb_hid_aggregator_consume_relative(
+        aggregator, snapshot.dx, snapshot.dy,
+        snapshot.wheel_vertical, snapshot.wheel_horizontal);
+}
+
+static bool service_usb_keyboard(blu2usb_hid_aggregator_t *aggregator,
                                  blu2usb_usb_keyboard_report_t *last,
                                  bool *last_valid)
 {
@@ -89,10 +105,12 @@ static void service_usb_keyboard(blu2usb_hid_aggregator_t *aggregator,
     blu2usb_hid_aggregator_snapshot(aggregator, &output);
     blu2usb_usb_keyboard_report_t report;
     build_keyboard_report(&output, &report);
-    if (*last_valid && memcmp(last, &report, sizeof(report)) == 0) return;
-    if (!blu2usb_usb_hid_pico_send_keyboard(&report)) return;
+    if (*last_valid && memcmp(last, &report, sizeof(report)) == 0)
+        return true; /* Already accepted by the host on an earlier tick. */
+    if (!blu2usb_usb_hid_pico_send_keyboard(&report)) return false;
     *last = report;
     *last_valid = true;
+    return true;
 }
 
 static bool same_profile_config(const blu2usb_mouse_profile_config_t *left,
@@ -103,10 +121,13 @@ static bool same_profile_config(const blu2usb_mouse_profile_config_t *left,
            memcmp(left->targets, right->targets, sizeof(left->targets)) == 0;
 }
 
+/* Do not overwrite a loaded record whose application schema is unknown or corrupt. */
+static bool g_profile_writes_allowed = true;
+
 static bool persist_profiles(const blu2usb_profiles_t *profiles)
 {
-    uint8_t payload[BLU2USB_PROFILE_SERIALIZED_SIZE];
-    return blu2usb_profiles_serialize(profiles, payload) &&
+    uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
+    return g_profile_writes_allowed && blu2usb_profiles_serialize_v3(profiles, payload) &&
            blu2usb_storage_store(payload, sizeof(payload));
 }
 
@@ -114,9 +135,19 @@ static bool restore_profiles(blu2usb_profiles_t *profiles)
 {
     uint8_t payload[BLU2USB_STORAGE_MAX_PAYLOAD_SIZE];
     size_t payload_size = 0u;
-    if (!blu2usb_storage_load(payload, sizeof(payload), &payload_size) ||
-        payload_size != BLU2USB_PROFILE_SERIALIZED_SIZE) return false;
-    return blu2usb_profiles_restore(profiles, payload);
+    if (!blu2usb_storage_load(payload, sizeof(payload), &payload_size)) return false;
+    blu2usb_profiles_t candidate;
+    bool migrate = false;
+    if (!blu2usb_profiles_restore_any(&candidate, payload, payload_size, &migrate)) {
+        g_profile_writes_allowed = false;
+        return false; /* Unknown/corrupt payload is never overwritten. */
+    }
+    if (migrate && !persist_profiles(&candidate)) {
+        /* A failed migration leaves existing flash intact and a safe
+         * in-RAM interpretation of v2. Retrying may occur on next boot. */
+    }
+    *profiles = candidate;
+    return true;
 }
 
 static void synchronize_ux_profiles(blu2usb_ux_model_t *ux,
@@ -125,6 +156,12 @@ static void synchronize_ux_profiles(blu2usb_ux_model_t *ux,
     if (ux == NULL || profiles == NULL) return;
     ux->active_profile = profiles->active_kind;
     ux->custom_dirty = profiles->draft_valid;
+    const blu2usb_mouse_source_t source =
+        blu2usb_profiles_modifier_source(profiles->custom_targets);
+    blu2usb_ux_set_modifier_source(ux,
+        source < BLU2USB_MOUSE_SOURCE_COUNT ? (int)source : -1);
+    memcpy(ux->shortcut_assignments, profiles->shortcuts,
+           sizeof(ux->shortcut_assignments));
     for (unsigned source = 0u; source < BLU2USB_MOUSE_SOURCE_COUNT; ++source) {
         ux->custom_targets[source] = profiles->draft_valid
             ? profiles->draft_targets[source]
@@ -133,6 +170,7 @@ static void synchronize_ux_profiles(blu2usb_ux_model_t *ux,
 }
 
 static bool apply_profile(blu2usb_profiles_t *profiles,
+                          blu2usb_modifier_shortcuts_t *shortcuts,
                           blu2usb_remap_t *remap,
                           blu2usb_hid_aggregator_t *aggregator,
                           const blu2usb_mouse_profile_config_t *config,
@@ -159,6 +197,8 @@ static bool apply_profile(blu2usb_profiles_t *profiles,
     (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
     (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
 
+    blu2usb_modifier_shortcuts_configure(shortcuts, &active, profiles->shortcuts,
+                                         aggregator);
     blu2usb_remap_set_profile(remap, &active);
     blu2usb_logitech_hidpp_pico_set_forward_fix(
         blu2usb_profiles_requires_forward_held_fix(&active));
@@ -178,6 +218,7 @@ static void confirm_applied_profile(blu2usb_ux_model_t *ux,
 static void handle_ux_command(blu2usb_ux_model_t *ux,
                               blu2usb_ux_command_t command,
                               blu2usb_profiles_t *profiles,
+                              blu2usb_modifier_shortcuts_t *shortcuts,
                               blu2usb_remap_t *remap,
                               blu2usb_hid_aggregator_t *aggregator,
                               bool *mouse_valid,
@@ -185,24 +226,29 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
 {
     blu2usb_mouse_profile_config_t candidate;
     switch (command.kind) {
+    case BLU2USB_UX_COMMAND_SET_SHORTCUT:
+    case BLU2USB_UX_COMMAND_RESET_SHORTCUT: {
+        const uint8_t id = command.kind == BLU2USB_UX_COMMAND_RESET_SHORTCUT
+            ? 0u : command.shortcut_id;
+        const blu2usb_profiles_t previous = *profiles;
+        if (!blu2usb_profiles_is_shortcut_unavailable(profiles, command.combination_id) &&
+            blu2usb_profiles_set_shortcut(profiles, command.combination_id, id) &&
+            persist_profiles(profiles)) {
+            /* Committed shortcut edits invalidate pending/running actions
+             * from the previous mapping, not the other HID source owners.
+             * Already accepted Consumer down is neutralized by USB service. */
+            blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
+            blu2usb_modifier_shortcuts_assignments(shortcuts, profiles->shortcuts);
+            blu2usb_ux_shortcut_committed(ux, command.combination_id, id);
+        } else {
+            *profiles = previous; /* stay in editor / do not show saved */
+        }
+        break;
+    }
     case BLU2USB_UX_COMMAND_APPLY_PASSTHROUGH:
         if (blu2usb_profiles_build_preset(BLU2USB_MOUSE_PROFILE_PASSTHROUGH,
                                           profiles, &candidate) &&
-            apply_profile(profiles, remap, aggregator, &candidate,
-                          mouse_valid, keyboard_valid))
-            confirm_applied_profile(ux, profiles);
-        break;
-    case BLU2USB_UX_COMMAND_APPLY_DEFAULT:
-        if (blu2usb_profiles_build_preset(BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP,
-                                          profiles, &candidate) &&
-            apply_profile(profiles, remap, aggregator, &candidate,
-                          mouse_valid, keyboard_valid))
-            confirm_applied_profile(ux, profiles);
-        break;
-    case BLU2USB_UX_COMMAND_APPLY_ESCAPE:
-        if (blu2usb_profiles_build_preset(BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP,
-                                          profiles, &candidate) &&
-            apply_profile(profiles, remap, aggregator, &candidate,
+            apply_profile(profiles, shortcuts, remap, aggregator, &candidate,
                           mouse_valid, keyboard_valid))
             confirm_applied_profile(ux, profiles);
         break;
@@ -210,7 +256,8 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
         const blu2usb_profiles_t previous = *profiles;
         if (blu2usb_profiles_draft_set(profiles, command.source, command.target) &&
             persist_profiles(profiles)) {
-            blu2usb_ux_set_custom_target(ux, command.source, command.target);
+            blu2usb_ux_custom_target_committed(ux, command.source,
+                profiles->draft_targets);
         } else {
             *profiles = previous;
         }
@@ -218,7 +265,7 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
     }
     case BLU2USB_UX_COMMAND_APPLY_CUSTOM:
         if (blu2usb_profiles_custom_candidate(profiles, &candidate) &&
-            apply_profile(profiles, remap, aggregator, &candidate,
+            apply_profile(profiles, shortcuts, remap, aggregator, &candidate,
                           mouse_valid, keyboard_valid))
             confirm_applied_profile(ux, profiles);
         break;
@@ -244,6 +291,7 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
                         BLU2USB_HID_SOURCE_SYNTHETIC_REMAP, 1u);
                 (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
                 (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
+                blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
                 *mouse_valid = false;
                 *keyboard_valid = false;
             }
@@ -299,6 +347,7 @@ static void synchronize_saved_mice(blu2usb_ux_model_t *ux, bool connected)
 
 static bool service_ble_messages(blu2usb_ux_model_t *ux,
                                  blu2usb_hid_aggregator_t *aggregator,
+                                 blu2usb_modifier_shortcuts_t *shortcuts,
                                  blu2usb_movement_pipeline_t *motion,
                                  const blu2usb_remap_t *remap,
                                  bool *mouse_valid,
@@ -351,6 +400,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             break;
         case BLU2USB_BLE_HOGP_EVENT_DISCONNECTED:
             blu2usb_movement_pipeline_clear(motion);
+            discard_stale_mouse_motion(aggregator, motion);
             if (ux != NULL && (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS ||
                 (ux->screen >= BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI &&
                  ux->screen <= BLU2USB_SCREEN_HELP_ROTATION))) {
@@ -379,18 +429,11 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                     ux->screen = BLU2USB_SCREEN_APPLY_PASSTHROUGH;
                     ux->selection = 0u;
                     ui_changed = true;
-                } else if (ux->screen == BLU2USB_SCREEN_DEFAULT_APPLIED) {
-                    ux->screen = BLU2USB_SCREEN_APPLY_DEFAULT;
-                    ux->selection = 0u;
-                    ui_changed = true;
-                } else if (ux->screen == BLU2USB_SCREEN_ESCAPE_APPLIED) {
-                    ux->screen = BLU2USB_SCREEN_APPLY_ESCAPE;
-                    ux->selection = 0u;
-                    ui_changed = true;
                 }
             }
             (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
             (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
+            blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
             *mouse_valid = false;
             *keyboard_valid = false;
             break;
@@ -423,11 +466,12 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             break;
         case BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED:
-            blu2usb_movement_pipeline_clear(motion);
+            discard_stale_mouse_motion(aggregator, motion);
             /* Atomic product-side half of the handoff: neutralize any held
              * old Mouse/Escape output before candidate reports are consumed. */
             (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
             (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
+            blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
             *mouse_valid = false;
             *keyboard_valid = false;
             blu2usb_ux_set_mouse_connected(true);
@@ -469,8 +513,23 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             break;
         case BLU2USB_BLE_HOGP_EVENT_MOUSE: {
+            /* MOD-06 filters physical events before Custom remap and passes
+             * on only events not captured as Modifier Wheel/MOVE gestures. */
+            blu2usb_canonical_mouse_event_t forwarded;
+            if (!blu2usb_modifier_shortcuts_process_event(
+                    shortcuts, &event.mouse,
+                    ux != NULL ? ux->movement_current : blu2usb_movement_defaults(),
+                    to_ms_since_boot(get_absolute_time()), &forwarded))
+                break;
+            if (forwarded.source.kind == BLU2USB_HID_SOURCE_SYNTHETIC_SHORTCUT &&
+                forwarded.source.instance == 2u) {
+                /* Selection rectangle click is already a final LEFT action.
+                 * Going through Custom remap would map it back to MODIFIER. */
+                (void)blu2usb_hid_aggregator_apply_mouse(aggregator, &forwarded);
+                break;
+            }
             blu2usb_remap_result_t mapped;
-            if (!blu2usb_remap_process_mouse(remap, &event.mouse, &mapped)) break;
+            if (!blu2usb_remap_process_mouse(remap, &forwarded, &mapped)) break;
             if (mapped.has_mouse)
                 (void)blu2usb_hid_aggregator_apply_mouse(aggregator, &mapped.mouse);
             if (mapped.has_keyboard)
@@ -480,8 +539,11 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
         }
     }
     if (blu2usb_bt_runtime_take_overflow()) {
+        /* Lost edges imply lost transient deltas as well as held buttons. */
+        discard_stale_mouse_motion(aggregator, motion);
         (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
         (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
+        blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
         *mouse_valid = false;
         *keyboard_valid = false;
     }
@@ -496,24 +558,33 @@ int main(void)
     blu2usb_hid_aggregator_t aggregator;
     blu2usb_profiles_t profiles;
     blu2usb_remap_t remap;
+    blu2usb_modifier_shortcuts_t shortcuts;
     blu2usb_movement_pipeline_t motion = {0};
     uint8_t last_mouse_buttons = 0u;
     bool last_mouse_valid = false;
     blu2usb_usb_keyboard_report_t last_keyboard = {0};
     bool last_keyboard_valid = false;
+    bool previous_usb_mounted = false;
+    uint16_t last_consumer_sent = 0u; /* last accepted report, 0 = released */
 
     blu2usb_ux_init(&ux);
     blu2usb_ux_set_mouse_connected(false);
     ux.screen = BLU2USB_SCREEN_SEARCHING_FIRST;
     blu2usb_hid_aggregator_init(&aggregator);
+    blu2usb_modifier_shortcuts_init(&shortcuts);
     blu2usb_profiles_init(&profiles);
     (void)restore_profiles(&profiles);
+    /* MOD-03: v2 decoder migrated retired presets and custom ESCAPE to safe
+     * values, including verified v3 flash write when available. No BLE or
+     * Movement sectors are touched. */
     synchronize_ux_profiles(&ux, &profiles);
 
     blu2usb_remap_init(&remap);
     blu2usb_mouse_profile_config_t boot_profile;
     blu2usb_profiles_configure_active(&profiles, &boot_profile);
     blu2usb_remap_set_profile(&remap, &boot_profile);
+    blu2usb_modifier_shortcuts_configure(&shortcuts, &boot_profile,
+                                         profiles.shortcuts, &aggregator);
 
     if (!blu2usb_usb_hid_pico_init()) for (;;) tight_loop_contents();
     blu2usb_hat_pico_init();
@@ -539,14 +610,60 @@ int main(void)
 
     for (;;) {
         blu2usb_usb_hid_pico_task();
+        const bool usb_mounted = blu2usb_usb_hid_pico_mounted();
+        if (usb_mounted != previous_usb_mounted) {
+            discard_stale_mouse_motion(&aggregator, &motion);
+            /* USB reset/disconnect discards in-flight keyboard actions and
+             * invalidates last reports from the previous host session. */
+            blu2usb_modifier_shortcuts_cancel(&shortcuts, &aggregator);
+            last_keyboard_valid = false;
+            last_mouse_valid = false;
+            last_consumer_sent = 0u; /* new USB session cannot own old report */
+            previous_usb_mounted = usb_mounted;
+        }
+        blu2usb_modifier_shortcuts_tick(&shortcuts,
+                                       to_ms_since_boot(get_absolute_time()));
         const bool ble_ui_changed =
-            service_ble_messages(&ux, &aggregator, &motion, &remap,
+            service_ble_messages(&ux, &aggregator, &shortcuts, &motion, &remap,
                                  &last_mouse_valid, &last_keyboard_valid);
         if (ble_ui_changed && !blu2usb_interaction_is_locked(&ux.interaction))
             (void)render_state(&display, &ux);
         service_usb_mouse(&aggregator, &motion, ux.movement_current,
                           &last_mouse_buttons, &last_mouse_valid);
-        service_usb_keyboard(&aggregator, &last_keyboard, &last_keyboard_valid);
+        /* Both HID Report IDs share the same Keyboard interface endpoint.
+         * Serialize Consumer neutralization and Keyboard/Consumer actions so
+         * the HID endpoint has only one writer at a time.
+         * Last accepted nonzero Consumer usage must be sent as zero even if
+         * the action was cancelled during BLE disconnect, profile or Lock. */
+        if (!blu2usb_modifier_shortcuts_consumer_phase(&shortcuts) &&
+            last_consumer_sent != 0u &&
+            blu2usb_usb_hid_pico_consumer_available()) {
+            /* Protocol may have changed to Boot: keep Keyboard working
+             * there, then neutralize stale Consumer if Report returns. */
+            if (blu2usb_usb_hid_pico_send_consumer(0u))
+                last_consumer_sent = 0u;
+        } else {
+            blu2usb_modifier_shortcuts_prepare_usb(&shortcuts, &aggregator);
+            if (blu2usb_modifier_shortcuts_consumer_phase(&shortcuts)) {
+                /* Boot Keyboard protocol permits only the legacy 8-byte
+                 * report. A Consumer action cannot be emitted there. */
+                if (!blu2usb_usb_hid_pico_consumer_available()) {
+                    blu2usb_modifier_shortcuts_cancel(&shortcuts, &aggregator);
+                    last_keyboard_valid = false;
+                } else {
+                    const uint16_t usage =
+                        blu2usb_modifier_shortcuts_consumer_usage(&shortcuts);
+                    const bool accepted =
+                        blu2usb_usb_hid_pico_send_consumer(usage);
+                    if (accepted) last_consumer_sent = usage;
+                    blu2usb_modifier_shortcuts_ack_usb(&shortcuts, accepted);
+                }
+            } else {
+                const bool keyboard_accepted =
+                    service_usb_keyboard(&aggregator, &last_keyboard, &last_keyboard_valid);
+                blu2usb_modifier_shortcuts_ack_usb(&shortcuts, keyboard_accepted);
+            }
+        }
 
         blu2usb_hat_pico_task();
         blu2usb_hat_event_t event;
@@ -555,7 +672,7 @@ int main(void)
             const blu2usb_screen_id_t screen_before = ux.screen;
             const blu2usb_ux_command_t command =
                 blu2usb_ux_input(&ux, event.control, event.pressed);
-            handle_ux_command(&ux, command, &profiles, &remap, &aggregator,
+            handle_ux_command(&ux, command, &profiles, &shortcuts, &remap, &aggregator,
                               &last_mouse_valid, &last_keyboard_valid);
             const bool is_locked = blu2usb_interaction_is_locked(&ux.interaction);
 
@@ -584,6 +701,8 @@ int main(void)
             }
 
             if (!was_locked && is_locked) {
+                blu2usb_modifier_shortcuts_cancel(&shortcuts, &aggregator);
+                last_keyboard_valid = false;
                 blu2usb_st7789_pico_set_backlight(false);
             } else if (was_locked && !is_locked) {
                 (void)render_state(&display, &ux);

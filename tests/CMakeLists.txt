@@ -381,3 +381,128 @@ target_link_libraries(blu2usb_test_mov10_all_help PRIVATE
     blu2usb_ux_model
 )
 add_test(NAME mov10_all_help_copy_and_any_key_back COMMAND blu2usb_test_mov10_all_help)
+
+# MOD-02 — six combinations pages + navigation and no-op reset boundary.
+add_executable(blu2usb_test_mod02_combinations test_mod02_combinations.c)
+target_link_libraries(blu2usb_test_mod02_combinations PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mod02_combinations_physical_flow COMMAND blu2usb_test_mod02_combinations)
+add_test(NAME mod02_combinations_source_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod02_combinations_source.py
+            ${PROJECT_SOURCE_DIR}
+)
+
+# MOD-03: 30 action picker/roundtrip with v2-safe migration and commit-first UX.
+add_executable(blu2usb_test_mod03_shortcuts test_mod03_shortcuts.c)
+target_link_libraries(blu2usb_test_mod03_shortcuts PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_profiles
+    blu2usb_storage
+)
+add_test(NAME mod03_shortcuts_flow_and_migration COMMAND blu2usb_test_mod03_shortcuts)
+add_test(NAME mod03_shortcuts_source_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod03_shortcuts_source.py
+            ${PROJECT_SOURCE_DIR}
+)
+
+# MOD-04: exclusive physical modifier, reversible UNAVAILABLE and legacy v3.
+add_executable(blu2usb_test_mod04_modifier test_mod04_modifier.c)
+target_link_libraries(blu2usb_test_mod04_modifier PRIVATE
+    blu2usb_profiles
+    blu2usb_ux_model
+    blu2usb_renderer
+    blu2usb_remap
+)
+# The production workflow configures Release (-DNDEBUG). Keep new gate
+# assertions active so test runs actually evaluate the physical and
+# storage invariants rather than compiling those checks away.
+target_compile_options(blu2usb_test_mod02_combinations PRIVATE -UNDEBUG)
+target_compile_options(blu2usb_test_mod03_shortcuts PRIVATE -UNDEBUG)
+target_compile_options(blu2usb_test_mod04_modifier PRIVATE -UNDEBUG)
+add_test(NAME mod04_modifier_exclusivity_and_masks COMMAND blu2usb_test_mod04_modifier)
+add_test(NAME mod04_modifier_source_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod04_modifier_source.py)
+
+# MOD-04 physical corrective candidate: 4 operator-reported UI regressions.
+add_executable(blu2usb_test_mod04_ui_bugfix test_mod04_ui_bugfix.c)
+target_link_libraries(blu2usb_test_mod04_ui_bugfix PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+target_compile_options(blu2usb_test_mod04_ui_bugfix PRIVATE -UNDEBUG)
+add_test(NAME mod04_operator_ui_regressions COMMAND blu2usb_test_mod04_ui_bugfix)
+
+add_executable(blu2usb_test_mod05_buttons test_mod05_buttons.c)
+target_link_libraries(blu2usb_test_mod05_buttons PRIVATE blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_usb_hid)
+target_compile_options(blu2usb_test_mod05_buttons PRIVATE -UNDEBUG)
+add_test(NAME mod05_button_chords_usb_backpressure COMMAND blu2usb_test_mod05_buttons)
+add_test(NAME mod05_runtime_source_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod05_runtime_source.py)
+
+# MOD-06: wheel detents, directional MOVEs in post-rotation pre-gain coordinates.
+add_executable(blu2usb_test_mod06_gestures test_mod06_gestures.c)
+target_link_libraries(blu2usb_test_mod06_gestures PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_movement blu2usb_hid_aggregator)
+target_compile_options(blu2usb_test_mod06_gestures PRIVATE -UNDEBUG)
+add_test(NAME mod06_wheel_rotation_gestures COMMAND blu2usb_test_mod06_gestures)
+add_test(NAME mod06_runtime_before_movement_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod06_runtime_source.py)
+
+# MOD-07: 22 Linux-first Keyboard usage/chord mappings, USB ACK and 6KRO ownership.
+add_executable(blu2usb_test_mod07_keyboard_catalog test_mod07_keyboard_catalog.c)
+target_link_libraries(blu2usb_test_mod07_keyboard_catalog PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator)
+target_compile_options(blu2usb_test_mod07_keyboard_catalog PRIVATE -UNDEBUG)
+add_test(NAME mod07_keyboard_catalog_22_actions
+    COMMAND blu2usb_test_mod07_keyboard_catalog)
+add_test(NAME mod07_keyboard_runtime_source_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod07_keyboard_source.py)
+
+# MOD-08 Consumer Media / Volume / Brightness and Report-ID ABI.
+add_executable(blu2usb_test_mod08_consumer test_mod08_consumer.c)
+target_link_libraries(blu2usb_test_mod08_consumer PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_usb_hid)
+target_compile_options(blu2usb_test_mod08_consumer PRIVATE -UNDEBUG)
+add_test(NAME mod08_consumer_8_usages_ack COMMAND blu2usb_test_mod08_consumer)
+add_test(NAME mod08_combined_descriptor_boot_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod08_descriptor_source.py)
+
+# MOD-08 corrective candidate: operator-reported KDE, Android & Obsidian cases.
+add_executable(blu2usb_test_mod08_reported_fixes test_mod08_reported_fixes.c)
+target_link_libraries(blu2usb_test_mod08_reported_fixes PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_movement)
+target_compile_options(blu2usb_test_mod08_reported_fixes PRIVATE -UNDEBUG)
+add_test(NAME mod08_operator_kde_android_zooms_and_media_dwell
+    COMMAND blu2usb_test_mod08_reported_fixes)
+
+# MOD-09: recovery, busy USB, BLE cancellation and held source ownership.
+add_executable(blu2usb_test_mod09_recovery test_mod09_recovery.c)
+target_link_libraries(blu2usb_test_mod09_recovery PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_movement)
+target_compile_options(blu2usb_test_mod09_recovery PRIVATE -UNDEBUG)
+add_test(NAME mod09_recovery_cancel_overflow_and_ownership
+    COMMAND blu2usb_test_mod09_recovery)
+add_test(NAME mod09_app_saved_devices_safety_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod09_source.py)
+
+# MOD-10 release qualification: integrated HOME->picker->v3 persistence,
+# all 30 typed HID actions and production safety/ABI invariants.
+add_executable(blu2usb_test_mod10_full_flow test_mod10_full_flow.c)
+target_link_libraries(blu2usb_test_mod10_full_flow PRIVATE
+    blu2usb_renderer blu2usb_ux_model blu2usb_profiles
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator)
+target_compile_options(blu2usb_test_mod10_full_flow PRIVATE -UNDEBUG)
+add_test(NAME mod10_home_editor_persistence_mask_and_reboot
+    COMMAND blu2usb_test_mod10_full_flow)
+
+add_executable(blu2usb_test_mod10_all_actions test_mod10_all_actions.c)
+target_link_libraries(blu2usb_test_mod10_all_actions PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_usb_hid)
+target_compile_options(blu2usb_test_mod10_all_actions PRIVATE -UNDEBUG)
+add_test(NAME mod10_full_30_action_keyboard_consumer_matrix
+    COMMAND blu2usb_test_mod10_all_actions)
+
+add_test(NAME mod10_production_security_abi_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod10_source.py)

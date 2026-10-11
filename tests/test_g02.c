@@ -24,7 +24,7 @@ static void test_action_on_release_and_wrap(void) {
     assert(ux.selection == 1);
     ux.selection = 0;
     press_release(&ux, BLU2USB_CONTROL_JOY_UP);
-    assert(ux.selection == 2);
+    assert(ux.selection == 3);
     press_release(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.selection == 0);
 }
@@ -36,7 +36,7 @@ static void test_custom_editor_offline_and_escape_target(void) {
      * until HOPE-10 replaces it in-place. Enter directly to keep this G02
      * custom-editor regression independent from the evolving HOME shell. */
     ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 3;
+    ux.selection = 1; /* MOD-01: Custom is the second remapping option. */
     press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
     assert(blu2usb_ux_option_count(&ux) == 5);

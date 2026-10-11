@@ -33,6 +33,7 @@ static uint8_t glyph_row(char character, uint8_t row)
     if (character >= '0' && character <= '9') return k_digit[(uint8_t)(character - '0')][row];
     switch (character) {
     case '-': return row == 3u ? 0x1fu : 0u;
+    case '+': return row == 3u ? 0x1fu : (row >= 1u && row <= 5u ? 0x04u : 0u);
     case ':': return (row == 2u || row == 5u) ? 0x04u : 0u;
     case '.': return row == 6u ? 0x04u : 0u;
     case '=': return (row == 2u || row == 4u) ? 0x1fu : 0u;
@@ -176,10 +177,6 @@ static void home_title(const char *input,
 static const char *home_profile_summary(blu2usb_mouse_profile_kind_t profile)
 {
     switch (profile) {
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP:
-        return " REMAPPED TO STANDARD";
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP:
-        return " REMAPPED TO ESCAPE";
     case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP:
         return " REMAPPED TO CUSTOM";
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH:
@@ -196,12 +193,24 @@ static int selected_row(const blu2usb_ux_model_t *ux)
     case BLU2USB_SCREEN_HOME_RETRY:
     case BLU2USB_SCREEN_MOUSE_OPTIONS:
     case BLU2USB_SCREEN_EDIT_CUSTOM:
+    case BLU2USB_SCREEN_SHORTCUTS_1:
+    case BLU2USB_SCREEN_SHORTCUTS_2:
+    case BLU2USB_SCREEN_SHORTCUTS_3:
+    case BLU2USB_SCREEN_SHORTCUTS_4:
+    case BLU2USB_SCREEN_SHORTCUTS_5:
     case BLU2USB_SCREEN_LEFT_WILL_BECOME:
     case BLU2USB_SCREEN_RIGHT_WILL_BECOME:
     case BLU2USB_SCREEN_MIDDLE_WILL_BECOME:
     case BLU2USB_SCREEN_FORWARD_WILL_BECOME:
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME:
         return (int)(1u + ux->selection);
+    case BLU2USB_SCREEN_COMBINATIONS_1:
+    case BLU2USB_SCREEN_COMBINATIONS_2:
+    case BLU2USB_SCREEN_COMBINATIONS_3:
+    case BLU2USB_SCREEN_COMBINATIONS_4:
+    case BLU2USB_SCREEN_COMBINATIONS_5:
+    case BLU2USB_SCREEN_COMBINATIONS_6:
+        return (int)(1u + 2u * (ux->selection % BLU2USB_COMBINATIONS_PER_PAGE));
     case BLU2USB_SCREEN_MOVEMENT_OPTIONS:
         return (int)(ux->selection == 2u ? 4u : 1u + ux->selection);
     case BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI:
@@ -233,8 +242,6 @@ static void set_row_tone(blu2usb_ui_frame_t *frame, uint8_t row, blu2usb_ui_tone
 static const char *saved_profile_name(blu2usb_mouse_profile_kind_t profile)
 {
     switch (profile) {
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return "STANDARD";
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return "ESCAPE";
     case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return "CUSTOM";
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH:
     default: return "PASSTHROUGH";
@@ -384,9 +391,7 @@ static void emphasize_row(blu2usb_ui_frame_t *frame, uint8_t row)
 
 static bool is_success_feedback(blu2usb_screen_id_t screen)
 {
-    return screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED ||
-           screen == BLU2USB_SCREEN_DEFAULT_APPLIED ||
-           screen == BLU2USB_SCREEN_ESCAPE_APPLIED;
+    return screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED;
 }
 
 static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
@@ -394,23 +399,8 @@ static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
     if (ux->screen != BLU2USB_SCREEN_MOUSE_OPTIONS) return 0u;
     switch (ux->active_profile) {
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH: return 1u;
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return 2u;
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return 3u;
-    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 4u;
+    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 2u;
     default: return 0u;
-    }
-}
-
-static uint8_t custom_target_row(blu2usb_mouse_target_t target)
-{
-    switch (target) {
-    case BLU2USB_MOUSE_TARGET_LEFT: return 1u;
-    case BLU2USB_MOUSE_TARGET_RIGHT: return 2u;
-    case BLU2USB_MOUSE_TARGET_MIDDLE: return 3u;
-    case BLU2USB_MOUSE_TARGET_ESCAPE: return 4u;
-    case BLU2USB_MOUSE_TARGET_FORWARD: return 5u;
-    case BLU2USB_MOUSE_TARGET_BACKWARD: return 6u;
-    default: return 1u;
     }
 }
 
@@ -503,6 +493,7 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     const bool custom_feedback = ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM &&
         ux->active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP && !ux->custom_dirty;
     char home_title_text[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    char combo_value_text[BLU2USB_RENDERER_TEXT_COLS + 1u];
     const char *home_summary_text = NULL;
     if (ux->screen == BLU2USB_SCREEN_HOME) {
         home_title(ux->current_mouse_name, home_title_text);
@@ -524,7 +515,18 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
             text = home_title_text;
         else if (ux->screen == BLU2USB_SCREEN_HOME && row == 1u)
             text = home_summary_text;
-        if (custom_feedback && row == 8u) text = "";
+        else if (blu2usb_ux_is_combinations_screen(ux->screen) &&
+                 (row == 2u || row == 4u)) {
+            const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
+            const unsigned combo = page * BLU2USB_COMBINATIONS_PER_PAGE +
+                                   (row == 2u ? 0u : 1u);
+            const char *name = blu2usb_ux_combination_unavailable(ux, combo)
+                ? "UNAVAILABLE"
+                : blu2usb_ux_shortcut_name(ux->shortcut_assignments[combo]);
+            (void)snprintf(combo_value_text, sizeof(combo_value_text), " %s", name);
+            text = combo_value_text;
+        }
+        if (custom_feedback && row == 8u) text = "KEY B: BACK";
         blu2usb_ui_tone_t tone;
         if (row == 0) tone = BLU2USB_UI_TONE_TITLE;
         else if (searching_first && (row == 1u || row == 2u))
@@ -556,11 +558,8 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     const uint8_t profile_row = active_profile_row(ux);
     if (profile_row != 0u) set_row_tone(frame, profile_row, BLU2USB_UI_TONE_CURRENT);
 
-    if (ux->screen >= BLU2USB_SCREEN_LEFT_WILL_BECOME && ux->screen <= BLU2USB_SCREEN_BACKWARD_WILL_BECOME) {
-        const uint8_t current_row =
-            custom_target_row(ux->custom_targets[ux->custom_source]);
-        set_row_tone(frame, current_row, BLU2USB_UI_TONE_CURRENT);
-    }
+    /* WILL BECOME option colors are exclusively rebuilt in
+     * profile_feedback.c after the renderer's generic selection pass. */
 
     if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS)
         project_movement_options(ux, frame);
@@ -571,10 +570,40 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
              ux->screen == BLU2USB_SCREEN_ROTATION)
         project_movement_current_choice(ux, frame);
 
+    if (blu2usb_ux_is_shortcuts_screen(ux->screen)) {
+        /* Current saved action (if present on this page) is cyan, unless
+         * highlighted by selection (which is always white). */
+        const uint8_t assigned = ux->shortcut_assignments[ux->editing_combination];
+        const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_SHORTCUTS_1);
+        if (assigned > 0u && (assigned - 1u) / BLU2USB_SHORTCUTS_PER_PAGE == page)
+            set_row_tone(frame, 1u + (assigned - 1u) % BLU2USB_SHORTCUTS_PER_PAGE,
+                         BLU2USB_UI_TONE_CURRENT);
+    }
+
+    if (blu2usb_ux_is_combinations_screen(ux->screen)) {
+        /* In combination pages the inactive pair (label and value) uses
+         * the normal actionable gray, while both selected rows are white. */
+        for (uint8_t row = 1u; row <= 4u; ++row)
+            set_row_tone(frame, row, BLU2USB_UI_TONE_ACTIONABLE);
+    }
+
     const int selected = selected_row(ux);
     if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && ux->selection == 2u)
         emphasize_row(frame, 3u);
     if (selected >= 0 && selected < (int)BLU2USB_RENDERER_TEXT_ROWS) emphasize_row(frame,(uint8_t)selected);
+    if (blu2usb_ux_is_combinations_screen(ux->screen) &&
+        selected >= 1 && selected <= 3)
+        emphasize_row(frame, (uint8_t)(selected + 1)); /* Pair selection. */
+    if (blu2usb_ux_is_combinations_screen(ux->screen)) {
+        /* UNAVAILABLE is a disabled state: its value is never selected
+         * white nor applied cyan, including when the pair has focus. */
+        const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
+        for (unsigned pair = 0u; pair < 2u; ++pair) {
+            if (blu2usb_ux_combination_unavailable(ux, page * 2u + pair))
+                set_row_tone(frame, (uint8_t)(2u + 2u * pair),
+                             BLU2USB_UI_TONE_STATIC);
+        }
+    }
 
     for (unsigned control = 0; control < BLU2USB_CONTROL_COUNT; ++control) {
         if (!blu2usb_interaction_is_pressed(&ux->interaction,(blu2usb_control_t)control)) continue;

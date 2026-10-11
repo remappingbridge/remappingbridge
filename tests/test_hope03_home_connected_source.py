@@ -17,8 +17,8 @@ assert '{"HOME"," STATUS"," MOUSE OPTIONS"," OTHER OPTIONS"' not in ux
 assert "current_mouse_name[BLU2USB_UX_MOUSE_NAME_CAPACITY]" in ux_h
 assert "blu2usb_ux_set_current_mouse_name" in ux
 assert "home_title(ux->current_mouse_name" in renderer
-assert '" REMAPPED TO STANDARD"' in renderer
-assert '" REMAPPED TO ESCAPE"' in renderer
+assert '" REMAPPED TO STANDARD"' not in renderer
+assert '" REMAPPED TO ESCAPE"' not in renderer
 assert '" REMAPPED TO CUSTOM"' in renderer
 assert '" NO REMAP PASSTHROUGH"' in renderer
 

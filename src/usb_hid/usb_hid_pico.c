@@ -31,11 +31,35 @@ bool blu2usb_usb_hid_pico_send_mouse(const blu2usb_usb_mouse_report_t *report)
 bool blu2usb_usb_hid_pico_send_keyboard(const blu2usb_usb_keyboard_report_t *report)
 {
     if (report == NULL || !tud_hid_n_ready(BLU2USB_USB_HID_KEYBOARD_INTERFACE)) return false;
+    /* In Boot protocol retain the exact legacy 8-byte keyboard payload.
+     * In Report protocol TinyUSB prepends Report ID 1 (9 bytes total). */
+    const uint8_t report_id =
+        tud_hid_n_get_protocol(BLU2USB_USB_HID_KEYBOARD_INTERFACE) == HID_PROTOCOL_BOOT
+        ? 0u : BLU2USB_USB_REPORT_ID_KEYBOARD;
     return tud_hid_n_report(
         BLU2USB_USB_HID_KEYBOARD_INTERFACE,
-        0u,
+        report_id,
         report,
         (uint16_t)sizeof(*report));
+}
+
+bool blu2usb_usb_hid_pico_consumer_available(void)
+{
+    return tud_hid_n_get_protocol(BLU2USB_USB_HID_KEYBOARD_INTERFACE) ==
+           HID_PROTOCOL_REPORT;
+}
+
+bool blu2usb_usb_hid_pico_send_consumer(uint16_t usage)
+{
+    if (!blu2usb_usb_hid_pico_consumer_available() ||
+        !tud_hid_n_ready(BLU2USB_USB_HID_KEYBOARD_INTERFACE))
+        return false;
+    const uint8_t report[BLU2USB_USB_CONSUMER_PAYLOAD_SIZE] = {
+        (uint8_t)usage, (uint8_t)(usage >> 8u)
+    };
+    return tud_hid_n_report(BLU2USB_USB_HID_KEYBOARD_INTERFACE,
+                            BLU2USB_USB_REPORT_ID_CONSUMER,
+                            report, (uint16_t)sizeof(report));
 }
 
 uint16_t tud_hid_get_report_cb(

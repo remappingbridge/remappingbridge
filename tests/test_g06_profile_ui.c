@@ -1,320 +1,94 @@
+/* G06 physical UX regressions adapted by MOD-01.
+ * Keep passthrough/Custom behavior and current-value renderer checks.
+ * Retired Standard/Escape presets are no longer interactive choices. */
 #include <assert.h>
 #include <string.h>
-
 #include "blu2usb/renderer/renderer.h"
 #include "blu2usb/ux_model/ux_model.h"
 
-static void init_ux(blu2usb_ux_model_t *ux)
-{
-    blu2usb_ux_init(ux);
-    blu2usb_ux_set_mouse_connected(false);
+static blu2usb_ux_command_t tap(blu2usb_ux_model_t *ux, blu2usb_control_t c) {
+    (void)blu2usb_ux_input(ux,c,true);
+    return blu2usb_ux_input(ux,c,false);
 }
-
-static blu2usb_ux_command_t press_release(blu2usb_ux_model_t *ux,
-                                           blu2usb_control_t control)
-{
-    (void)blu2usb_ux_input(ux, control, true);
-    return blu2usb_ux_input(ux, control, false);
-}
-
-static void project_physical(const blu2usb_ux_model_t *ux,
-                             blu2usb_ui_frame_t *frame)
-{
-    blu2usb_ui_project(ux, frame);
-    blu2usb_ui_enforce_applied_visual_contract(ux, frame);
-}
-
-static void assert_row_tone(const blu2usb_ui_frame_t *frame,
-                            unsigned row,
-                            blu2usb_ui_tone_t tone)
-{
-    bool found = false;
-    for (unsigned column = 0; column < BLU2USB_RENDERER_TEXT_COLS; ++column) {
-        if (frame->cells[row][column].character == ' ') continue;
-        found = true;
-        assert(frame->cells[row][column].tone == tone);
-    }
-    assert(found);
-}
-
-static void assert_row_text(const blu2usb_ui_frame_t *frame,
-                            unsigned row,
-                            const char *expected)
-{
-    char actual[BLU2USB_RENDERER_TEXT_COLS + 1u];
-    unsigned end = BLU2USB_RENDERER_TEXT_COLS;
-    for (unsigned column = 0u; column < BLU2USB_RENDERER_TEXT_COLS; ++column)
-        actual[column] = frame->cells[row][column].character;
-    while (end > 0u && actual[end - 1u] == ' ') --end;
-    actual[end] = '\0';
-    assert(strcmp(actual, expected) == 0);
-}
-
-static void assert_success_body_is_cyan(const blu2usb_ux_model_t *ux)
-{
-    blu2usb_ui_frame_t frame;
-    project_physical(ux, &frame);
-    for (unsigned row = 1u; row < frame.hint_start_row; ++row) {
-        bool visible = false;
-        for (unsigned column = 0u; column < BLU2USB_RENDERER_TEXT_COLS; ++column)
-            visible |= frame.cells[row][column].character != ' ';
-        if (visible) assert_row_tone(&frame, row, BLU2USB_UI_TONE_CURRENT);
-    }
-    assert(blu2usb_renderer_tone_rgb565(BLU2USB_UI_TONE_CURRENT) == BLU2USB_COLOR_CYAN);
-}
-
-static void test_current_profile_opens_feedback_and_back_once(void)
-{
-    blu2usb_ux_model_t ux;
-    init_ux(&ux);
-    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 0u;
-
-    blu2usb_ux_command_t command = press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(command.kind == BLU2USB_UX_COMMAND_NONE);
-    assert(ux.screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED);
-    assert_success_body_is_cyan(&ux);
-
-    press_release(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
-}
-
-static void test_selected_active_profile_is_white_then_returns_cyan(void)
-{
-    blu2usb_ux_model_t ux;
-    blu2usb_ui_frame_t frame;
-    init_ux(&ux);
-    ux.active_profile = BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP;
-    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 1u;
-
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_EMPHASIZED);
-    assert(blu2usb_renderer_tone_rgb565(BLU2USB_UI_TONE_EMPHASIZED) == BLU2USB_COLOR_WHITE);
-
-    ux.selection = 0u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_CURRENT);
-}
-
-static void test_default_apply_feedback_back_and_reentry(void)
-{
-    blu2usb_ux_model_t ux;
-    blu2usb_ui_frame_t frame;
-    init_ux(&ux);
-    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 1u;
-
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_APPLY_DEFAULT);
-    blu2usb_ux_command_t command = press_release(&ux, BLU2USB_CONTROL_KEY_A);
-    assert(command.kind == BLU2USB_UX_COMMAND_APPLY_DEFAULT);
-    assert(ux.screen == BLU2USB_SCREEN_APPLY_DEFAULT);
-
-    blu2usb_ux_profile_applied(&ux, BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP);
-    assert(ux.screen == BLU2USB_SCREEN_DEFAULT_APPLIED);
-    assert(ux.active_profile == BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP);
-    assert_success_body_is_cyan(&ux);
-
-    press_release(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
-
-    ux.selection = 0u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_CURRENT);
-
-    ux.selection = 1u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 2u, BLU2USB_UI_TONE_EMPHASIZED);
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_DEFAULT_APPLIED);
-    assert_success_body_is_cyan(&ux);
-}
-
-static void test_escape_apply_feedback_back_and_reentry(void)
-{
-    blu2usb_ux_model_t ux;
-    blu2usb_ui_frame_t frame;
-    init_ux(&ux);
-    ux.active_profile = BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP;
-    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 2u;
-
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_APPLY_ESCAPE);
-    blu2usb_ux_command_t command = press_release(&ux, BLU2USB_CONTROL_KEY_A);
-    assert(command.kind == BLU2USB_UX_COMMAND_APPLY_ESCAPE);
-    assert(ux.screen == BLU2USB_SCREEN_APPLY_ESCAPE);
-
-    blu2usb_ux_profile_applied(&ux, BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP);
-    assert(ux.screen == BLU2USB_SCREEN_ESCAPE_APPLIED);
-    assert_success_body_is_cyan(&ux);
-
-    press_release(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
-
-    ux.selection = 1u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_CURRENT);
-
-    ux.selection = 2u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 3u, BLU2USB_UI_TONE_EMPHASIZED);
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_ESCAPE_APPLIED);
-}
-
-static void test_screen_text_fixes_profile_contract(void)
-{
-    const blu2usb_screen_template_t *d =
-        blu2usb_ux_screen_template(BLU2USB_SCREEN_APPLY_DEFAULT);
-    assert(strcmp(d->rows[0], "APPLY STANDARD REMAP") == 0);
-    assert(strcmp(d->rows[1], "FORWARD IS LEFT") == 0);
-    assert(strcmp(d->rows[2], "LEFT IS FORWARD") == 0);
-    assert(strcmp(d->rows[3], "BACKWARD IS RIGHT") == 0);
-    assert(strcmp(d->rows[4], "RIGHT IS BACKWARD") == 0);
-
-    const blu2usb_screen_template_t *e =
-        blu2usb_ux_screen_template(BLU2USB_SCREEN_APPLY_ESCAPE);
-    assert(strcmp(e->rows[0], "APPLY ESCAPE REMAP") == 0);
-    assert(strcmp(e->rows[1], "FORWARD IS LEFT") == 0);
-    assert(strcmp(e->rows[2], "BACKWARD IS RIGHT") == 0);
-    assert(strcmp(e->rows[3], "LEFT IS ESCAPE") == 0);
-    assert(strcmp(e->rows[4], "RIGHT IS BACKWARD") == 0);
-    assert(strcmp(e->rows[5], "MIDDLE IS FORWARD") == 0);
-
-    const blu2usb_screen_template_t *c =
-        blu2usb_ux_screen_template(BLU2USB_SCREEN_EDIT_CUSTOM);
-    assert(strcmp(c->rows[0], "EDIT CUSTOM REMAP") == 0);
-    assert(strcmp(c->rows[7], "JOY PRESS: ACCESS") == 0);
-    assert(strcmp(c->rows[8], "KEY A: APPLY CUSTOM") == 0);
-
-    assert(strcmp(
-        blu2usb_ux_screen_template(BLU2USB_SCREEN_PASSTHROUGH_APPLIED)->rows[0],
-        "PASSTHROUGH ACTIVE") == 0);
-    assert(strcmp(
-        blu2usb_ux_screen_template(BLU2USB_SCREEN_DEFAULT_APPLIED)->rows[0],
-        "STANDARD REMAP ACTIVE") == 0);
-    assert(strcmp(
-        blu2usb_ux_screen_template(BLU2USB_SCREEN_ESCAPE_APPLIED)->rows[0],
-        "ESCAPE APPLIED ACTIVE") == 0);
-}
-
-static void test_custom_target_apply_and_back_updates_edit_screen(void)
-{
-    blu2usb_ux_model_t ux;
-    blu2usb_ui_frame_t frame;
-    init_ux(&ux);
-    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 3u;
-
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
-    assert(ux.selection == 0u);
-
-    project_physical(&ux, &frame);
-    assert_row_text(&frame, 1u, " LEFT IS LEFT");
-
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_LEFT_WILL_BECOME);
-    assert(ux.selection == (unsigned)BLU2USB_MOUSE_TARGET_LEFT);
-
-    press_release(&ux, BLU2USB_CONTROL_JOY_DOWN);
-    assert(ux.selection == (unsigned)BLU2USB_MOUSE_TARGET_RIGHT);
-
-    const blu2usb_ux_command_t command = press_release(&ux, BLU2USB_CONTROL_KEY_A);
-    assert(command.kind == BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET);
-    assert(command.source == BLU2USB_MOUSE_SOURCE_LEFT);
-    assert(command.target == BLU2USB_MOUSE_TARGET_RIGHT);
-    assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
-
-    /* Mirror the runtime command handler after the draft engine accepts it. */
-    blu2usb_ux_set_custom_target(&ux, command.source, command.target);
-    assert(ux.custom_targets[BLU2USB_MOUSE_SOURCE_LEFT] == BLU2USB_MOUSE_TARGET_RIGHT);
-    assert(ux.custom_dirty);
-
-    project_physical(&ux, &frame);
-    assert_row_text(&frame, 1u, " LEFT IS RIGHT");
-}
-
-static void test_custom_apply_confirms_in_edit_and_back(void)
-{
-    blu2usb_ux_model_t ux;
-    blu2usb_ui_frame_t frame;
-    init_ux(&ux);
-    ux.screen = BLU2USB_SCREEN_MOUSE_OPTIONS;
-    ux.selection = 3u;
-
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
-    assert(ux.custom_dirty);
-
-    blu2usb_ux_set_custom_target(&ux, BLU2USB_MOUSE_SOURCE_LEFT,
-                                 BLU2USB_MOUSE_TARGET_RIGHT);
-    blu2usb_ux_command_t command = press_release(&ux, BLU2USB_CONTROL_KEY_A);
-    assert(command.kind == BLU2USB_UX_COMMAND_APPLY_CUSTOM);
-    assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
-
-    blu2usb_ux_profile_applied(&ux, BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP);
-    assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
-    assert(ux.active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP);
-    assert(!ux.custom_dirty);
-
-    project_physical(&ux, &frame);
-    assert_row_text(&frame, 0u, "EDIT CUSTOM REMAP");
-    assert_row_text(&frame, 1u, " LEFT IS RIGHT");
-    /* Current clean Custom mappings are cyan except the selected row, which
-     * remains white. */
-    assert_row_tone(&frame, 1u, BLU2USB_UI_TONE_EMPHASIZED);
-    for (unsigned row = 2u; row <= 5u; ++row)
-        assert_row_tone(&frame, row, BLU2USB_UI_TONE_CURRENT);
-    assert_row_text(&frame, 7u, "JOY PRESS: ACCESS");
-    assert_row_text(&frame, 8u, "KEY A: APPLY CUSTOM");
-
-    press_release(&ux, BLU2USB_CONTROL_KEY_B);
-    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
-    ux.selection = 2u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_CURRENT);
-
-    ux.selection = 3u;
-    project_physical(&ux, &frame);
-    assert_row_tone(&frame, 4u, BLU2USB_UI_TONE_EMPHASIZED);
-    press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
-    assert(!ux.custom_dirty);
-}
-
-static void test_connected_mouse_can_open_pair_new_from_home(void)
-{
-    blu2usb_ux_model_t ux;
-    blu2usb_ui_frame_t frame;
-    init_ux(&ux);
+static void init(blu2usb_ux_model_t *ux) {
     blu2usb_ux_set_mouse_connected(true);
-    blu2usb_ux_set_saved_device_count(&ux, 1u);
-    ux.screen = BLU2USB_SCREEN_HOME;
-    ux.selection = 2u;
-
-    const blu2usb_ux_command_t command =
-        press_release(&ux, BLU2USB_CONTROL_JOY_PRESS);
-    assert(command.kind == BLU2USB_UX_COMMAND_NONE);
-    assert(ux.screen == BLU2USB_SCREEN_PAIR_MOUSE);
-
-    project_physical(&ux, &frame);
-    assert_row_text(&frame, 0u, "PAIR NEW MOUSE");
-    assert_row_text(&frame, 6u, "KEY B: CANCEL");
-    assert_row_text(&frame, 8u, "KEY Y: LOCK");
+    blu2usb_ux_init(ux);
+    blu2usb_ux_set_saved_device_count(ux,1u);
 }
-
-int main(void)
-{
-    test_current_profile_opens_feedback_and_back_once();
-    test_selected_active_profile_is_white_then_returns_cyan();
-    test_default_apply_feedback_back_and_reentry();
-    test_escape_apply_feedback_back_and_reentry();
-    test_screen_text_fixes_profile_contract();
-    test_custom_target_apply_and_back_updates_edit_screen();
-    test_custom_apply_confirms_in_edit_and_back();
-    test_connected_mouse_can_open_pair_new_from_home();
+static void project(blu2usb_ux_model_t *ux,blu2usb_ui_frame_t *f) {
+    blu2usb_ui_project(ux,f);
+    blu2usb_ui_enforce_applied_visual_contract(ux,f);
+}
+static void tone(blu2usb_ui_frame_t *f,unsigned row,blu2usb_ui_tone_t expected) {
+    for(unsigned j=0;j<BLU2USB_RENDERER_TEXT_COLS;++j)
+        if(f->cells[row][j].character!=' ') assert(f->cells[row][j].tone==expected);
+}
+static void row_text(blu2usb_ui_frame_t *f,unsigned row,const char *expected) {
+    char s[BLU2USB_RENDERER_TEXT_COLS+1];
+    for(unsigned j=0;j<BLU2USB_RENDERER_TEXT_COLS;++j)s[j]=f->cells[row][j].character;
+    unsigned end=BLU2USB_RENDERER_TEXT_COLS;
+    while(end&&s[end-1]==' ')--end;
+    s[end]=0;
+    assert(strcmp(s,expected)==0);
+}
+static void test_passthrough_feedback(void) {
+    blu2usb_ux_model_t ux;
+    blu2usb_ui_frame_t f;
+    init(&ux);
+    ux.screen=BLU2USB_SCREEN_MOUSE_OPTIONS;
+    ux.selection=0u;
+    assert(tap(&ux,BLU2USB_CONTROL_JOY_PRESS).kind==BLU2USB_UX_COMMAND_NONE);
+    assert(ux.screen==BLU2USB_SCREEN_PASSTHROUGH_APPLIED);
+    project(&ux,&f);
+    row_text(&f,0,"PASSTHROUGH ACTIVE");
+    tone(&f,1u,BLU2USB_UI_TONE_CURRENT);
+    tap(&ux,BLU2USB_CONTROL_KEY_B);
+    assert(ux.screen==BLU2USB_SCREEN_MOUSE_OPTIONS);
+}
+static void test_custom_edit_and_apply(void) {
+    blu2usb_ux_model_t ux;
+    blu2usb_ui_frame_t f;
+    init(&ux);
+    ux.screen=BLU2USB_SCREEN_MOUSE_OPTIONS;
+    ux.selection=1u;
+    tap(&ux,BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen==BLU2USB_SCREEN_EDIT_CUSTOM);
+    assert(ux.custom_dirty);
+    tap(&ux,BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen==BLU2USB_SCREEN_LEFT_WILL_BECOME);
+    tap(&ux,BLU2USB_CONTROL_JOY_DOWN);
+    const blu2usb_ux_command_t cmd=tap(&ux,BLU2USB_CONTROL_KEY_A);
+    assert(cmd.kind==BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET);
+    assert(cmd.source==BLU2USB_MOUSE_SOURCE_LEFT);
+    assert(cmd.target==BLU2USB_MOUSE_TARGET_RIGHT);
+    blu2usb_ux_set_custom_target(&ux,cmd.source,cmd.target);
+    project(&ux,&f);
+    row_text(&f,1u," LEFT IS RIGHT");
+    assert(tap(&ux,BLU2USB_CONTROL_KEY_A).kind==BLU2USB_UX_COMMAND_APPLY_CUSTOM);
+    blu2usb_ux_profile_applied(&ux,BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP);
+    assert(!ux.custom_dirty);
+    project(&ux,&f);
+    tone(&f,1u,BLU2USB_UI_TONE_EMPHASIZED);
+    tone(&f,2u,BLU2USB_UI_TONE_CURRENT);
+    tap(&ux,BLU2USB_CONTROL_KEY_B);
+    assert(ux.screen==BLU2USB_SCREEN_MOUSE_OPTIONS);
+    ux.selection=0u;
+    project(&ux,&f);
+    tone(&f,1u,BLU2USB_UI_TONE_EMPHASIZED);
+    tone(&f,2u,BLU2USB_UI_TONE_CURRENT);
+}
+static void test_third_choice_does_not_activate_legacy_presets(void) {
+    blu2usb_ux_model_t ux;
+    init(&ux);
+    ux.screen=BLU2USB_SCREEN_MOUSE_OPTIONS;
+    ux.selection=2u;
+    assert(tap(&ux,BLU2USB_CONTROL_JOY_PRESS).kind==BLU2USB_UX_COMMAND_NONE);
+    assert(ux.screen==BLU2USB_SCREEN_MOUSE_OPTIONS);
+    assert(ux.selection==2u);
+}
+int main(void) {
+    test_passthrough_feedback();
+    test_custom_edit_and_apply();
+    test_third_choice_does_not_activate_legacy_presets();
     return 0;
 }

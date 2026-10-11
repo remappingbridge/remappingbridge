@@ -7,6 +7,7 @@ on:
       - main
       - "gate/**"
       - "planning/**"
+      - "feature/modifier-shortcuts-**"
 
 permissions:
   contents: read

@@ -105,7 +105,7 @@ static void test_back_cancel_hidden_controls_and_pair_new(void)
 {
     blu2usb_ux_model_t ux; blu2usb_ui_frame_t frame; blu2usb_ux_init(&ux);
 
-    ux.screen=BLU2USB_SCREEN_APPLY_DEFAULT;
+    ux.screen=BLU2USB_SCREEN_APPLY_PASSTHROUGH;
     click(&ux,BLU2USB_CONTROL_KEY_B);
     assert(ux.screen==BLU2USB_SCREEN_MOUSE_OPTIONS);
 

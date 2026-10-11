@@ -5,8 +5,9 @@ import sys
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
 cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
 
+# Version-independent G06 architecture checks remain enforced; release version is v3.0.0.
 required_cmake = (
-    'BLU2USB_VERSION_STRING="2.0.0"',
+    'BLU2USB_VERSION_STRING="3.0.0"',
     'src/profiles/profiles.c',
     'add_library(blu2usb_remap STATIC src/remap/remap.c)',
     'add_library(blu2usb_storage STATIC src/storage/storage.c)',
@@ -108,14 +109,16 @@ for token in (
     'blu2usb_remap_process_mouse',
     'blu2usb_usb_hid_pico_send_keyboard',
     'BLU2USB_UX_COMMAND_APPLY_PASSTHROUGH',
-    'BLU2USB_UX_COMMAND_APPLY_DEFAULT',
-    'BLU2USB_UX_COMMAND_APPLY_ESCAPE',
     'BLU2USB_UX_COMMAND_APPLY_CUSTOM',
     'blu2usb_storage_load',
     'blu2usb_storage_store',
     'synchronize_ux_profiles',
 ):
     assert token in app, f'app G06 composition missing: {token}'
+# MOD-01 retires obsolete UX commands while preserving the v2 serialized
+# profile values for the future schema migration.
+for removed in ('BLU2USB_UX_COMMAND_APPLY_DEFAULT', 'BLU2USB_UX_COMMAND_APPLY_ESCAPE'):
+    assert removed not in app, f'retired UX command is still reachable: {removed}'
 for forbidden in ('tud_disconnect(', 'tud_connect(', 'btstack.h', 'hardware/gpio', 'hardware/spi'):
     assert forbidden not in app.lower(), f'app leaks raw transport/HAL: {forbidden}'
 

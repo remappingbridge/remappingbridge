@@ -34,11 +34,10 @@ static int64_t safe_add(int64_t a, int64_t b)
     return a + b;
 }
 
-void blu2usb_movement_pipeline_push(blu2usb_movement_pipeline_t *pipeline,
-                                    blu2usb_movement_settings_t settings,
-                                    int32_t source_x, int32_t source_y)
+void blu2usb_movement_rotate_delta(blu2usb_movement_settings_t settings,
+                                   int32_t source_x, int32_t source_y,
+                                   int64_t *rotated_x, int64_t *rotated_y)
 {
-    if (pipeline == NULL) return;
     if (!blu2usb_movement_valid(settings)) settings = blu2usb_movement_defaults();
     const int64_t x = source_x, y = source_y;
     int64_t rx = x, ry = y;
@@ -48,6 +47,18 @@ void blu2usb_movement_pipeline_push(blu2usb_movement_pipeline_t *pipeline,
     case 3u: rx = -y; ry = x; break;
     default: break;
     }
+    if (rotated_x) *rotated_x = rx;
+    if (rotated_y) *rotated_y = ry;
+}
+
+void blu2usb_movement_pipeline_push(blu2usb_movement_pipeline_t *pipeline,
+                                    blu2usb_movement_settings_t settings,
+                                    int32_t source_x, int32_t source_y)
+{
+    if (pipeline == NULL) return;
+    if (!blu2usb_movement_valid(settings)) settings = blu2usb_movement_defaults();
+    int64_t rx = 0, ry = 0;
+    blu2usb_movement_rotate_delta(settings, source_x, source_y, &rx, &ry);
     pipeline->pending_x_quarters = safe_add(pipeline->pending_x_quarters,
                                            rx * settings.horizontal_quarters);
     pipeline->pending_y_quarters = safe_add(pipeline->pending_y_quarters,

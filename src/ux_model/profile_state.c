@@ -34,7 +34,9 @@ void blu2usb_ux_restore_profile_state(
     for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i)
         if (!valid_target(custom_targets[i])) return;
 
-    ux->active_profile = active_profile;
+    /* Retired v2 presets are represented as PASSTHROUGH in the new UI. */
+    ux->active_profile = (active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP)
+        ? active_profile : BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
     memcpy(ux->custom_targets, custom_targets, sizeof(ux->custom_targets));
     ux->custom_dirty = false;
 }
@@ -45,20 +47,13 @@ void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux,
     if (ux == NULL || !valid_profile(active_profile)) return;
 
     const unsigned previous_selection = ux->selection;
-    ux->active_profile = active_profile;
+    ux->active_profile = (active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP)
+        ? active_profile : BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
 
-    switch (active_profile) {
+    switch (ux->active_profile) {
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH:
         ux->selection = 0u;
         ux->screen = BLU2USB_SCREEN_PASSTHROUGH_APPLIED;
-        break;
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP:
-        ux->selection = 0u;
-        ux->screen = BLU2USB_SCREEN_DEFAULT_APPLIED;
-        break;
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP:
-        ux->selection = 0u;
-        ux->screen = BLU2USB_SCREEN_ESCAPE_APPLIED;
         break;
     case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP:
         /* Mouse UI v1 has no separate CUSTOM APPLIED screen. Successful

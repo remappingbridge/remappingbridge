@@ -56,7 +56,7 @@ static void test_four_options_and_exact_connected_home(void)
     assert(frame.hint_start_row == 6u);
     static const char *const rows[9] = {
         "LOGITECH LIFT MOUSE",
-        " REMAPPED TO STANDARD",
+        " NO REMAP PASSTHROUGH",
         " MOVEMENT OPTIONS",
         " SAVED DEVICES",
         " PAIR NEW MOUSE",
