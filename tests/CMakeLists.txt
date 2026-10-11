@@ -486,3 +486,23 @@ add_test(NAME mod09_recovery_cancel_overflow_and_ownership
     COMMAND blu2usb_test_mod09_recovery)
 add_test(NAME mod09_app_saved_devices_safety_source
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod09_source.py)
+
+# MOD-10 release qualification: integrated HOME->picker->v3 persistence,
+# all 30 typed HID actions and production safety/ABI invariants.
+add_executable(blu2usb_test_mod10_full_flow test_mod10_full_flow.c)
+target_link_libraries(blu2usb_test_mod10_full_flow PRIVATE
+    blu2usb_renderer blu2usb_ux_model blu2usb_profiles
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator)
+target_compile_options(blu2usb_test_mod10_full_flow PRIVATE -UNDEBUG)
+add_test(NAME mod10_home_editor_persistence_mask_and_reboot
+    COMMAND blu2usb_test_mod10_full_flow)
+
+add_executable(blu2usb_test_mod10_all_actions test_mod10_all_actions.c)
+target_link_libraries(blu2usb_test_mod10_all_actions PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_usb_hid)
+target_compile_options(blu2usb_test_mod10_all_actions PRIVATE -UNDEBUG)
+add_test(NAME mod10_full_30_action_keyboard_consumer_matrix
+    COMMAND blu2usb_test_mod10_all_actions)
+
+add_test(NAME mod10_production_security_abi_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod10_source.py)
