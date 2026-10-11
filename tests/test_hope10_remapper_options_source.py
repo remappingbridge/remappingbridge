@@ -23,5 +23,5 @@ flow=ux[start:end]
 assert "BLU2USB_SCREEN_APPLY_DEFAULT" not in flow
 assert "BLU2USB_SCREEN_APPLY_ESCAPE" not in flow
 assert "BLU2USB_SCREEN_EDIT_CUSTOM" in flow
-assert "MOD-02" in flow
+assert "enter(ux, BLU2USB_SCREEN_COMBINATIONS_1);" in flow
 print("MOD-01 remapping-options source contracts: OK")
