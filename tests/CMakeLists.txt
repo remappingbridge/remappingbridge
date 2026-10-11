@@ -342,3 +342,16 @@ target_link_libraries(blu2usb_test_mov06_rotation PRIVATE
     blu2usb_movement
 )
 add_test(NAME mov06_rotation_physical_flow COMMAND blu2usb_test_mov06_rotation)
+
+add_executable(blu2usb_test_mov07_home_connected test_mov07_home_connected.c)
+target_link_libraries(blu2usb_test_mov07_home_connected PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_movement
+)
+add_test(NAME mov07_connected_home_four_routes COMMAND blu2usb_test_mov07_home_connected)
+
+add_test(
+    NAME mov07_pico_ble_home_runtime_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mov07_home_runtime_source.py
+)
