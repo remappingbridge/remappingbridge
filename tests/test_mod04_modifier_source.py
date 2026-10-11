@@ -19,7 +19,11 @@ assert '?"UNAVAILABLE"' not in renderer or "UNAVAILABLE" in renderer
 assert "BLU2USB_UI_TONE_STATIC" in renderer
 expected='" LEFT"," RIGHT"," MIDDLE"," FORWARD"," BACKWARD"," MODIFIER",EMPTY,"KEY A: APPLY AND BACK"'
 assert ux.count(expected)==5
-assert 'case BLU2USB_MOUSE_TARGET_MODIFIER: return 6u;' in renderer
+feedback=(root/"src/renderer/profile_feedback.c").read_text()
+assert 'case BLU2USB_MOUSE_TARGET_MODIFIER: return 6u;' in feedback
+assert 'case BLU2USB_MOUSE_TARGET_MODIFIER: return "MODIFIER";' in feedback
+assert 'if (custom_feedback && row == 8u) text = "KEY B: BACK";' in renderer
+assert "control == BLU2USB_CONTROL_KEY_A)" in ux
 assert 'case BLU2USB_MOUSE_TARGET_MODIFIER: return 5u;' in ux
 assert "BLU2USB_PROFILE_V3_SERIALIZED_SIZE" in profiles
 assert "blu2usb_remap_set_profile(remap, &active)" in app
