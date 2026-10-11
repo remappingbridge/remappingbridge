@@ -568,6 +568,13 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
              ux->screen == BLU2USB_SCREEN_ROTATION)
         project_movement_current_choice(ux, frame);
 
+    if (blu2usb_ux_is_combinations_screen(ux->screen)) {
+        /* Untouched combination labels/values use the system's standard
+         * yellow.  Highlight both rows of the selected logical pair below. */
+        for (uint8_t row = 1u; row <= 4u; ++row)
+            set_row_tone(frame, row, BLU2USB_UI_TONE_STATIC);
+    }
+
     const int selected = selected_row(ux);
     if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && ux->selection == 2u)
         emphasize_row(frame, 3u);
