@@ -210,6 +210,113 @@ bool blu2usb_profiles_restore(blu2usb_profiles_t *profiles,
     return true;
 }
 
+
+/* A separate v3 codec preserves the tested legacy v2 decoder.  Neither
+ * the Bluetooth credential sectors nor the per-device Movement TLV live
+ * in this global product profile record. */
+#define PROFILE_V3_SCHEMA_VERSION 3u
+#define PROFILE_V3_SHORTCUT_OFFSET 13u
+
+static uint8_t checksum_v3(const uint8_t *data)
+{
+    uint8_t value = 0x5au;
+    for (size_t i = 0u; i + 1u < BLU2USB_PROFILE_V3_SERIALIZED_SIZE; ++i) {
+        value = (uint8_t)((value << 1u) | (value >> 7u));
+        value ^= data[i];
+    }
+    return value;
+}
+
+bool blu2usb_profiles_set_shortcut(blu2usb_profiles_t *profiles,
+                                   unsigned combo_id, uint8_t shortcut_id)
+{
+    if (profiles == NULL || combo_id >= BLU2USB_SHORTCUT_SLOT_COUNT ||
+        shortcut_id > BLU2USB_SHORTCUT_COUNT) return false;
+    profiles->shortcuts[combo_id] = shortcut_id;
+    return true;
+}
+
+bool blu2usb_profiles_serialize_v3(const blu2usb_profiles_t *profiles,
+    uint8_t out[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    if (profiles == NULL || out == NULL ||
+        (profiles->active_kind != BLU2USB_MOUSE_PROFILE_PASSTHROUGH &&
+         profiles->active_kind != BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP))
+        return false;
+    uint8_t candidate[BLU2USB_PROFILE_V3_SERIALIZED_SIZE] = {0};
+    candidate[0] = PROFILE_V3_SCHEMA_VERSION;
+    candidate[PROFILE_ACTIVE_OFFSET] = (uint8_t)profiles->active_kind;
+    candidate[PROFILE_DRAFT_VALID_OFFSET] = profiles->draft_valid ? 1u : 0u;
+    for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i) {
+        const blu2usb_mouse_target_t custom = profiles->custom_targets[i];
+        const blu2usb_mouse_target_t draft = profiles->draft_valid
+            ? profiles->draft_targets[i] : custom;
+        if (!target_valid(custom) || !target_valid(draft)) return false;
+        candidate[PROFILE_CUSTOM_OFFSET+i] = (uint8_t)custom;
+        candidate[PROFILE_DRAFT_OFFSET+i] = (uint8_t)draft;
+    }
+    for (unsigned i = 0u; i < BLU2USB_SHORTCUT_SLOT_COUNT; ++i) {
+        if (profiles->shortcuts[i] > BLU2USB_SHORTCUT_COUNT) return false;
+        candidate[PROFILE_V3_SHORTCUT_OFFSET+i] = profiles->shortcuts[i];
+    }
+    candidate[BLU2USB_PROFILE_V3_SERIALIZED_SIZE-1u] = checksum_v3(candidate);
+    memcpy(out, candidate, sizeof(candidate));
+    return true;
+}
+
+bool blu2usb_profiles_restore_any(blu2usb_profiles_t *profiles,
+    const uint8_t *data, size_t length, bool *migrated_v2)
+{
+    if (profiles == NULL || data == NULL) return false;
+    if (migrated_v2 != NULL) *migrated_v2 = false;
+    blu2usb_profiles_t candidate;
+    blu2usb_profiles_init(&candidate);
+    if (length == BLU2USB_PROFILE_SERIALIZED_SIZE &&
+        data[0] == PROFILE_SCHEMA_VERSION) {
+        if (!blu2usb_profiles_restore(&candidate, data)) return false;
+        /* Legacy presets are retired. Legacy ESCAPE Custom/draft targets
+         * become their physical identity rather than a future MODIFIER. */
+        if (candidate.active_kind != BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP)
+            candidate.active_kind = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
+        for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i) {
+            const blu2usb_mouse_target_t identity =
+                identity_target((blu2usb_mouse_source_t)i);
+            if (candidate.custom_targets[i] == BLU2USB_MOUSE_TARGET_ESCAPE)
+                candidate.custom_targets[i] = identity;
+            if (candidate.draft_targets[i] == BLU2USB_MOUSE_TARGET_ESCAPE)
+                candidate.draft_targets[i] = identity;
+        }
+        if (migrated_v2 != NULL) *migrated_v2 = true;
+    } else if (length == BLU2USB_PROFILE_V3_SERIALIZED_SIZE &&
+               data[0] == PROFILE_V3_SCHEMA_VERSION) {
+        if (data[PROFILE_ACTIVE_OFFSET] != BLU2USB_MOUSE_PROFILE_PASSTHROUGH &&
+            data[PROFILE_ACTIVE_OFFSET] != BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP)
+            return false;
+        if (data[PROFILE_DRAFT_VALID_OFFSET] > 1u ||
+            data[length-1u] != checksum_v3(data))
+            return false;
+        candidate.active_kind =
+            (blu2usb_mouse_profile_kind_t)data[PROFILE_ACTIVE_OFFSET];
+        candidate.draft_valid = data[PROFILE_DRAFT_VALID_OFFSET] != 0u;
+        for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i) {
+            const blu2usb_mouse_target_t custom =
+                (blu2usb_mouse_target_t)data[PROFILE_CUSTOM_OFFSET+i];
+            const blu2usb_mouse_target_t draft =
+                (blu2usb_mouse_target_t)data[PROFILE_DRAFT_OFFSET+i];
+            if (!target_valid(custom) || !target_valid(draft)) return false;
+            candidate.custom_targets[i] = custom;
+            candidate.draft_targets[i] = candidate.draft_valid ? draft : custom;
+        }
+        for (unsigned i = 0u; i < BLU2USB_SHORTCUT_SLOT_COUNT; ++i) {
+            const uint8_t id = data[PROFILE_V3_SHORTCUT_OFFSET+i];
+            if (id > BLU2USB_SHORTCUT_COUNT) return false;
+            candidate.shortcuts[i] = id;
+        }
+    } else return false;
+    *profiles = candidate;
+    return true;
+}
+
 const char *blu2usb_profiles_target_name(blu2usb_mouse_target_t target)
 {
     switch (target) {
