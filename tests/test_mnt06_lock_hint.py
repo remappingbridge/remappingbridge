@@ -6,7 +6,7 @@ assert '"FIRST MOUSE CONNECTED"' in line
 assert '"KEY Y: LOCKS ANYWHERE"' in line
 assert '" KEY Y: LOCK"' not in line
 assert len("KEY Y: LOCKS ANYWHERE") == 21
-assert line.count('"')//2 == 9
+assert line.count('"')//2 == 8 and ",EMPTY," in line
 assert 'if (event.kind == BLU2USB_INTERACTION_UNLOCK)' in source
 assert 'enter(ux, BLU2USB_SCREEN_HOME);' in source
 print("MNT-06 First Mouse Connected lock hint: PASS")
