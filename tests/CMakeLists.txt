@@ -434,3 +434,9 @@ target_link_libraries(blu2usb_test_mod04_ui_bugfix PRIVATE
 )
 target_compile_options(blu2usb_test_mod04_ui_bugfix PRIVATE -UNDEBUG)
 add_test(NAME mod04_operator_ui_regressions COMMAND blu2usb_test_mod04_ui_bugfix)
+
+add_executable(blu2usb_test_mod05_buttons test_mod05_buttons.c)
+target_link_libraries(blu2usb_test_mod05_buttons PRIVATE blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_usb_hid)
+target_compile_options(blu2usb_test_mod05_buttons PRIVATE -UNDEBUG)
+add_test(NAME mod05_button_chords_usb_backpressure COMMAND blu2usb_test_mod05_buttons)
+add_test(NAME mod05_runtime_source_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod05_runtime_source.py)
