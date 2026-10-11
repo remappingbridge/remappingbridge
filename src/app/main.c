@@ -138,6 +138,10 @@ static void synchronize_ux_profiles(blu2usb_ux_model_t *ux,
     if (ux == NULL || profiles == NULL) return;
     ux->active_profile = profiles->active_kind;
     ux->custom_dirty = profiles->draft_valid;
+    const blu2usb_mouse_source_t source =
+        blu2usb_profiles_modifier_source(profiles->custom_targets);
+    blu2usb_ux_set_modifier_source(ux,
+        source < BLU2USB_MOUSE_SOURCE_COUNT ? (int)source : -1);
     memcpy(ux->shortcut_assignments, profiles->shortcuts,
            sizeof(ux->shortcut_assignments));
     for (unsigned source = 0u; source < BLU2USB_MOUSE_SOURCE_COUNT; ++source) {
@@ -205,7 +209,8 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
         const uint8_t id = command.kind == BLU2USB_UX_COMMAND_RESET_SHORTCUT
             ? 0u : command.shortcut_id;
         const blu2usb_profiles_t previous = *profiles;
-        if (blu2usb_profiles_set_shortcut(profiles, command.combination_id, id) &&
+        if (!blu2usb_profiles_is_shortcut_unavailable(profiles, command.combination_id) &&
+            blu2usb_profiles_set_shortcut(profiles, command.combination_id, id) &&
             persist_profiles(profiles)) {
             blu2usb_ux_shortcut_committed(ux, command.combination_id, id);
         } else {
@@ -224,7 +229,8 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
         const blu2usb_profiles_t previous = *profiles;
         if (blu2usb_profiles_draft_set(profiles, command.source, command.target) &&
             persist_profiles(profiles)) {
-            blu2usb_ux_set_custom_target(ux, command.source, command.target);
+            blu2usb_ux_custom_target_committed(ux, command.source,
+                profiles->draft_targets);
         } else {
             *profiles = previous;
         }
