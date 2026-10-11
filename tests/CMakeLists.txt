@@ -468,3 +468,11 @@ target_compile_options(blu2usb_test_mod08_consumer PRIVATE -UNDEBUG)
 add_test(NAME mod08_consumer_8_usages_ack COMMAND blu2usb_test_mod08_consumer)
 add_test(NAME mod08_combined_descriptor_boot_source
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod08_descriptor_source.py)
+
+# MOD-08 corrective candidate: operator-reported KDE, Android & Obsidian cases.
+add_executable(blu2usb_test_mod08_reported_fixes test_mod08_reported_fixes.c)
+target_link_libraries(blu2usb_test_mod08_reported_fixes PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_movement)
+target_compile_options(blu2usb_test_mod08_reported_fixes PRIVATE -UNDEBUG)
+add_test(NAME mod08_operator_kde_android_zooms_and_media_dwell
+    COMMAND blu2usb_test_mod08_reported_fixes)
