@@ -1300,8 +1300,13 @@ static void service_remove_saved_request(void)
     bd_addr_type_t address_type = BD_ADDR_TYPE_UNKNOWN;
     bd_addr_t address;
     sm_key_t irk;
-    if (!capture_logical_identity(logical_bond, &address_type, address, irk))
+    if (!capture_logical_identity(logical_bond, &address_type, address, irk)) {
+        /* The list can change between selecting a Saved Devices page and
+         * executing removal (e.g. a bond was cleared externally). Always
+         * acknowledge the failure so REMOVE THIS never stays pending. */
+        (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
         return;
+    }
 
     g_remove_target_valid = true;
     g_remove_target_type = address_type;
