@@ -318,3 +318,11 @@ target_link_libraries(blu2usb_test_mov03_horizontal_fast PRIVATE
     blu2usb_ux_model
 )
 add_test(NAME mov03_fast_dpi_and_saved_devices_tones COMMAND blu2usb_test_mov03_horizontal_fast)
+
+add_executable(blu2usb_test_mov04_vertical_slow test_mov04_vertical_slow.c)
+target_link_libraries(blu2usb_test_mov04_vertical_slow PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_movement
+)
+add_test(NAME mov04_vertical_slow_physical_flow COMMAND blu2usb_test_mov04_vertical_slow)
