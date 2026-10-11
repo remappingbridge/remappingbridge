@@ -14,6 +14,8 @@
 #define BLU2USB_MOD06_MOVE_THRESHOLD 24
 #define BLU2USB_MOD06_DOMINANCE_RATIO 2
 #define BLU2USB_MOD06_QUIET_MS 160u
+#define BLU2USB_MOD08_CONSUMER_HOLD_MS 60u
+#define BLU2USB_MOD08_KEYBOARD_HOLD_MS 25u
 
 typedef enum {
     BLU2USB_MOD05_USB_IDLE = 0,
@@ -44,6 +46,9 @@ typedef struct {
     uint8_t queue_head, queue_size;
     blu2usb_mod05_usb_phase_t usb_phase;
     uint8_t running_action;
+    bool usb_time_valid;
+    uint32_t usb_now_ms;
+    uint32_t usb_down_accepted_ms;
     bool running_consumer; /* same FIFO/USB phase, alternate Report ID 2 */
     uint16_t consumer_usage; /* current 16-bit usage, or 0 for key-up */
 } blu2usb_modifier_shortcuts_t;
