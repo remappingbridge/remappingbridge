@@ -45,6 +45,11 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_COMBINATIONS_4] = {{"COMBINATIONS 4 OF 6"," MOD + WHEEL UP IS"," NOT CUSTOMIZED"," MOD + WHEEL DOWN IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
     [BLU2USB_SCREEN_COMBINATIONS_5] = {{"COMBINATIONS 5 OF 6"," MOD + MOVE LEFT IS"," NOT CUSTOMIZED"," MOD + MOVE RIGHT IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
     [BLU2USB_SCREEN_COMBINATIONS_6] = {{"COMBINATIONS 6 OF 6"," MOD + MOVE UP IS"," NOT CUSTOMIZED"," MOD + MOVE DOWN IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
+    [BLU2USB_SCREEN_SHORTCUTS_1] = {{"SHORTCUTS 1-6 OF 30"," COPY"," CUT"," SELECT ALL"," PASTE"," UNDO"," REDO",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_SHORTCUTS_2] = {{"SHORTCUTS 7-12 OF 30"," ESCAPE"," SPACE"," ENTER\\RETURN"," BACKSPACE"," DELETE"," RENAME",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_SHORTCUTS_3] = {{"SHORTCUTS 13-18 OF 30"," FULL SCREEN"," SCREENSHOT FULL"," SCREENSHOT AREA"," REFRESH"," FIND"," SAVE",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_SHORTCUTS_4] = {{"SHORTCUTS 19-24 OF 30"," PLAY\\PAUSE"," NEXT TRACK"," PREVIOUS TRACK"," VOLUME UP"," VOLUME DOWN"," MUTE",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_SHORTCUTS_5] = {{"SHORTCUTS 25-30 OF 30"," HOME SCREEN\\PAGE"," ZOOM IN"," ZOOM OUT"," RESET ZOOM"," BRIGHTNESS UP"," BRIGHTNESS DOWN",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_SEARCHING_FIRST] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
 };
 
@@ -84,6 +89,46 @@ blu2usb_modifier_combo_id_t blu2usb_ux_selected_combination(const blu2usb_ux_mod
     const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
     const unsigned row = ux->selection % BLU2USB_COMBINATIONS_PER_PAGE;
     return (blu2usb_modifier_combo_id_t)(page * BLU2USB_COMBINATIONS_PER_PAGE + row);
+}
+
+bool blu2usb_ux_is_shortcuts_screen(blu2usb_screen_id_t screen)
+{
+    return screen >= BLU2USB_SCREEN_SHORTCUTS_1 &&
+           screen <= BLU2USB_SCREEN_SHORTCUTS_5;
+}
+
+uint8_t blu2usb_ux_selected_shortcut(const blu2usb_ux_model_t *ux)
+{
+    if (ux == NULL || !blu2usb_ux_is_shortcuts_screen(ux->screen))
+        return 0u;
+    return (uint8_t)(
+        1u + (unsigned)(ux->screen - BLU2USB_SCREEN_SHORTCUTS_1) *
+        BLU2USB_SHORTCUTS_PER_PAGE + ux->selection % BLU2USB_SHORTCUTS_PER_PAGE);
+}
+
+const char *blu2usb_ux_shortcut_name(uint8_t shortcut_id)
+{
+    static const char *const names[31] = {
+        "NOT CUSTOMIZED",
+        "COPY", "CUT", "SELECT ALL", "PASTE", "UNDO", "REDO",
+        "ESCAPE", "SPACE", "ENTER\\RETURN", "BACKSPACE", "DELETE", "RENAME",
+        "FULL SCREEN", "SCREENSHOT FULL", "SCREENSHOT AREA", "REFRESH",
+        "FIND", "SAVE", "PLAY\\PAUSE", "NEXT TRACK", "PREVIOUS TRACK",
+        "VOLUME UP", "VOLUME DOWN", "MUTE", "HOME SCREEN\\PAGE",
+        "ZOOM IN", "ZOOM OUT", "RESET ZOOM", "BRIGHTNESS UP", "BRIGHTNESS DOWN"
+    };
+    return shortcut_id <= 30u ? names[shortcut_id] : "?";
+}
+
+void blu2usb_ux_shortcut_committed(blu2usb_ux_model_t *ux,
+    uint8_t combination_id, uint8_t shortcut_id)
+{
+    if (ux == NULL || combination_id >= BLU2USB_MOD_COMBO_COUNT ||
+        shortcut_id > 30u) return;
+    ux->shortcut_assignments[combination_id] = shortcut_id;
+    ux->screen = (blu2usb_screen_id_t)(
+        BLU2USB_SCREEN_COMBINATIONS_1 + combination_id / BLU2USB_COMBINATIONS_PER_PAGE);
+    ux->selection = combination_id % BLU2USB_COMBINATIONS_PER_PAGE;
 }
 
 static bool is_will_become(blu2usb_screen_id_t screen) {
@@ -136,6 +181,12 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_COMBINATIONS_4:
     case BLU2USB_SCREEN_COMBINATIONS_5:
     case BLU2USB_SCREEN_COMBINATIONS_6: return BLU2USB_SCREEN_MOUSE_OPTIONS;
+    case BLU2USB_SCREEN_SHORTCUTS_1:
+    case BLU2USB_SCREEN_SHORTCUTS_2:
+    case BLU2USB_SCREEN_SHORTCUTS_3:
+    case BLU2USB_SCREEN_SHORTCUTS_4:
+    case BLU2USB_SCREEN_SHORTCUTS_5:
+        return (blu2usb_screen_id_t)(BLU2USB_SCREEN_COMBINATIONS_1 + ux->editing_combination / 2u);
     case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_HOME;
     case BLU2USB_SCREEN_REMOVE_THIS: return BLU2USB_SCREEN_SAVED_DEVICES;
     case BLU2USB_SCREEN_SEARCHING_FIRST: return BLU2USB_SCREEN_SEARCHING_FIRST;
@@ -161,6 +212,11 @@ unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_COMBINATIONS_4:
     case BLU2USB_SCREEN_COMBINATIONS_5:
     case BLU2USB_SCREEN_COMBINATIONS_6: return BLU2USB_COMBINATIONS_PER_PAGE;
+    case BLU2USB_SCREEN_SHORTCUTS_1:
+    case BLU2USB_SCREEN_SHORTCUTS_2:
+    case BLU2USB_SCREEN_SHORTCUTS_3:
+    case BLU2USB_SCREEN_SHORTCUTS_4:
+    case BLU2USB_SCREEN_SHORTCUTS_5: return BLU2USB_SHORTCUTS_PER_PAGE;
     case BLU2USB_SCREEN_EDIT_CUSTOM: return 5;
     case BLU2USB_SCREEN_LEFT_WILL_BECOME:
     case BLU2USB_SCREEN_RIGHT_WILL_BECOME:
@@ -193,6 +249,8 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
         ux->saved_movements[m] = blu2usb_movement_defaults();
     memset(ux->movement_dpi_selections, 0, sizeof(ux->movement_dpi_selections));
     ux->custom_dirty = false;
+    memset(ux->shortcut_assignments, 0, sizeof(ux->shortcut_assignments));
+    ux->editing_combination = 0u;
     ux->custom_source = BLU2USB_MOUSE_SOURCE_LEFT;
     ux->custom_targets[BLU2USB_MOUSE_SOURCE_LEFT] = BLU2USB_MOUSE_TARGET_LEFT;
     ux->custom_targets[BLU2USB_MOUSE_SOURCE_RIGHT] = BLU2USB_MOUSE_TARGET_RIGHT;
@@ -544,6 +602,9 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         if (ux->screen == BLU2USB_SCREEN_HOME_SEARCHING) {
             ux->screen = BLU2USB_SCREEN_HOME_RETRY;
             ux->selection = 0u;
+        } else if (blu2usb_ux_is_shortcuts_screen(ux->screen)) {
+            ux->screen = (blu2usb_screen_id_t)(BLU2USB_SCREEN_COMBINATIONS_1 + ux->editing_combination / 2u);
+            ux->selection = ux->editing_combination % 2u;
         } else if (blu2usb_ux_is_combinations_screen(ux->screen)) {
             enter(ux, BLU2USB_SCREEN_MOUSE_OPTIONS);
             ux->selection = 2u; /* Restore MODIFIER SHORTCUTS entry focus. */
@@ -568,13 +629,50 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
             ux->screen = (blu2usb_screen_id_t)(BLU2USB_SCREEN_COMBINATIONS_1 + next);
             return cmd;
         }
-        /* MOD-02: all 12 slots contain NONE.  KEY A RESET is idempotent;
-         * JOY PRESS enters the picker only when MOD-03 provides one.
-         * No pending write, modifier event or HID shortcut is produced. */
-        if (control == BLU2USB_CONTROL_KEY_A ||
-            control == BLU2USB_CONTROL_JOY_PRESS ||
-            control == BLU2USB_CONTROL_KEY_X)
+        if (control == BLU2USB_CONTROL_KEY_A) {
+            const blu2usb_modifier_combo_id_t combo = blu2usb_ux_selected_combination(ux);
+            if (combo < BLU2USB_MOD_COMBO_COUNT && ux->shortcut_assignments[combo] != 0u) {
+                cmd.kind = BLU2USB_UX_COMMAND_RESET_SHORTCUT;
+                cmd.combination_id = (uint8_t)combo;
+            }
             return cmd;
+        }
+        if (control == BLU2USB_CONTROL_JOY_PRESS) {
+            const blu2usb_modifier_combo_id_t combo = blu2usb_ux_selected_combination(ux);
+            if (combo >= BLU2USB_MOD_COMBO_COUNT) return cmd;
+            ux->editing_combination = (uint8_t)combo;
+            const uint8_t assigned = ux->shortcut_assignments[combo];
+            const uint8_t focus_id = assigned == 0u ? 1u : assigned;
+            ux->screen = (blu2usb_screen_id_t)(
+                BLU2USB_SCREEN_SHORTCUTS_1 + (focus_id - 1u) / BLU2USB_SHORTCUTS_PER_PAGE);
+            ux->selection = (focus_id - 1u) % BLU2USB_SHORTCUTS_PER_PAGE;
+            return cmd;
+        }
+        if (control == BLU2USB_CONTROL_KEY_X) return cmd;
+    }
+
+    if (blu2usb_ux_is_shortcuts_screen(ux->screen)) {
+        if (control == BLU2USB_CONTROL_JOY_LEFT ||
+            control == BLU2USB_CONTROL_JOY_RIGHT) {
+            const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_SHORTCUTS_1);
+            const unsigned next = control == BLU2USB_CONTROL_JOY_LEFT
+                ? wrap_prev(page, BLU2USB_SHORTCUTS_PAGE_COUNT)
+                : wrap_next(page, BLU2USB_SHORTCUTS_PAGE_COUNT);
+            const uint8_t assigned = ux->shortcut_assignments[ux->editing_combination];
+            ux->screen = (blu2usb_screen_id_t)(BLU2USB_SCREEN_SHORTCUTS_1 + next);
+            if (assigned > 0u &&
+                (assigned - 1u) / BLU2USB_SHORTCUTS_PER_PAGE == next)
+                ux->selection = (assigned - 1u) % BLU2USB_SHORTCUTS_PER_PAGE;
+            return cmd;
+        }
+        if (control == BLU2USB_CONTROL_KEY_A) {
+            cmd.kind = BLU2USB_UX_COMMAND_SET_SHORTCUT;
+            cmd.combination_id = ux->editing_combination;
+            cmd.shortcut_id = blu2usb_ux_selected_shortcut(ux);
+            return cmd; /* commit-first: remain in editor until flash verifies */
+        }
+        if (control == BLU2USB_CONTROL_JOY_PRESS ||
+            control == BLU2USB_CONTROL_KEY_X) return cmd;
     }
 
     unsigned count = blu2usb_ux_option_count(ux);
