@@ -42,6 +42,7 @@ static void assert_colors(const blu2usb_ui_frame_t *frame,
         for (unsigned c = 0u; c < BLU2USB_RENDERER_TEXT_COLS; ++c) {
             if (frame->cells[r][c].character == ' ') continue;
             blu2usb_ui_tone_t tone = BLU2USB_UI_TONE_STATIC;
+            if (r == 0u) tone = BLU2USB_UI_TONE_TITLE;
             if (r == 1u && name_connected) tone = BLU2USB_UI_TONE_CURRENT;
             if (r == 5u)
                 tone = bond_exists ? BLU2USB_UI_TONE_EMPHASIZED
@@ -50,6 +51,10 @@ static void assert_colors(const blu2usb_ui_frame_t *frame,
             assert(frame->cells[r][c].tone == tone);
         }
     }
+    /* Every screen title, including SAVED DEVICES, must be standard magenta. */
+    assert(frame->cells[0][0].tone == BLU2USB_UI_TONE_TITLE);
+    assert(blu2usb_renderer_tone_rgb565(frame->cells[0][0].tone) ==
+           BLU2USB_COLOR_MAGENTA);
     assert(blu2usb_renderer_tone_rgb565(frame->cells[5][1].tone) ==
            (bond_exists ? BLU2USB_COLOR_WHITE : BLU2USB_COLOR_LIGHT_GRAY));
     assert(blu2usb_renderer_tone_rgb565(frame->cells[7][0].tone) ==
