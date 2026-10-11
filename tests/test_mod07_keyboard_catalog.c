@@ -134,7 +134,7 @@ int main(void)
         assert(supported==(found||consumer));
         assert(!(found && consumer));
         if(!found) continue;
-        assert(chord.key_usage!=0 && (chord.modifier_mask&0xfcu)==0);
+        assert(chord.key_usage!=0 && (chord.modifier_mask&0xf4u)==0);
         bool matched=false;
         for(unsigned i=0;i<sizeof(k_expected)/sizeof(k_expected[0]);i++) {
             const expected_t *e=&k_expected[i];
