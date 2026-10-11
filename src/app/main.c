@@ -529,6 +529,7 @@ int main(void)
     bool last_mouse_valid = false;
     blu2usb_usb_keyboard_report_t last_keyboard = {0};
     bool last_keyboard_valid = false;
+    bool previous_usb_mounted = false;
 
     blu2usb_ux_init(&ux);
     blu2usb_ux_set_mouse_connected(false);
@@ -573,6 +574,15 @@ int main(void)
 
     for (;;) {
         blu2usb_usb_hid_pico_task();
+        const bool usb_mounted = blu2usb_usb_hid_pico_mounted();
+        if (usb_mounted != previous_usb_mounted) {
+            /* USB reset/disconnect discards in-flight keyboard actions and
+             * invalidates last reports from the previous host session. */
+            blu2usb_modifier_shortcuts_cancel(&shortcuts, &aggregator);
+            last_keyboard_valid = false;
+            last_mouse_valid = false;
+            previous_usb_mounted = usb_mounted;
+        }
         const bool ble_ui_changed =
             service_ble_messages(&ux, &aggregator, &shortcuts, &motion, &remap,
                                  &last_mouse_valid, &last_keyboard_valid);
