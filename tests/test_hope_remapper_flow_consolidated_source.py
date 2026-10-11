@@ -16,8 +16,9 @@ assert '" REMAPPED TO STANDARD"' not in renderer
 assert '" REMAPPED TO ESCAPE"' not in renderer
 assert 'return "STANDARD";' not in renderer
 assert 'return "ESCAPE";' not in renderer
-assert "profiles.active_kind = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;" in app
-# Legacy enum names survive only for v2-compatible deserialization and future MOD-03 migration.
-assert "BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP" in app
-assert "BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP" in app
+assert "blu2usb_profiles_restore_any" in app
+profiles=(root/"src/profiles/profiles.c").read_text(encoding="utf-8")
+assert "BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP" in profiles
+assert "BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP" in profiles
+assert "candidate.active_kind = BLU2USB_MOUSE_PROFILE_PASSTHROUGH" in profiles
 print("MOD-01 consolidated remapping flow contracts: OK")
