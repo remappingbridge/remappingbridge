@@ -55,6 +55,7 @@ void blu2usb_modifier_shortcuts_cancel(blu2usb_modifier_shortcuts_t *state,
     state->secondary_used = false;
     state->consumed_buttons = 0u;
     state->physical_buttons = 0u;
+    state->tap_motion = 0u;
     state->queue_head = state->queue_size = 0u;
     state->usb_phase = BLU2USB_MOD05_USB_IDLE;
     state->running_action = 0u;
@@ -126,6 +127,7 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
             if (event->data.button.pressed) {
                 if (!state->modifier_down) {
                     state->modifier_down = true;
+                    state->tap_motion = 0u;
                     state->secondary_used =
                         (state->physical_buttons & (uint8_t)~bit) != 0u;
                 }
@@ -134,6 +136,7 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
                     queue_action(state, state->assignments[0]); /* MODIFIER RELEASED */
                 state->modifier_down = false;
                 state->secondary_used = false;
+                state->tap_motion = 0u;
             }
             return false; /* Never leak physical modifier click */
         }
@@ -167,8 +170,19 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
             (event->data.wheel.vertical || event->data.wheel.horizontal))
             state->secondary_used = true;
         if (event->type == BLU2USB_MOUSE_EVENT_MOVE &&
-            (event->data.move.dx || event->data.move.dy))
-            state->secondary_used = true;
+            (event->data.move.dx || event->data.move.dy)) {
+            /* Raw relative counts, not scaled DPI. A small noise budget
+             * avoids cancelling a clean tap on sensor jitter. This is not
+             * the directional classifier (deferred to MOD-06). */
+            const int32_t x = event->data.move.dx;
+            const int32_t y = event->data.move.dy;
+            const uint32_t movement =
+                (uint32_t)(x < 0 ? -x : x) + (uint32_t)(y < 0 ? -y : y);
+            const uint32_t total = (uint32_t)state->tap_motion + movement;
+            state->tap_motion = (uint8_t)(total > 8u ? 8u : total);
+            if (state->tap_motion >= 8u)
+                state->secondary_used = true;
+        }
     }
     return true;
 }
