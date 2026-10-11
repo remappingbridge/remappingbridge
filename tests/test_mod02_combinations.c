@@ -165,7 +165,7 @@ static void test_lock_and_no_mutations(void)
 
 static void test_inventory_and_stable_ids(void)
 {
-    assert(BLU2USB_SCREEN_COUNT == 40);
+    assert(BLU2USB_SCREEN_COUNT == 45);
     assert(BLU2USB_MOD_COMBO_COUNT == 12);
     assert(BLU2USB_MOD_COMBO_RELEASED == 0);
     assert(BLU2USB_MOD_COMBO_MIDDLE == 1);
