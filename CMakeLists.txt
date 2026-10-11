@@ -62,7 +62,7 @@ add_library(blu2usb_modifier_shortcuts STATIC
     src/modifier_shortcuts/modifier_shortcuts.c
 )
 target_include_directories(blu2usb_modifier_shortcuts PUBLIC include)
-target_link_libraries(blu2usb_modifier_shortcuts PUBLIC blu2usb_hid_aggregator blu2usb_profiles)
+target_link_libraries(blu2usb_modifier_shortcuts PUBLIC blu2usb_hid_aggregator blu2usb_profiles blu2usb_movement)
 
 add_library(blu2usb_storage STATIC src/storage/storage.c)
 target_include_directories(blu2usb_storage PUBLIC include)
