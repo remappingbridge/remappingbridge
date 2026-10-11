@@ -176,10 +176,6 @@ static void home_title(const char *input,
 static const char *home_profile_summary(blu2usb_mouse_profile_kind_t profile)
 {
     switch (profile) {
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP:
-        return " REMAPPED TO STANDARD";
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP:
-        return " REMAPPED TO ESCAPE";
     case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP:
         return " REMAPPED TO CUSTOM";
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH:
@@ -233,8 +229,6 @@ static void set_row_tone(blu2usb_ui_frame_t *frame, uint8_t row, blu2usb_ui_tone
 static const char *saved_profile_name(blu2usb_mouse_profile_kind_t profile)
 {
     switch (profile) {
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return "STANDARD";
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return "ESCAPE";
     case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return "CUSTOM";
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH:
     default: return "PASSTHROUGH";
@@ -394,9 +388,7 @@ static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
     if (ux->screen != BLU2USB_SCREEN_MOUSE_OPTIONS) return 0u;
     switch (ux->active_profile) {
     case BLU2USB_MOUSE_PROFILE_PASSTHROUGH: return 1u;
-    case BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP: return 2u;
-    case BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP: return 3u;
-    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 4u;
+    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP: return 2u;
     default: return 0u;
     }
 }
