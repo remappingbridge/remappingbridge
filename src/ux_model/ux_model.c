@@ -394,7 +394,7 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     if (ux->screen == BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS) {
         const unsigned selection = ux->return_selection;
         enter(ux, BLU2USB_SCREEN_MOUSE_OPTIONS);
-        ux->selection = selection % 4u;
+        ux->selection = selection % 3u;
         return cmd;
     }
 
