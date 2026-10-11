@@ -537,3 +537,8 @@ add_test(NAME mnt03_movement_summary_dpi_only COMMAND blu2usb_test_mnt03_movemen
 # MNT-04 display-only slash contract.
 add_test(NAME mnt04_slash_display_contract
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt04_slash_source.py)
+
+add_executable(blu2usb_test_mnt05_help_lock test_mnt05_help_lock.c)
+target_link_libraries(blu2usb_test_mnt05_help_lock PRIVATE blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt05_help_lock PRIVATE -UNDEBUG)
+add_test(NAME mnt05_all_help_b_back_y_lock COMMAND blu2usb_test_mnt05_help_lock)
