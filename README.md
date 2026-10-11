@@ -4,7 +4,7 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 
 ## Versão estável
 
-**RemappingBridge 3.0.2** — segundo patch na linha v3.x: **MNT-01 e MNT-02 aceitos fisicamente pelo operador**, com correções de cores em Saved Devices e `KEY X: HELP` / KEY Y Lock na tela Remove This. A CI do candidato MNT-02 aprovou **82/82 testes automatizados**; o commit de release será recompilado e validado pelo próprio workflow. Os gates MOD-00 a MOD-10 da v3.0.0 permanecem aceitos. Os aceites gerais não são um registro de PASS individual para cada plataforma/aplicativo.
+**RemappingBridge 3.0.3** — terceiro patch v3.x, com MNT-03 aceito pelo operador: HORIZONTAL DPI e VERTICAL DPI no resumo MOVEMENT OPTIONS exibem fatores sem X. As opções Slow/Fast continuam com x; matemática de ganho e demais funcionalidades permanecem iguais. Candidato MNT-03: 83/83 testes host e build Pico 2 W aprovados; o workflow de release recompila a versão publicada. Os gates MOD-00 a MOD-10 da v3.0.0 permanecem aceitos. Os aceites gerais não são um registro de PASS individual para cada plataforma/aplicativo.
 
 ### Modifier Shortcuts
 - Dois perfis: **PASSTHROUGH** e **CUSTOM**. As opções antigas STANDARD REMAP e ESCAPE REMAP foram removidas da UI.
@@ -19,7 +19,7 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 - Reconexão/pareamento BLE, Saved Devices, Logitech Lift HID++, Help/lock, tela 9×21, wheel/pan e identidade USB estável.
 - Na tela **Saved Devices**, o cabeçalho usa magenta padrão, o nome do mouse ativo é o único texto ciano, os dados do mouse permanecem amarelos, **REMOVE DEVICE** é branco quando acionável e as dicas são cinzas.
 
-Firmware/checksums: [Release v3.0.2](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.0.2). Detalhes: [docs/releases/v3.0.2.md](docs/releases/v3.0.2.md). Histórico: [v3.0.1](docs/releases/v3.0.1.md) e [v3.0.0](docs/releases/v3.0.0.md).
+Firmware/checksums: [Release v3.0.3](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.0.3). Detalhes: [docs/releases/v3.0.3.md](docs/releases/v3.0.3.md). Histórico: [v3.0.2](docs/releases/v3.0.2.md), [v3.0.1](docs/releases/v3.0.1.md) e [v3.0.0](docs/releases/v3.0.0.md).
 
 ## Compatibilidade de atualização
 
