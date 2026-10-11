@@ -9,6 +9,7 @@ static const uint16_t k_usage[31] = {
     [22] = 0x00E9u, /* Volume Increment */
     [23] = 0x00EAu, /* Volume Decrement */
     [24] = 0x00E2u, /* Mute */
+    [25] = 0x0223u, /* AC Home: Android KEYCODE_HOME, not text cursor Home */
     [29] = 0x006Fu, /* Brightness Increment */
     [30] = 0x0070u, /* Brightness Decrement */
 };
