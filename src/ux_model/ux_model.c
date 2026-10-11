@@ -499,7 +499,7 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     blu2usb_interaction_event_t event = blu2usb_interaction_input(&ux->interaction, control, pressed);
     if (event.kind == BLU2USB_INTERACTION_NONE) return cmd;
     if (event.kind == BLU2USB_INTERACTION_UNLOCK) {
-        if (!is_help(ux->screen)) enter(ux, BLU2USB_SCREEN_HOME);
+        enter(ux, BLU2USB_SCREEN_HOME);
         return cmd;
     }
 
