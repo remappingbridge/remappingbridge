@@ -310,24 +310,34 @@ static const char *movement_gain_name(uint8_t quarter)
     }
 }
 
+/* MNT-03: only the Movement Options summary shows a bare DPI factor.
+ * Keep movement_gain_name() unchanged for other projections and contracts.
+ * The source of the numeric mapping is shared, avoiding drift in gains. */
+static void movement_summary_gain_name(uint8_t quarter, char label[7])
+{
+    (void)snprintf(label, 7u, "%s", movement_gain_name(quarter));
+    const size_t len = strlen(label);
+    if (len > 0u && label[len - 1u] == 'X')
+        label[len - 1u] = '\0';
+}
+
 static void project_movement_options(const blu2usb_ux_model_t *ux,
                                      blu2usb_ui_frame_t *frame)
 {
     char line[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    char horizontal[7], vertical[7];
+    movement_summary_gain_name(ux->movement_current.horizontal_quarters, horizontal);
+    movement_summary_gain_name(ux->movement_current.vertical_quarters, vertical);
     clear_row(frame, 1u);
-    (void)snprintf(line, sizeof(line), " HORIZONTAL DPI %s",
-                   movement_gain_name(ux->movement_current.horizontal_quarters));
+    (void)snprintf(line, sizeof(line), " HORIZONTAL DPI %s", horizontal);
     (void)blu2usb_ui_frame_set_text(frame, 1u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
     (void)blu2usb_ui_frame_set_tone_span(frame, 1u, 16u,
-                (uint8_t)strlen(movement_gain_name(ux->movement_current.horizontal_quarters)),
-                BLU2USB_UI_TONE_CURRENT);
+                (uint8_t)strlen(horizontal), BLU2USB_UI_TONE_CURRENT);
     clear_row(frame, 2u);
-    (void)snprintf(line, sizeof(line), " VERTICAL DPI %s",
-                   movement_gain_name(ux->movement_current.vertical_quarters));
+    (void)snprintf(line, sizeof(line), " VERTICAL DPI %s", vertical);
     (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
     (void)blu2usb_ui_frame_set_tone_span(frame, 2u, 14u,
-                (uint8_t)strlen(movement_gain_name(ux->movement_current.vertical_quarters)),
-                BLU2USB_UI_TONE_CURRENT);
+                (uint8_t)strlen(vertical), BLU2USB_UI_TONE_CURRENT);
     clear_row(frame, 4u);
     (void)snprintf(line, sizeof(line), " ROTATION %u-DEGREE",
                    (unsigned)ux->movement_current.rotation_quadrants * 90u);

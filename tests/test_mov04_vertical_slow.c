@@ -146,8 +146,8 @@ static void test_cancel_help_apply_and_axis_independence(void)
     ux.screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
     ux.selection = 1u;
     project(&ux, &frame);
-    assert_row(&frame, 1u, " HORIZONTAL DPI 2X");
-    assert_row(&frame, 2u, " VERTICAL DPI 0.25X");
+    assert_row(&frame, 1u, " HORIZONTAL DPI 2");
+    assert_row(&frame, 2u, " VERTICAL DPI 0.25");
     assert_row(&frame, 4u, " ROTATION 270-DEGREE");
     assert(frame.cells[2][14].tone == BLU2USB_UI_TONE_EMPHASIZED);
     assert(frame.cells[1][16].tone == BLU2USB_UI_TONE_CURRENT);
@@ -170,10 +170,10 @@ static void test_four_vertical_gains_and_fractional_accumulator(void)
 {
     static const uint8_t quarters[4] = {4u, 3u, 2u, 1u};
     static const char *const values[4] = {
-        " VERTICAL DPI 1X",
-        " VERTICAL DPI 0.75X",
-        " VERTICAL DPI 0.5X",
-        " VERTICAL DPI 0.25X"
+        " VERTICAL DPI 1",
+        " VERTICAL DPI 0.75",
+        " VERTICAL DPI 0.5",
+        " VERTICAL DPI 0.25"
     };
     for (unsigned select = 0u; select < 4u; ++select) {
         blu2usb_ux_model_t ux;

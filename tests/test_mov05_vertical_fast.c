@@ -115,8 +115,8 @@ static void test_all_four_gains_and_axis_isolation(void)
 {
     static const uint8_t gains[4] = {5u, 6u, 8u, 12u};
     static const char *const summary[4] = {
-        " VERTICAL DPI 1.25X", " VERTICAL DPI 1.5X",
-        " VERTICAL DPI 2X", " VERTICAL DPI 3X"
+        " VERTICAL DPI 1.25", " VERTICAL DPI 1.5",
+        " VERTICAL DPI 2", " VERTICAL DPI 3"
     };
     for (unsigned desired = 0u; desired < 4u; ++desired) {
         blu2usb_ux_model_t ux;
@@ -141,7 +141,7 @@ static void test_all_four_gains_and_axis_isolation(void)
         ux.screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
         ux.selection = 1u;
         project(&ux, &frame);
-        assert_row(&frame, 1u, " HORIZONTAL DPI 0.75X");
+        assert_row(&frame, 1u, " HORIZONTAL DPI 0.75");
         assert_row(&frame, 2u, summary[desired]);
         assert_row(&frame, 4u, " ROTATION 180-DEGREE");
         assert(frame.cells[2][14].tone == BLU2USB_UI_TONE_EMPHASIZED);

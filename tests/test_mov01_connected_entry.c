@@ -26,8 +26,8 @@ int main(void) {
 
     const blu2usb_screen_template_t *s = blu2usb_ux_screen_template(ux.screen);
     assert(strcmp(s->rows[0], "MOVEMENT OPTIONS") == 0);
-    assert(strcmp(s->rows[1], " HORIZONTAL DPI 1X") == 0);
-    assert(strcmp(s->rows[2], " VERTICAL DPI 1X") == 0);
+    assert(strcmp(s->rows[1], " HORIZONTAL DPI 1") == 0);
+    assert(strcmp(s->rows[2], " VERTICAL DPI 1") == 0);
     assert(strcmp(s->rows[3], " COUNTERCLOCKWISE") == 0);
     assert(strcmp(s->rows[4], " ROTATION 0-DEGREE") == 0);
 

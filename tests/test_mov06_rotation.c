@@ -134,8 +134,8 @@ static void test_four_angles_apply_only_after_storage_and_reset(void)
         ux.screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
         ux.selection = 2u;
         draw(&ux, &frame);
-        expect_row(&frame, 1u, " HORIZONTAL DPI 2X");
-        expect_row(&frame, 2u, " VERTICAL DPI 0.75X");
+        expect_row(&frame, 1u, " HORIZONTAL DPI 2");
+        expect_row(&frame, 2u, " VERTICAL DPI 0.75");
         expect_row(&frame, 4u, titles[angle]);
         assert(frame.cells[4][10].tone == BLU2USB_UI_TONE_EMPHASIZED);
 

@@ -111,8 +111,8 @@ static void test_all_home_routes_and_preserved_preferences(void)
 
         if (option == 1u) {
             draw(&ux, &frame);
-            expect_row(&frame, 1u, " HORIZONTAL DPI 2X");
-            expect_row(&frame, 2u, " VERTICAL DPI 0.75X");
+            expect_row(&frame, 1u, " HORIZONTAL DPI 2");
+            expect_row(&frame, 2u, " VERTICAL DPI 0.75");
             expect_row(&frame, 4u, " ROTATION 270-DEGREE");
         }
         if (option == 2u) {
@@ -240,8 +240,8 @@ static void test_disconnected_search_retry_and_reconnect_route(void)
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS);
     draw(&ux, &frame);
-    expect_row(&frame, 1u, " HORIZONTAL DPI 2X");
-    expect_row(&frame, 2u, " VERTICAL DPI 0.75X");
+    expect_row(&frame, 1u, " HORIZONTAL DPI 2");
+    expect_row(&frame, 2u, " VERTICAL DPI 0.75");
     expect_row(&frame, 4u, " ROTATION 270-DEGREE");
 }
 
