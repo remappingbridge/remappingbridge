@@ -4,7 +4,7 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 
 ## Versão estável
 
-**RemappingBridge 3.0.0** — Modifier Shortcuts, sucessor da v2.0.0. Os gates **MOD-00 a MOD-10 foram aceitos pelo operador**; a CI de qualificação do MOD-10 passou em **80/80 testes automatizados**. Os aceites gerais não são um registro de PASS individual para cada plataforma/aplicativo.
+**RemappingBridge 3.0.1** — primeira manutenção PATCH sobre a v3.0.0, com o **MNT-01 aceito fisicamente pelo operador**. A CI do candidato MNT-01 passou em **81/81 testes automatizados**, e o commit de release deverá repetir essa qualificação. Os gates MOD-00 a MOD-10 da v3.0.0 permanecem aceitos. Os aceites gerais não são um registro de PASS individual para cada plataforma/aplicativo.
 
 ### Modifier Shortcuts
 - Dois perfis: **PASSTHROUGH** e **CUSTOM**. As opções antigas STANDARD REMAP e ESCAPE REMAP foram removidas da UI.
@@ -17,9 +17,9 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 ### Funcionalidades preservadas da v2
 - **Movement Options**: ganho horizontal e vertical independentes, rotação 0°/90°/180°/270° e Movement per Mouse Bluetooth.
 - Reconexão/pareamento BLE, Saved Devices, Logitech Lift HID++, Help/lock, tela 9×21, wheel/pan e identidade USB estável.
-- Apenas o **nome do mouse ativo** aparece em ciano na tela Saved Devices.
+- Na tela **Saved Devices**, o cabeçalho usa magenta padrão, o nome do mouse ativo é o único texto ciano, os dados do mouse permanecem amarelos, **REMOVE DEVICE** é branco quando acionável e as dicas são cinzas.
 
-Firmware/checksums: [Release v3.0.0](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.0.0). Detalhes: [docs/releases/v3.0.0.md](docs/releases/v3.0.0.md).
+Firmware/checksums: [Release v3.0.1](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.0.1) (publicação após CI final). Detalhes: [docs/releases/v3.0.1.md](docs/releases/v3.0.1.md). Histórico principal: [v3.0.0](docs/releases/v3.0.0.md).
 
 ## Compatibilidade de atualização
 
@@ -30,7 +30,7 @@ Os efeitos de alguns atalhos são dependentes do host. Em particular, **zoom no 
 ## Fontes normativas
 
 1. [Modifier Shortcuts — planner, gates MOD-00..MOD-10](https://github.com/remappingbridge/planner/tree/main/modifier-shortcuts), contrato aprovado da v3.
-2. [Contrato do lançamento v3.0.0](docs/releases/v3.0.0.md).
+2. [Manutenção v3.x / MNT-01](https://github.com/remappingbridge/planner/tree/main/v3-maintenance) e [notas v3.0.1](docs/releases/v3.0.1.md); [contrato v3.0.0](docs/releases/v3.0.0.md) como baseline.
 3. [Movement Options — planner](https://github.com/remappingbridge/planner/tree/main/movement-options), funcionalidades herdadas da v2.
 4. [Release v2.0.0](docs/releases/v2.0.0.md) e documentação de telas anteriores, quando não revogadas pela v3.
 
