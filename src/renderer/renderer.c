@@ -404,19 +404,6 @@ static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
     }
 }
 
-static uint8_t custom_target_row(blu2usb_mouse_target_t target)
-{
-    switch (target) {
-    case BLU2USB_MOUSE_TARGET_LEFT: return 1u;
-    case BLU2USB_MOUSE_TARGET_RIGHT: return 2u;
-    case BLU2USB_MOUSE_TARGET_MIDDLE: return 3u;
-    case BLU2USB_MOUSE_TARGET_FORWARD: return 4u;
-    case BLU2USB_MOUSE_TARGET_BACKWARD: return 5u;
-    case BLU2USB_MOUSE_TARGET_MODIFIER: return 6u;
-    default: return 1u;
-    }
-}
-
 static bool row_has_control(const char *row, blu2usb_control_t control)
 {
     if (row == NULL) return false;
@@ -539,7 +526,7 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
             (void)snprintf(combo_value_text, sizeof(combo_value_text), " %s", name);
             text = combo_value_text;
         }
-        if (custom_feedback && row == 8u) text = "";
+        if (custom_feedback && row == 8u) text = "KEY B: BACK";
         blu2usb_ui_tone_t tone;
         if (row == 0) tone = BLU2USB_UI_TONE_TITLE;
         else if (searching_first && (row == 1u || row == 2u))
@@ -571,11 +558,8 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     const uint8_t profile_row = active_profile_row(ux);
     if (profile_row != 0u) set_row_tone(frame, profile_row, BLU2USB_UI_TONE_CURRENT);
 
-    if (ux->screen >= BLU2USB_SCREEN_LEFT_WILL_BECOME && ux->screen <= BLU2USB_SCREEN_BACKWARD_WILL_BECOME) {
-        const uint8_t current_row =
-            custom_target_row(ux->custom_targets[ux->custom_source]);
-        set_row_tone(frame, current_row, BLU2USB_UI_TONE_CURRENT);
-    }
+    /* WILL BECOME option colors are exclusively rebuilt in
+     * profile_feedback.c after the renderer's generic selection pass. */
 
     if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS)
         project_movement_options(ux, frame);
