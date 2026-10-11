@@ -74,7 +74,7 @@ static void test_key_x_opens_help_and_back_preserves_bond(void)
     assert(ux.remove_target_bond==old_bond);
     assert(ux.saved_page==old_page);
     screen_row(&ux,0,"REMOVE MOUSE HELP");
-    screen_row(&ux,8,"ANY KEY: BACK"); /* MNT-05 owns a future revision */
+    screen_row(&ux,8,"KEY B: BACK"); /* MNT-05 owns a future revision */
     assert(tap(&ux,BLU2USB_CONTROL_KEY_B).kind==BLU2USB_UX_COMMAND_NONE);
     assert(ux.screen==BLU2USB_SCREEN_REMOVE_THIS);
     assert(ux.remove_target_bond==old_bond && ux.saved_page==old_page);
@@ -124,7 +124,7 @@ static void test_other_help_remains_unchanged(void)
     blu2usb_ux_init(&ux);
     tap(&ux,BLU2USB_CONTROL_KEY_X);
     assert(ux.screen==BLU2USB_SCREEN_HELP_HOME_CONNECTED);
-    screen_row(&ux,8,"ANY KEY: BACK");
+    screen_row(&ux,8,"KEY B: BACK");
     tap(&ux,BLU2USB_CONTROL_KEY_B);
     assert(ux.screen==BLU2USB_SCREEN_HOME);
 }
