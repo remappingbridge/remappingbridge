@@ -526,3 +526,10 @@ target_link_libraries(blu2usb_test_mnt02_remove_this_key_x_help PRIVATE
 target_compile_options(blu2usb_test_mnt02_remove_this_key_x_help PRIVATE -UNDEBUG)
 add_test(NAME mnt02_remove_this_key_x_help_and_y_lock
     COMMAND blu2usb_test_mnt02_remove_this_key_x_help)
+
+# MNT-03: the Movement Options H/V summary omits "x" without changing DPI
+# selector captions, mathematical quarter gains, or saved-device projection.
+add_executable(blu2usb_test_mnt03_movement_summary_dpi test_mnt03_movement_summary_dpi.c)
+target_link_libraries(blu2usb_test_mnt03_movement_summary_dpi PRIVATE blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt03_movement_summary_dpi PRIVATE -UNDEBUG)
+add_test(NAME mnt03_movement_summary_dpi_only COMMAND blu2usb_test_mnt03_movement_summary_dpi)
