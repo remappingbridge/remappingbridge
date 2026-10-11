@@ -378,9 +378,7 @@ static void emphasize_row(blu2usb_ui_frame_t *frame, uint8_t row)
 
 static bool is_success_feedback(blu2usb_screen_id_t screen)
 {
-    return screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED ||
-           screen == BLU2USB_SCREEN_DEFAULT_APPLIED ||
-           screen == BLU2USB_SCREEN_ESCAPE_APPLIED;
+    return screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED;
 }
 
 static uint8_t active_profile_row(const blu2usb_ux_model_t *ux)
