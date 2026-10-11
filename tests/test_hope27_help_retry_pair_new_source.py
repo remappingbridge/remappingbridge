@@ -9,7 +9,7 @@ app = (root / "src/app/main.c").read_text(encoding="utf-8")
 assert "BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW" in ux_h
 assert '"MOUSE NOT FOUND HELP"' in ux
 assert '"KEY B TO BACK UNTIL"' in ux
-assert '"ANY KEY: BACK"' in ux
+assert '"KEY B: BACK"' in ux
 
 # The explanatory KEY-prefixed prose must never drive hint detection.
 assert "ux->screen == BLU2USB_SCREEN_HELP_RETRY_PAIR_NEW" in renderer

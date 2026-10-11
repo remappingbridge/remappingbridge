@@ -11,9 +11,9 @@ assert '"MOUSE NAVIGATE TO:"' in ux
 assert '"STEP 2. REMOVE DEVICE"' in ux
 assert '"STEP 1. SAVED DEVICES"' in ux
 assert '"STEP 3. KEY A: REMOVE"' in ux
-assert '"ANY KEY: BACK"' in ux
+assert '"KEY B: BACK"' in ux
 
-# Help owns Y through generic Help semantics and cannot reach global lock.
+# Help routes Y to the global interaction lock, preserving its return target.
 assert "screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED" in ux
 assert "ux->return_selection = ux->selection;" in ux
 assert "enter(ux, BLU2USB_SCREEN_HELP_HOME_CONNECTED);" in ux
