@@ -192,20 +192,6 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
                           mouse_valid, keyboard_valid))
             confirm_applied_profile(ux, profiles);
         break;
-    case BLU2USB_UX_COMMAND_APPLY_DEFAULT:
-        if (blu2usb_profiles_build_preset(BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP,
-                                          profiles, &candidate) &&
-            apply_profile(profiles, remap, aggregator, &candidate,
-                          mouse_valid, keyboard_valid))
-            confirm_applied_profile(ux, profiles);
-        break;
-    case BLU2USB_UX_COMMAND_APPLY_ESCAPE:
-        if (blu2usb_profiles_build_preset(BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP,
-                                          profiles, &candidate) &&
-            apply_profile(profiles, remap, aggregator, &candidate,
-                          mouse_valid, keyboard_valid))
-            confirm_applied_profile(ux, profiles);
-        break;
     case BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET: {
         const blu2usb_profiles_t previous = *profiles;
         if (blu2usb_profiles_draft_set(profiles, command.source, command.target) &&
@@ -377,14 +363,6 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                     ux->return_selection = 0u;
                 } else if (ux->screen == BLU2USB_SCREEN_PASSTHROUGH_APPLIED) {
                     ux->screen = BLU2USB_SCREEN_APPLY_PASSTHROUGH;
-                    ux->selection = 0u;
-                    ui_changed = true;
-                } else if (ux->screen == BLU2USB_SCREEN_DEFAULT_APPLIED) {
-                    ux->screen = BLU2USB_SCREEN_APPLY_DEFAULT;
-                    ux->selection = 0u;
-                    ui_changed = true;
-                } else if (ux->screen == BLU2USB_SCREEN_ESCAPE_APPLIED) {
-                    ux->screen = BLU2USB_SCREEN_APPLY_ESCAPE;
                     ux->selection = 0u;
                     ui_changed = true;
                 }
