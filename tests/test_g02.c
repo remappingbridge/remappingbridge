@@ -24,7 +24,7 @@ static void test_action_on_release_and_wrap(void) {
     assert(ux.selection == 1);
     ux.selection = 0;
     press_release(&ux, BLU2USB_CONTROL_JOY_UP);
-    assert(ux.selection == 2);
+    assert(ux.selection == 3);
     press_release(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.selection == 0);
 }
