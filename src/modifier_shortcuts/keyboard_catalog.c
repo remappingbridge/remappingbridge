@@ -5,7 +5,7 @@
 /* Standard HID Keyboard/Keypad usage page 0x07.
  * REDO, screenshots, REFRESH and zoom are Linux desktop/application
  * conventions, not firmware claims of OS-wide cross-platform actions.
- * Keypad +/- avoid relying on the US-layout Shift+= position. */
+ * Obsidian/Electron uses main-row +/-; keypad variants are not universal. */
 enum {
     KEY_A = 0x04u, KEY_C = 0x06u, KEY_F = 0x09u,
     KEY_R = 0x15u, KEY_S = 0x16u, KEY_V = 0x19u,
@@ -13,11 +13,12 @@ enum {
     KEY_ENTER = 0x28u, KEY_ESCAPE = 0x29u,
     KEY_BACKSPACE = 0x2au, KEY_SPACE = 0x2cu,
     KEY_F2 = 0x3bu, KEY_F11 = 0x44u,
-    KEY_PRINT_SCREEN = 0x46u, KEY_HOME = 0x4au,
+    KEY_PRINT_SCREEN = 0x46u, KEY_EQUAL = 0x2eu,
+    KEY_MINUS = 0x2du,
     KEY_DELETE_FORWARD = 0x4cu,
-    KEY_KP_MINUS = 0x56u, KEY_KP_PLUS = 0x57u
+    KEY_UNUSED = 0xffu
 };
-enum { MOD_CTRL = 0x01u, MOD_SHIFT = 0x02u };
+enum { MOD_CTRL = 0x01u, MOD_SHIFT = 0x02u, MOD_META = 0x08u };
 
 static const blu2usb_keyboard_shortcut_t k_keyboard[31] = {
     [1] = {KEY_C, MOD_CTRL},          /* COPY */
@@ -34,14 +35,13 @@ static const blu2usb_keyboard_shortcut_t k_keyboard[31] = {
     [12] = {KEY_F2, 0u},             /* RENAME in many file managers */
     [13] = {KEY_F11, 0u},            /* FULL SCREEN in browsers */
     [14] = {KEY_PRINT_SCREEN, 0u},  /* SCREENSHOT FULL */
-    [15] = {KEY_PRINT_SCREEN, MOD_SHIFT}, /* SCREENSHOT AREA */
+    [15] = {KEY_PRINT_SCREEN, MOD_SHIFT | MOD_META}, /* SCREENSHOT AREA */
     [16] = {KEY_R, MOD_CTRL},        /* REFRESH */
     [17] = {KEY_F, MOD_CTRL},        /* FIND */
     [18] = {KEY_S, MOD_CTRL},        /* SAVE */
     /* 19..24: Consumer Media/Volume; intentionally NOT keyboard. */
-    [25] = {KEY_HOME, 0u},          /* HOME PAGE, not Show Desktop */
-    [26] = {KEY_KP_PLUS, MOD_CTRL}, /* ZOOM IN (browser/application) */
-    [27] = {KEY_KP_MINUS, MOD_CTRL},/* ZOOM OUT */
+    [26] = {KEY_EQUAL, MOD_CTRL | MOD_SHIFT}, /* ZOOM IN (browser/application) */
+    [27] = {KEY_MINUS, MOD_CTRL},/* ZOOM OUT */
     [28] = {KEY_0, MOD_CTRL},       /* RESET ZOOM */
     /* 29..30: Consumer Brightness; intentionally NOT keyboard. */
 };
