@@ -105,8 +105,8 @@ static bool same_profile_config(const blu2usb_mouse_profile_config_t *left,
 
 static bool persist_profiles(const blu2usb_profiles_t *profiles)
 {
-    uint8_t payload[BLU2USB_PROFILE_SERIALIZED_SIZE];
-    return blu2usb_profiles_serialize(profiles, payload) &&
+    uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
+    return blu2usb_profiles_serialize_v3(profiles, payload) &&
            blu2usb_storage_store(payload, sizeof(payload));
 }
 
@@ -114,9 +114,17 @@ static bool restore_profiles(blu2usb_profiles_t *profiles)
 {
     uint8_t payload[BLU2USB_STORAGE_MAX_PAYLOAD_SIZE];
     size_t payload_size = 0u;
-    if (!blu2usb_storage_load(payload, sizeof(payload), &payload_size) ||
-        payload_size != BLU2USB_PROFILE_SERIALIZED_SIZE) return false;
-    return blu2usb_profiles_restore(profiles, payload);
+    if (!blu2usb_storage_load(payload, sizeof(payload), &payload_size)) return false;
+    blu2usb_profiles_t candidate;
+    bool migrate = false;
+    if (!blu2usb_profiles_restore_any(&candidate, payload, payload_size, &migrate))
+        return false; /* Unknown/corrupt payload is never overwritten here. */
+    if (migrate && !persist_profiles(&candidate)) {
+        /* A failed migration leaves existing flash intact and a safe
+         * in-RAM interpretation of v2. Retrying may occur on next boot. */
+    }
+    *profiles = candidate;
+    return true;
 }
 
 static void synchronize_ux_profiles(blu2usb_ux_model_t *ux,
@@ -125,6 +133,8 @@ static void synchronize_ux_profiles(blu2usb_ux_model_t *ux,
     if (ux == NULL || profiles == NULL) return;
     ux->active_profile = profiles->active_kind;
     ux->custom_dirty = profiles->draft_valid;
+    memcpy(ux->shortcut_assignments, profiles->shortcuts,
+           sizeof(ux->shortcut_assignments));
     for (unsigned source = 0u; source < BLU2USB_MOUSE_SOURCE_COUNT; ++source) {
         ux->custom_targets[source] = profiles->draft_valid
             ? profiles->draft_targets[source]
@@ -185,6 +195,19 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
 {
     blu2usb_mouse_profile_config_t candidate;
     switch (command.kind) {
+    case BLU2USB_UX_COMMAND_SET_SHORTCUT:
+    case BLU2USB_UX_COMMAND_RESET_SHORTCUT: {
+        const uint8_t id = command.kind == BLU2USB_UX_COMMAND_RESET_SHORTCUT
+            ? 0u : command.shortcut_id;
+        const blu2usb_profiles_t previous = *profiles;
+        if (blu2usb_profiles_set_shortcut(profiles, command.combination_id, id) &&
+            persist_profiles(profiles)) {
+            blu2usb_ux_shortcut_committed(ux, command.combination_id, id);
+        } else {
+            *profiles = previous; /* stay in editor / do not show saved */
+        }
+        break;
+    }
     case BLU2USB_UX_COMMAND_APPLY_PASSTHROUGH:
         if (blu2usb_profiles_build_preset(BLU2USB_MOUSE_PROFILE_PASSTHROUGH,
                                           profiles, &candidate) &&
@@ -486,12 +509,9 @@ int main(void)
     blu2usb_hid_aggregator_init(&aggregator);
     blu2usb_profiles_init(&profiles);
     (void)restore_profiles(&profiles);
-    /* MOD-01 compatibility: retired v2 preset values are decoded but no
-     * longer activated.  Normalize in RAM only; the v2 flash payload and
-     * BLE/movement records remain untouched for MOD-03 migration. */
-    if (profiles.active_kind == BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP ||
-        profiles.active_kind == BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP)
-        profiles.active_kind = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
+    /* MOD-03: v2 decoder migrated retired presets and custom ESCAPE to safe
+     * values, including verified v3 flash write when available. No BLE or
+     * Movement sectors are touched. */
     synchronize_ux_profiles(&ux, &profiles);
 
     blu2usb_remap_init(&remap);
