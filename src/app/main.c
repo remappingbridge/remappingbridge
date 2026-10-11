@@ -501,6 +501,13 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                     ux != NULL ? ux->movement_current : blu2usb_movement_defaults(),
                     to_ms_since_boot(get_absolute_time()), &forwarded))
                 break;
+            if (forwarded.source.kind == BLU2USB_HID_SOURCE_SYNTHETIC_SHORTCUT &&
+                forwarded.source.instance == 2u) {
+                /* Selection rectangle click is already a final LEFT action.
+                 * Going through Custom remap would map it back to MODIFIER. */
+                (void)blu2usb_hid_aggregator_apply_mouse(aggregator, &forwarded);
+                break;
+            }
             blu2usb_remap_result_t mapped;
             if (!blu2usb_remap_process_mouse(remap, &forwarded, &mapped)) break;
             if (mapped.has_mouse)
