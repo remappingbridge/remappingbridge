@@ -15,7 +15,7 @@ assert "int remove_target_bond;" in ux_h
 assert "bool remove_pending;" in ux_h
 assert "int saved_bond;" in ux_h
 assert "blu2usb_ux_saved_page_for_bond" in ux_h
-assert '"REMOVE THIS MOUSE","UNKNOWN MOUSE","SAVED PAIRING AND","PREFERENCES WILL","BE DELETED.",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY Y: HELP"' in ux
+assert '"REMOVE THIS MOUSE","UNKNOWN MOUSE","SAVED PAIRING AND","PREFERENCES WILL","BE DELETED.",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY X: HELP"' in ux
 assert "case BLU2USB_SCREEN_REMOVE_THIS: return BLU2USB_SCREEN_SAVED_DEVICES;" in ux
 assert "ux->remove_target_bond =" in ux
 assert "blu2usb_ux_saved_page_for_bond" in ux
