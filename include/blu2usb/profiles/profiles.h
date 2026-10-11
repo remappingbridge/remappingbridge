@@ -48,6 +48,8 @@ bool blu2usb_profiles_serialize_v3(const blu2usb_profiles_t *profiles,
     uint8_t out[BLU2USB_PROFILE_V3_SERIALIZED_SIZE]);
 bool blu2usb_profiles_restore_any(blu2usb_profiles_t *profiles,
     const uint8_t *data, size_t length, bool *migrated_v2);
+blu2usb_mouse_source_t blu2usb_profiles_modifier_source(const blu2usb_mouse_target_t targets[BLU2USB_MOUSE_SOURCE_COUNT]);
+bool blu2usb_profiles_is_shortcut_unavailable(const blu2usb_profiles_t *profiles, unsigned combination_id);
 bool blu2usb_profiles_set_shortcut(blu2usb_profiles_t *profiles,
     unsigned combo_id, uint8_t shortcut_id);
 const char *blu2usb_profiles_target_name(blu2usb_mouse_target_t target);
