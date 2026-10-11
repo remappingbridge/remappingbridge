@@ -28,7 +28,7 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_FORWARD_WILL_BECOME] = {{"FORWARD WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," FORWARD"," BACKWARD"," MODIFIER",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_BACKWARD_WILL_BECOME] = {{"BACKWARD WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," FORWARD"," BACKWARD"," MODIFIER",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_SAVED_DEVICES] = {{"0 OF 0","UNKNOWN MOUSE","PROFILE: PASSTHROUGH","DPI: H 1 - V 1","ROTATION: 0 DEGREE"," REMOVE DEVICE",EMPTY,"JOY RIGHT\\LEFT: PAGE","JOY PRESS: ACCESS"},DYN(0)|DYN(1)|DYN(2)|DYN(3)|DYN(4)},
-    [BLU2USB_SCREEN_REMOVE_THIS] = {{"REMOVE THIS MOUSE","UNKNOWN MOUSE","SAVED PAIRING AND","PREFERENCES WILL","BE DELETED.",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY Y: HELP"},DYN(1)},
+    [BLU2USB_SCREEN_REMOVE_THIS] = {{"REMOVE THIS MOUSE","UNKNOWN MOUSE","SAVED PAIRING AND","PREFERENCES WILL","BE DELETED.",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY X: HELP"},DYN(1)},
     [BLU2USB_SCREEN_HELP_REMOVE_THIS] = {{"REMOVE MOUSE HELP","COMPLETELY REMOVE THE","AUTOMATIC CONNECTION","WHEN TURNING ON THE","DEVICE AND DELETE ITS","BUTTON REMAPPING AND","CUSTOM MOVEMENTS",EMPTY,"ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_MOVEMENT_OPTIONS] = {{"MOVEMENT OPTIONS"," HORIZONTAL DPI 1X"," VERTICAL DPI 1X"," COUNTERCLOCKWISE"," ROTATION 0-DEGREE",EMPTY,"JOY PRESS: ACCESS","KEY A: RESET ALL","KEY B: BACK"},0},
     [BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI] = {{"HORIZONTAL SLOW DPI"," NORMAL        1x"," SLIGHTLY SLOW 0.75x"," SLOW          0.5x"," VERY SLOW     0.25x","","JOY LEFT\\RIGHT: PAGE","KEY A: APPLY AND BACK","KEY X: HELP SLOW DPI"},0},
@@ -612,8 +612,11 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     }
 
     if (ux->screen == BLU2USB_SCREEN_REMOVE_THIS &&
-        control == BLU2USB_CONTROL_KEY_Y &&
+        control == BLU2USB_CONTROL_KEY_X &&
         !ux->remove_pending) {
+        /* MNT-02: the displayed KEY X: HELP really opens Help.
+         * Keep the logical bond pinned; Help must never issue REMOVE_MOUSE.
+         * Only the upcoming MNT-05 changes the global ANY KEY: BACK rule. */
         ux->return_screen = BLU2USB_SCREEN_REMOVE_THIS;
         ux->return_selection = ux->selection;
         enter(ux, BLU2USB_SCREEN_HELP_REMOVE_THIS);
@@ -621,8 +624,11 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
     }
 
     if (ux->screen == BLU2USB_SCREEN_REMOVE_THIS &&
-        control == BLU2USB_CONTROL_KEY_Y && ux->remove_pending) {
-        /* Pending removal disables Help and must not invoke global Lock. */
+        ux->remove_pending &&
+        (control == BLU2USB_CONTROL_KEY_X ||
+         control == BLU2USB_CONTROL_KEY_Y)) {
+        /* Pending BLE removal suppresses new Help AND Lock transactions.
+         * KEY Y otherwise reaches the existing global Lock handler. */
         return cmd;
     }
 

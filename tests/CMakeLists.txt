@@ -516,3 +516,13 @@ target_link_libraries(blu2usb_test_mnt01_saved_devices_colors PRIVATE
 target_compile_options(blu2usb_test_mnt01_saved_devices_colors PRIVATE -UNDEBUG)
 add_test(NAME mnt01_saved_devices_implicit_selection_gray_hints
     COMMAND blu2usb_test_mnt01_saved_devices_colors)
+
+# MNT-02 / HF-02 + HF-03: Remove This KEY X Help and KEY Y Lock
+# Atomic UX copy + runtime, with pending BLE deletion and Help regressions.
+add_executable(blu2usb_test_mnt02_remove_this_key_x_help
+    test_mnt02_remove_this_key_x_help.c)
+target_link_libraries(blu2usb_test_mnt02_remove_this_key_x_help PRIVATE
+    blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt02_remove_this_key_x_help PRIVATE -UNDEBUG)
+add_test(NAME mnt02_remove_this_key_x_help_and_y_lock
+    COMMAND blu2usb_test_mnt02_remove_this_key_x_help)

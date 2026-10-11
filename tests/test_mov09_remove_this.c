@@ -93,7 +93,7 @@ static void test_cancel_preserves_logical_target_page_and_values(void)
         "",
         "KEY A: REMOVE",
         "KEY B: CANCEL",
-        "KEY Y: HELP"
+        "KEY X: HELP"
     };
     for (unsigned i = 0; i < 9; ++i)
         expect_row(&frame, i, rows[i]);
@@ -102,14 +102,14 @@ static void test_cancel_preserves_logical_target_page_and_values(void)
     assert(ux.saved_movements[1].horizontal_quarters == 8u);
     assert(ux.saved_movements[2].horizontal_quarters == 5u);
 
-    /* Help is not a global lock; any key returns to this exact bond. */
-    tap(&ux, BLU2USB_CONTROL_KEY_Y);
+    /* MNT-02: KEY X opens Help; any key still returns to same bond. */
+    tap(&ux, BLU2USB_CONTROL_KEY_X);
     assert(ux.screen == BLU2USB_SCREEN_HELP_REMOVE_THIS);
     frame_for(&ux, &frame);
     expect_row(&frame, 0u, "REMOVE MOUSE HELP");
     expect_row(&frame, 6u, "CUSTOM MOVEMENTS");
     expect_row(&frame, 8u, "ANY KEY: BACK");
-    tap(&ux, BLU2USB_CONTROL_KEY_Y);
+    tap(&ux, BLU2USB_CONTROL_KEY_X);
     assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
     assert(!blu2usb_interaction_is_locked(&ux.interaction));
     assert(ux.remove_target_bond == 0);

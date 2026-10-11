@@ -55,7 +55,7 @@ static void test_help_layout(void)
     blu2usb_ui_frame_t frame;
     init_remove_this(&ux);
 
-    (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
     assert(ux.screen == BLU2USB_SCREEN_HELP_REMOVE_THIS);
     assert(ux.return_screen == BLU2USB_SCREEN_REMOVE_THIS);
     assert(ux.remove_target_bond == 0);
@@ -82,6 +82,7 @@ static void test_any_key_returns_without_locking(void)
         BLU2USB_CONTROL_JOY_PRESS,
         BLU2USB_CONTROL_KEY_A,
         BLU2USB_CONTROL_KEY_B,
+        BLU2USB_CONTROL_KEY_X,
         BLU2USB_CONTROL_KEY_Y,
         BLU2USB_CONTROL_KEY_Y,
     };
@@ -89,7 +90,7 @@ static void test_any_key_returns_without_locking(void)
     for (unsigned i = 0u; i < sizeof(controls) / sizeof(controls[0]); ++i) {
         blu2usb_ux_model_t ux;
         init_remove_this(&ux);
-        (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
+        (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
         assert(ux.screen == BLU2USB_SCREEN_HELP_REMOVE_THIS);
 
         const int target = ux.remove_target_bond;
@@ -108,7 +109,7 @@ static void test_help_preserves_pinned_target_across_reorder(void)
     blu2usb_ux_model_t ux;
     blu2usb_ui_frame_t frame;
     init_remove_this(&ux);
-    (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
     assert(ux.screen == BLU2USB_SCREEN_HELP_REMOVE_THIS);
 
     /* A background reconnect may reorder Saved Devices while Help is open. */
@@ -116,7 +117,7 @@ static void test_help_preserves_pinned_target_across_reorder(void)
     assert(ux.saved_page == 0u);
     assert(ux.remove_target_bond == 0);
 
-    (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
     assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
     assert(ux.remove_target_bond == 0);
     assert(!blu2usb_interaction_is_locked(&ux.interaction));
@@ -140,8 +141,23 @@ static void test_help_not_entered_after_remove_started(void)
     assert(remove.kind == BLU2USB_UX_COMMAND_REMOVE_MOUSE);
     assert(ux.remove_pending);
 
-    (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
     assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
+    assert(!blu2usb_interaction_is_locked(&ux.interaction));
+}
+
+static void test_key_y_is_lock_not_help(void)
+{
+    blu2usb_ux_model_t ux;
+    init_remove_this(&ux);
+    assert(!ux.remove_pending);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
+    assert(blu2usb_interaction_is_locked(&ux.interaction));
+    assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
+    assert(ux.remove_target_bond == 0);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_B); /* unlock event consumed */
+    assert(!blu2usb_interaction_is_locked(&ux.interaction));
+    assert(ux.screen == BLU2USB_SCREEN_HOME);
 }
 
 int main(void)
@@ -150,5 +166,6 @@ int main(void)
     test_any_key_returns_without_locking();
     test_help_preserves_pinned_target_across_reorder();
     test_help_not_entered_after_remove_started();
+    test_key_y_is_lock_not_help();
     return 0;
 }

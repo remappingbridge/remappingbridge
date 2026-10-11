@@ -8,13 +8,15 @@ assert "BLU2USB_SCREEN_HELP_REMOVE_THIS" in ux_h
 assert '"REMOVE MOUSE HELP","COMPLETELY REMOVE THE","AUTOMATIC CONNECTION","WHEN TURNING ON THE","DEVICE AND DELETE ITS","BUTTON REMAPPING AND","CUSTOM MOVEMENTS",EMPTY,"ANY KEY: BACK"' in ux
 assert "screen == BLU2USB_SCREEN_HELP_REMOVE_THIS" in ux
 assert "case BLU2USB_SCREEN_HELP_REMOVE_THIS: return ux->return_screen;" in ux
-assert "control == BLU2USB_CONTROL_KEY_Y" in ux
+assert "control == BLU2USB_CONTROL_KEY_X" in ux
+assert '"KEY B: CANCEL","KEY X: HELP"' in ux
 assert "!ux->remove_pending" in ux
 assert "ux->return_screen = BLU2USB_SCREEN_REMOVE_THIS;" in ux
 assert "enter(ux, BLU2USB_SCREEN_HELP_REMOVE_THIS);" in ux
 
-# Generic Help handling executes before global KEY Y lock handling, so every
-# complete HAT control returns from Help and KEY Y cannot lock this screen.
+# MNT-02 changes the way Remove This OPENS help, but not Help internals:
+# existing Any Key return still executes before the global KEY Y lock
+# handler. Only MNT-05 changes global Help exit/lock semantics.
 help_pos = ux.index("if (is_help(ux->screen))")
 lock_pos = ux.index("control == BLU2USB_CONTROL_KEY_Y && lock_allowed")
 assert help_pos < lock_pos
