@@ -39,6 +39,12 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_HELP_SLOW_DPI] = {{"SLOW DPI HELP","SLOWER DPI POINTER","ARE RECOMMENDED","FOR MOVEMENTS THAT","REQUIRE GREATER","SENSITIVITY AND","PRECISION","","ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_HELP_FAST_DPI] = {{"FAST DPI HELP","FASTER DPI POINTER","IS RECOMMENDED FOR","HIGH-RESOLUTION","DESKTOP AND","WIDESCREEN","ENVIRONMENTS","","ANY KEY: BACK"},0},
     [BLU2USB_SCREEN_HELP_ROTATION] = {{"ROTATION HELP","MOUSE MOVEMENT","CHANGES DIRECTION","EVERY 90 DEGREES","FROM THE PREVIOUS","DIRECTION","ANTICLOCKWISE","","ANY KEY: BACK"},0},
+    [BLU2USB_SCREEN_COMBINATIONS_1] = {{"COMBINATIONS 1 OF 6"," MODIFIER RELEASED IS"," NOT CUSTOMIZED"," MOD + MIDDLE IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
+    [BLU2USB_SCREEN_COMBINATIONS_2] = {{"COMBINATIONS 2 OF 6"," MOD + LEFT CLICK IS"," NOT CUSTOMIZED"," MOD + RIGHT CLICK IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
+    [BLU2USB_SCREEN_COMBINATIONS_3] = {{"COMBINATIONS 3 OF 6"," MOD + FORWARD IS"," NOT CUSTOMIZED"," MOD + BACKWARD IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
+    [BLU2USB_SCREEN_COMBINATIONS_4] = {{"COMBINATIONS 4 OF 6"," MOD + WHEEL UP IS"," NOT CUSTOMIZED"," MOD + WHEEL DOWN IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
+    [BLU2USB_SCREEN_COMBINATIONS_5] = {{"COMBINATIONS 5 OF 6"," MOD + MOVE LEFT IS"," NOT CUSTOMIZED"," MOD + MOVE RIGHT IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
+    [BLU2USB_SCREEN_COMBINATIONS_6] = {{"COMBINATIONS 6 OF 6"," MOD + MOVE UP IS"," NOT CUSTOMIZED"," MOD + MOVE DOWN IS"," NOT CUSTOMIZED",EMPTY,"JOY LEFT\\RIGHT: PAGE","JOY PRESS: ACCESS","KEY A: RESET SELECTED"},DYN(2)|DYN(4)},
     [BLU2USB_SCREEN_SEARCHING_FIRST] = {{"SEARCHING FIRST MOUSE","PRESS TO LEARN KEYS","WHILE WAIT CONNECTION","       JOY UP","  JOY    JOY    JOY","  LEFT  PRESS  RIGHT","      JOY DOWN"," KEY A         KEY X"," KEY B         KEY Y"},0},
 };
 
@@ -63,6 +69,21 @@ static bool is_help(blu2usb_screen_id_t screen) {
            screen == BLU2USB_SCREEN_HELP_SLOW_DPI ||
            screen == BLU2USB_SCREEN_HELP_FAST_DPI ||
            screen == BLU2USB_SCREEN_HELP_ROTATION;
+}
+
+bool blu2usb_ux_is_combinations_screen(blu2usb_screen_id_t screen)
+{
+    return screen >= BLU2USB_SCREEN_COMBINATIONS_1 &&
+           screen <= BLU2USB_SCREEN_COMBINATIONS_6;
+}
+
+blu2usb_modifier_combo_id_t blu2usb_ux_selected_combination(const blu2usb_ux_model_t *ux)
+{
+    if (ux == NULL || !blu2usb_ux_is_combinations_screen(ux->screen))
+        return BLU2USB_MOD_COMBO_COUNT;
+    const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
+    const unsigned row = ux->selection % BLU2USB_COMBINATIONS_PER_PAGE;
+    return (blu2usb_modifier_combo_id_t)(page * BLU2USB_COMBINATIONS_PER_PAGE + row);
 }
 
 static bool is_will_become(blu2usb_screen_id_t screen) {
@@ -109,6 +130,12 @@ static blu2usb_screen_id_t back_target(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_MIDDLE_WILL_BECOME:
     case BLU2USB_SCREEN_FORWARD_WILL_BECOME:
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME: return BLU2USB_SCREEN_EDIT_CUSTOM;
+    case BLU2USB_SCREEN_COMBINATIONS_1:
+    case BLU2USB_SCREEN_COMBINATIONS_2:
+    case BLU2USB_SCREEN_COMBINATIONS_3:
+    case BLU2USB_SCREEN_COMBINATIONS_4:
+    case BLU2USB_SCREEN_COMBINATIONS_5:
+    case BLU2USB_SCREEN_COMBINATIONS_6: return BLU2USB_SCREEN_MOUSE_OPTIONS;
     case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_HOME;
     case BLU2USB_SCREEN_REMOVE_THIS: return BLU2USB_SCREEN_SAVED_DEVICES;
     case BLU2USB_SCREEN_SEARCHING_FIRST: return BLU2USB_SCREEN_SEARCHING_FIRST;
@@ -128,6 +155,12 @@ unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux) {
     case BLU2USB_SCREEN_HOME_SEARCHING:
     case BLU2USB_SCREEN_HOME_RETRY: return 2;
     case BLU2USB_SCREEN_MOUSE_OPTIONS: return 3;
+    case BLU2USB_SCREEN_COMBINATIONS_1:
+    case BLU2USB_SCREEN_COMBINATIONS_2:
+    case BLU2USB_SCREEN_COMBINATIONS_3:
+    case BLU2USB_SCREEN_COMBINATIONS_4:
+    case BLU2USB_SCREEN_COMBINATIONS_5:
+    case BLU2USB_SCREEN_COMBINATIONS_6: return BLU2USB_COMBINATIONS_PER_PAGE;
     case BLU2USB_SCREEN_EDIT_CUSTOM: return 5;
     case BLU2USB_SCREEN_LEFT_WILL_BECOME:
     case BLU2USB_SCREEN_RIGHT_WILL_BECOME:
@@ -511,6 +544,9 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         if (ux->screen == BLU2USB_SCREEN_HOME_SEARCHING) {
             ux->screen = BLU2USB_SCREEN_HOME_RETRY;
             ux->selection = 0u;
+        } else if (blu2usb_ux_is_combinations_screen(ux->screen)) {
+            enter(ux, BLU2USB_SCREEN_MOUSE_OPTIONS);
+            ux->selection = 2u; /* Restore MODIFIER SHORTCUTS entry focus. */
         } else if (is_will_become(ux->screen)) {
             const unsigned source = (unsigned)ux->custom_source;
             enter(ux, BLU2USB_SCREEN_EDIT_CUSTOM);
@@ -519,6 +555,26 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
             enter(ux, back_target(ux));
         }
         return cmd;
+    }
+
+    if (blu2usb_ux_is_combinations_screen(ux->screen)) {
+        if (control == BLU2USB_CONTROL_JOY_LEFT ||
+            control == BLU2USB_CONTROL_JOY_RIGHT) {
+            const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
+            const unsigned next = control == BLU2USB_CONTROL_JOY_LEFT
+                ? wrap_prev(page, BLU2USB_COMBINATIONS_PAGE_COUNT)
+                : wrap_next(page, BLU2USB_COMBINATIONS_PAGE_COUNT);
+            /* Keep the same logical option selected when paging. */
+            ux->screen = (blu2usb_screen_id_t)(BLU2USB_SCREEN_COMBINATIONS_1 + next);
+            return cmd;
+        }
+        /* MOD-02: all 12 slots contain NONE.  KEY A RESET is idempotent;
+         * JOY PRESS enters the picker only when MOD-03 provides one.
+         * No pending write, modifier event or HID shortcut is produced. */
+        if (control == BLU2USB_CONTROL_KEY_A ||
+            control == BLU2USB_CONTROL_JOY_PRESS ||
+            control == BLU2USB_CONTROL_KEY_X)
+            return cmd;
     }
 
     unsigned count = blu2usb_ux_option_count(ux);
@@ -588,8 +644,7 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
             enter(ux, BLU2USB_SCREEN_EDIT_CUSTOM);
             break;
         case 2:
-            /* MOD-02 will open COMBINATIONS 1 OF 6.  Until then this
-             * selection is intentionally inert, never a legacy preset. */
+            enter(ux, BLU2USB_SCREEN_COMBINATIONS_1);
             break;
         default:
             break;
