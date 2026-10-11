@@ -6,6 +6,7 @@
 #include "blu2usb/profiles/profiles.h"
 #include "blu2usb/ux_model/ux_model.h"
 #include "blu2usb/renderer/renderer.h"
+#include "blu2usb/remap/remap.h"
 
 static blu2usb_ux_command_t tap(blu2usb_ux_model_t *ux, blu2usb_control_t c)
 {
@@ -281,9 +282,42 @@ static void test_each_source_masks_only_itself(void)
     }
 }
 
+static void test_modifier_click_is_not_host_click_yet(void)
+{
+    blu2usb_profiles_t profiles;
+    blu2usb_profiles_init(&profiles);
+    assert(blu2usb_profiles_draft_set(&profiles, BLU2USB_MOUSE_SOURCE_LEFT,
+                                      BLU2USB_MOUSE_TARGET_MODIFIER));
+    blu2usb_mouse_profile_config_t config;
+    assert(blu2usb_profiles_custom_candidate(&profiles, &config));
+    blu2usb_profiles_activate(&profiles, &config);
+    blu2usb_profiles_configure_active(&profiles, &config);
+    blu2usb_remap_t remap;
+    blu2usb_remap_init(&remap);
+    blu2usb_remap_set_profile(&remap, &config);
+    blu2usb_canonical_mouse_event_t input = {0};
+    input.source=blu2usb_hid_source_make(BLU2USB_HID_SOURCE_MOUSE, 1u);
+    input.type=BLU2USB_MOUSE_EVENT_BUTTON;
+    input.data.button.button=BLU2USB_MOUSE_BUTTON_LEFT;
+    input.data.button.pressed=true;
+    blu2usb_remap_result_t result;
+    assert(!blu2usb_remap_process_mouse(&remap, &input, &result));
+    input.data.button.pressed=false;
+    assert(!blu2usb_remap_process_mouse(&remap, &input, &result));
+
+    assert(blu2usb_profiles_build_preset(
+        BLU2USB_MOUSE_PROFILE_PASSTHROUGH, &profiles, &config));
+    blu2usb_remap_set_profile(&remap,&config);
+    input.data.button.pressed=true;
+    assert(blu2usb_remap_process_mouse(&remap,&input,&result));
+    assert(result.has_mouse && !result.has_keyboard);
+    assert(result.mouse.data.button.button==BLU2USB_MOUSE_BUTTON_LEFT);
+}
+
 int main(void)
 {
     check_layout();
+    test_modifier_click_is_not_host_click_yet();
     test_home_connected_to_modifier_and_mask();
     test_each_source_masks_only_itself();
     test_exclusive_draft_and_restore();
