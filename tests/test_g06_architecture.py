@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
 cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
 
-# Version-independent G06 architecture checks remain enforced; release version is v3.0.0.
+# G06 architecture invariants must survive EVERY compatible v3.x release.
+# The CMake project version and embedded firmware version must agree;
+# do not pin an old release literal in a permanent architecture test.
+version = re.search(r'project\(blu2usb_picow VERSION (\d+\.\d+\.\d+) LANGUAGES', cmake)
+assert version is not None, 'missing CMake project SemVer'
+assert f'BLU2USB_VERSION_STRING="{version.group(1)}"' in cmake, (
+    'project version and embedded firmware version diverged'
+)
 required_cmake = (
-    'BLU2USB_VERSION_STRING="3.0.0"',
     'src/profiles/profiles.c',
     'add_library(blu2usb_remap STATIC src/remap/remap.c)',
     'add_library(blu2usb_storage STATIC src/storage/storage.c)',
