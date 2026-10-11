@@ -606,7 +606,10 @@ int main(void)
          * Last accepted nonzero Consumer usage must be sent as zero even if
          * the action was cancelled during BLE disconnect, profile or Lock. */
         if (!blu2usb_modifier_shortcuts_consumer_phase(&shortcuts) &&
-            last_consumer_sent != 0u) {
+            last_consumer_sent != 0u &&
+            blu2usb_usb_hid_pico_consumer_available()) {
+            /* Protocol may have changed to Boot: keep Keyboard working
+             * there, then neutralize stale Consumer if Report returns. */
             if (blu2usb_usb_hid_pico_send_consumer(0u))
                 last_consumer_sent = 0u;
         } else {
