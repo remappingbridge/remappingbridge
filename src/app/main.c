@@ -399,6 +399,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             break;
         case BLU2USB_BLE_HOGP_EVENT_DISCONNECTED:
+            blu2usb_movement_pipeline_clear(motion);
             discard_stale_mouse_motion(aggregator, motion);
             if (ux != NULL && (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS ||
                 (ux->screen >= BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI &&

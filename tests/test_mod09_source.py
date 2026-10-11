@@ -17,5 +17,5 @@ assert "synchronize_saved_mice(" in app
 assert "BLU2USB_SCREEN_SAVED_DEVICES" in renderer
 assert "row == 1u && connected_name" in renderer
 assert "BLU2USB_UI_TONE_STATIC" in renderer
-assert "blu2usb_modifier_shortcuts_action_supported(state->assignments[combo])" in mod
+assert "if (state->assignments[combo] != 0u) return true;" in mod
 print("MOD-09 app / renderer / cancel guards: PASS")

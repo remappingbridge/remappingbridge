@@ -112,7 +112,7 @@ static void check_keyboard_cancel_and_recovery(void)
     external_key(&a, false);
 }
 
-static void check_bounded_wheel_and_unsupported_move(void)
+static void check_bounded_wheel_and_future_move(void)
 {
     blu2usb_modifier_shortcuts_t s;
     blu2usb_hid_aggregator_t a;
@@ -125,8 +125,8 @@ static void check_bounded_wheel_and_unsupported_move(void)
     assert(s.queue_size == BLU2USB_MOD05_QUEUE_CAPACITY);
     blu2usb_modifier_shortcuts_cancel(&s, &a);
     assert(s.queue_size == 0u);
-    /* A corrupted future ID in the MOVE range must not swallow real
-     * pointer movement just because it is nonzero. */
+    /* MOD-06 accepted contract: nonzero future MOVE assignments capture
+     * the gesture but never dispatch an unsupported HID action. */
     s.assignments[8] = 31u;
     s.assignments[9] = 0u;
     s.assignments[10] = 0u;
@@ -135,9 +135,10 @@ static void check_bounded_wheel_and_unsupported_move(void)
     blu2usb_canonical_mouse_event_t mv = mouse_button(
         BLU2USB_MOUSE_BUTTON_LEFT, false);
     mv.type = BLU2USB_MOUSE_EVENT_MOVE;
-    mv.data.move.dx = 20;
-    assert(send(&s, mv));
-    assert(!s.gesture_latched);
+    mv.data.move.dx = -40;
+    assert(!send(&s, mv));
+    assert(s.gesture_latched);
+    assert(s.queue_size == 0u);
     assert(!send(&s, mouse_button(BLU2USB_MOUSE_BUTTON_LEFT, false)));
 }
 
@@ -145,6 +146,6 @@ int main(void)
 {
     check_ble_disconnect_and_lock();
     check_keyboard_cancel_and_recovery();
-    check_bounded_wheel_and_unsupported_move();
+    check_bounded_wheel_and_future_move();
     return 0;
 }

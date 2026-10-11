@@ -7,7 +7,7 @@
 ## Runtime hardening
 1. `discard_stale_mouse_motion` flushes the pending movement accumulator and relative/wheel/pan from the canonical aggregator whenever USB mounted-state transitions, BLE disconnects, pair-new promotes another mouse or the BLE runtime signals overflow. This prevents motion produced in a lost transport session from being replayed as a jump or a scroll in the new session. Source-owned held Mouse/Keyboard buttons remain managed independently.
 2. An accepted shortcut configuration write now cancels old pending/running shortcut actions *before* installing the new global action array. Old synthetic key/drag owners are released. A previously accepted Consumer usage is explicitly neutralized by the existing USB release-barrier on the next report-capable tick. Failed flash persistence leaves the original runtime mapping unchanged.
-3. The MOVE gesture eligibility check ignores unsupported/corrupt action IDs. Invalid future IDs in flash may not silently turn the modifier into a frozen cursor.
+3. The inherited MOD-06 future-ID contract is unchanged: a nonzero MOVE assignment captures the gesture, but unsupported action IDs never generate USB key or Consumer reports. No speculative changes to pointer semantics under Modifier.
 4. Existing safeguards remain the sole implementation: bounded eight-action FIFO; endpoint ACK before release; non-blocking Consumer 60 ms and Keyboard 25 ms hold; disconnect/lock/profile/removal cancellations; HID source-isolated refs; saved active identity highlighting. No parallel USB event producer is introduced.
 
 ## Contract regression tests
