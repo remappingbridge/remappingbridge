@@ -117,6 +117,7 @@ static void test_will_become_buttons_only_key_a_applies(void)
         assert(ux.screen==will_become[src]);
     }
     blu2usb_ux_model_t ux;
+    blu2usb_ux_set_mouse_connected(true);
     blu2usb_ux_init(&ux);
     ux.screen=BLU2USB_SCREEN_MIDDLE_WILL_BECOME;
     assert(tap(&ux,BLU2USB_CONTROL_KEY_Y).kind==BLU2USB_UX_COMMAND_NONE);
