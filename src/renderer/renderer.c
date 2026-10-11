@@ -33,6 +33,7 @@ static uint8_t glyph_row(char character, uint8_t row)
     if (character >= '0' && character <= '9') return k_digit[(uint8_t)(character - '0')][row];
     switch (character) {
     case '-': return row == 3u ? 0x1fu : 0u;
+    case '+': return row == 3u ? 0x1fu : (row >= 1u && row <= 5u ? 0x04u : 0u);
     case ':': return (row == 2u || row == 5u) ? 0x04u : 0u;
     case '.': return row == 6u ? 0x04u : 0u;
     case '=': return (row == 2u || row == 4u) ? 0x1fu : 0u;
@@ -569,10 +570,10 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         project_movement_current_choice(ux, frame);
 
     if (blu2usb_ux_is_combinations_screen(ux->screen)) {
-        /* Untouched combination labels/values use the system's standard
-         * yellow.  Highlight both rows of the selected logical pair below. */
+        /* In combination pages the inactive pair (label and value) uses
+         * the normal actionable gray, while both selected rows are white. */
         for (uint8_t row = 1u; row <= 4u; ++row)
-            set_row_tone(frame, row, BLU2USB_UI_TONE_STATIC);
+            set_row_tone(frame, row, BLU2USB_UI_TONE_ACTIONABLE);
     }
 
     const int selected = selected_row(ux);
