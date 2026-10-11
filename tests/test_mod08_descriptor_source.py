@@ -24,4 +24,8 @@ assert "blu2usb_consumer_shortcut_lookup" in core
 assert "state->consumer_usage = 0u" in core
 assert "state->running_consumer = false" in core
 assert "CFG_TUD_CDC 0" in (r/"include/tusb_config.h").read_text()
+assert "CFG_TUD_HID_EP_BUFSIZE 16" in (r/"include/tusb_config.h").read_text()
+assert "last_consumer_sent != 0u &&" in app
+assert "blu2usb_usb_hid_pico_consumer_available()) {" in app
+assert "state->running_consumer" in core
 print("MOD08 combined two-interface HID ReportID + Boot legacy + neutralize/cancel source PASS")
