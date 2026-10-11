@@ -30,28 +30,38 @@ static void expect_row(const blu2usb_ui_frame_t *frame, unsigned row, const char
     assert(strcmp(actual, expected) == 0);
 }
 
-static void expect_tones(const blu2usb_ui_frame_t *frame, bool connected_name)
+static void expect_tones(const blu2usb_ui_frame_t *frame,
+                         bool connected_name, bool removable)
 {
     assert(frame->hint_start_row == 7u);
     for (unsigned row = 0; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
         for (unsigned col = 0; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
             if (frame->cells[row][col].character == ' ') continue;
-            const blu2usb_ui_tone_t tone =
-                row == 1u && connected_name
-                    ? BLU2USB_UI_TONE_CURRENT
-                    : BLU2USB_UI_TONE_STATIC;
+            blu2usb_ui_tone_t tone = BLU2USB_UI_TONE_STATIC;
+            if (row == 1u && connected_name)
+                tone = BLU2USB_UI_TONE_CURRENT;
+            else if (row == 5u)
+                tone = removable ? BLU2USB_UI_TONE_EMPHASIZED
+                                 : BLU2USB_UI_TONE_ACTIONABLE;
+            else if (row >= 7u)
+                tone = BLU2USB_UI_TONE_ACTIONABLE;
             assert(frame->cells[row][col].tone == tone);
         }
     }
-    /* Even the screen title, static profile, DPI, rotation, removable row,
-       navigation hints and a held HAT control are plain system yellow. */
+    /* MNT-01 supersedes only the old MOV-08 all-yellow action/hints:
+     * title/profile/DPI/rotation still yellow, active name still cyan. */
     assert(frame->cells[0][0].tone == BLU2USB_UI_TONE_STATIC);
     assert(frame->cells[2][0].tone == BLU2USB_UI_TONE_STATIC);
     assert(frame->cells[3][0].tone == BLU2USB_UI_TONE_STATIC);
     assert(frame->cells[4][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame->cells[5][1].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame->cells[7][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame->cells[8][0].tone == BLU2USB_UI_TONE_STATIC);
+    assert(frame->cells[5][1].tone ==
+           (removable ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_ACTIONABLE));
+    assert(frame->cells[7][0].tone == BLU2USB_UI_TONE_ACTIONABLE);
+    assert(frame->cells[8][0].tone == BLU2USB_UI_TONE_ACTIONABLE);
+    assert(blu2usb_renderer_tone_rgb565(frame->cells[5][1].tone) ==
+           (removable ? BLU2USB_COLOR_WHITE : BLU2USB_COLOR_LIGHT_GRAY));
+    assert(blu2usb_renderer_tone_rgb565(frame->cells[7][0].tone) ==
+           BLU2USB_COLOR_LIGHT_GRAY);
 }
 
 static void init_three_saved(blu2usb_ux_model_t *ux)
@@ -103,7 +113,7 @@ static void verify_page(const blu2usb_ux_model_t *ux, unsigned page,
     expect_row(&frame, 6u, "");
     expect_row(&frame, 7u, "JOY RIGHT\\LEFT: PAGE");
     expect_row(&frame, 8u, "JOY PRESS: ACCESS");
-    expect_tones(&frame, connected_name);
+    expect_tones(&frame, connected_name, true);
 }
 
 static void test_full_page_navigation_and_unique_saved_settings(void)
@@ -134,7 +144,7 @@ static void test_full_page_navigation_and_unique_saved_settings(void)
     assert(ux.saved_page == 2u);
     blu2usb_ui_frame_t frame;
     project(&ux, &frame);
-    expect_tones(&frame, false);
+    expect_tones(&frame, false, true);
     (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_LEFT, false);
     assert(ux.saved_page == 1u);
     verify_page(&ux, 1u, 0, "2 OF 3", "MOUSE ALPHA",
@@ -197,7 +207,7 @@ static void test_reconnect_changes_front_bond_not_saved_values(void)
     blu2usb_ui_frame_t frame;
     project(&ux, &frame);
     expect_row(&frame, 2u, "PROFILE: PASSTHROUGH");
-    expect_tones(&frame, false);
+    expect_tones(&frame, false, true);
 }
 
 static void test_long_names_boundaries_and_zero_saved(void)
@@ -215,7 +225,7 @@ static void test_long_names_boundaries_and_zero_saved(void)
     for (unsigned row = 0u; row < BLU2USB_RENDERER_TEXT_ROWS; ++row)
         for (unsigned col = 0u; col < BLU2USB_RENDERER_TEXT_COLS; ++col)
             assert(frame.cells[row][col].character != '\0');
-    expect_tones(&frame, false);
+    expect_tones(&frame, false, true);
     assert(ux.saved_mouse_names[0][0] == 'A'); /* identity unchanged */
 
     blu2usb_ux_set_mouse_connected(false);
@@ -227,7 +237,7 @@ static void test_long_names_boundaries_and_zero_saved(void)
     expect_row(&frame, 1u, "UNKNOWN MOUSE");
     expect_row(&frame, 3u, "DPI: H 1 - V 1");
     expect_row(&frame, 4u, "ROTATION: 0 DEGREE");
-    expect_tones(&frame, false);
+    expect_tones(&frame, false, false);
     assert(blu2usb_ux_saved_bond_for_page(&ux, 0u) == -1);
     assert(tap(&ux, BLU2USB_CONTROL_JOY_PRESS).kind ==
            BLU2USB_UX_COMMAND_NONE);
