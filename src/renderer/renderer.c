@@ -410,9 +410,9 @@ static uint8_t custom_target_row(blu2usb_mouse_target_t target)
     case BLU2USB_MOUSE_TARGET_LEFT: return 1u;
     case BLU2USB_MOUSE_TARGET_RIGHT: return 2u;
     case BLU2USB_MOUSE_TARGET_MIDDLE: return 3u;
-    case BLU2USB_MOUSE_TARGET_ESCAPE: return 4u;
-    case BLU2USB_MOUSE_TARGET_FORWARD: return 5u;
-    case BLU2USB_MOUSE_TARGET_BACKWARD: return 6u;
+    case BLU2USB_MOUSE_TARGET_FORWARD: return 4u;
+    case BLU2USB_MOUSE_TARGET_BACKWARD: return 5u;
+    case BLU2USB_MOUSE_TARGET_MODIFIER: return 6u;
     default: return 1u;
     }
 }
@@ -533,7 +533,9 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
             const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
             const unsigned combo = page * BLU2USB_COMBINATIONS_PER_PAGE +
                                    (row == 2u ? 0u : 1u);
-            const char *name = blu2usb_ux_shortcut_name(ux->shortcut_assignments[combo]);
+            const char *name = blu2usb_ux_combination_unavailable(ux, combo)
+                ? "UNAVAILABLE"
+                : blu2usb_ux_shortcut_name(ux->shortcut_assignments[combo]);
             (void)snprintf(combo_value_text, sizeof(combo_value_text), " %s", name);
             text = combo_value_text;
         }
@@ -607,7 +609,17 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     if (selected >= 0 && selected < (int)BLU2USB_RENDERER_TEXT_ROWS) emphasize_row(frame,(uint8_t)selected);
     if (blu2usb_ux_is_combinations_screen(ux->screen) &&
         selected >= 1 && selected <= 3)
-        emphasize_row(frame, (uint8_t)(selected + 1)); /* Label + value are one choice. */
+        emphasize_row(frame, (uint8_t)(selected + 1)); /* Pair selection. */
+    if (blu2usb_ux_is_combinations_screen(ux->screen)) {
+        /* UNAVAILABLE is a disabled state: its value is never selected
+         * white nor applied cyan, including when the pair has focus. */
+        const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
+        for (unsigned pair = 0u; pair < 2u; ++pair) {
+            if (blu2usb_ux_combination_unavailable(ux, page * 2u + pair))
+                set_row_tone(frame, (uint8_t)(2u + 2u * pair),
+                             BLU2USB_UI_TONE_STATIC);
+        }
+    }
 
     for (unsigned control = 0; control < BLU2USB_CONTROL_COUNT; ++control) {
         if (!blu2usb_interaction_is_pressed(&ux->interaction,(blu2usb_control_t)control)) continue;
