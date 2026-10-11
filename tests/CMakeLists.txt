@@ -393,3 +393,17 @@ add_test(NAME mod02_combinations_source_contract
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod02_combinations_source.py
             ${PROJECT_SOURCE_DIR}
 )
+
+# MOD-03: 30 action picker/roundtrip with v2-safe migration and commit-first UX.
+add_executable(blu2usb_test_mod03_shortcuts test_mod03_shortcuts.c)
+target_link_libraries(blu2usb_test_mod03_shortcuts PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_profiles
+    blu2usb_storage
+)
+add_test(NAME mod03_shortcuts_flow_and_migration COMMAND blu2usb_test_mod03_shortcuts)
+add_test(NAME mod03_shortcuts_source_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod03_shortcuts_source.py
+            ${PROJECT_SOURCE_DIR}
+)
