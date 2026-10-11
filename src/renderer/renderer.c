@@ -620,7 +620,8 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
      * - Hints are normal system gray, even while a HAT key is held.
      * - REMOVE DEVICE is the implicitly focused single action: white.
      * - With zero saved bonds the action cannot be activated, so it is gray.
-     * - Informational rows stay in the established static/yellow tone.
+     * - The first row keeps the system TITLE magenta, like all screens.
+     * - Informational body rows stay in the established static/yellow tone.
      * Apply after generic highlighting to prevent transient color leakage. */
     if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES) {
         const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
@@ -630,7 +631,9 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
             for (uint8_t col = 0u; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
                 if (frame->cells[row][col].character == ' ') continue;
                 blu2usb_ui_tone_t tone = BLU2USB_UI_TONE_STATIC;
-                if (row == 1u && connected_name)
+                if (row == 0u)
+                    tone = BLU2USB_UI_TONE_TITLE;
+                else if (row == 1u && connected_name)
                     tone = BLU2USB_UI_TONE_CURRENT;
                 else if (row == 5u)
                     tone = bond >= 0
