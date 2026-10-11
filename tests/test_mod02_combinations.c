@@ -190,9 +190,83 @@ static void test_inventory_and_stable_ids(void)
     }
 }
 
+/* Test real pixels rather than only checking that the UX string includes '+':
+ * the v2 bitmap font omitted that glyph, so the label looked like "MOD   ". */
+typedef struct {
+    uint16_t expected_x;
+    uint16_t expected_y;
+    uint16_t foreground;
+    uint16_t background;
+    unsigned captured;
+} plus_pixel_capture_t;
+
+static bool capture_fill(void *ctx, uint16_t x, uint16_t y,
+                         uint16_t w, uint16_t h, uint16_t color)
+{
+    (void)ctx; (void)x; (void)y; (void)w; (void)h; (void)color;
+    return true;
+}
+
+static bool capture_plus(void *ctx, uint16_t x, uint16_t y,
+                         uint16_t w, uint16_t h, const uint16_t *pixels)
+{
+    plus_pixel_capture_t *capture = ctx;
+    if (x != capture->expected_x || y != capture->expected_y) return true;
+    assert(w == BLU2USB_RENDERER_GLYPH_WIDTH);
+    assert(h == BLU2USB_RENDERER_GLYPH_HEIGHT);
+    capture->captured += 1u;
+    for (unsigned py = 0u; py < h; ++py) {
+        for (unsigned px = 0u; px < w; ++px) {
+            const unsigned glyph_x = px / BLU2USB_RENDERER_GLYPH_SCALE;
+            const unsigned glyph_y = py / BLU2USB_RENDERER_GLYPH_SCALE;
+            const bool on = glyph_y == 3u ||
+                            (glyph_y >= 1u && glyph_y <= 5u && glyph_x == 2u);
+            assert(pixels[py * w + px] ==
+                   (on ? capture->foreground : capture->background));
+        }
+    }
+    return true;
+}
+
+static void test_mod_plus_is_visible_on_real_lcd_bitmap(void)
+{
+    blu2usb_ux_model_t ux;
+    init_connected(&ux);
+    for (unsigned page = 0u; page < 6u; ++page) {
+        ux.screen = (blu2usb_screen_id_t)(BLU2USB_SCREEN_COMBINATIONS_1 + page);
+        for (unsigned row = 1u; row <= 3u; row += 2u) {
+            if (page == 0u && row == 1u) continue; /* MODIFIER RELEASED */
+            for (unsigned focused = 0u; focused < 2u; ++focused) {
+                ux.selection = focused;
+                blu2usb_ui_frame_t frame;
+                project(&ux, &frame);
+                assert(frame.cells[row][5].character == '+');
+                const uint16_t color = focused == (row == 1u ? 0u : 1u)
+                    ? BLU2USB_COLOR_WHITE : BLU2USB_COLOR_LIGHT_GRAY;
+                assert(blu2usb_renderer_tone_rgb565(frame.cells[row][5].tone) == color);
+                plus_pixel_capture_t capture = {
+                    .expected_x = BLU2USB_RENDERER_TEXT_X + 5u * BLU2USB_RENDERER_CHAR_ADVANCE,
+                    .expected_y = blu2usb_renderer_text_y(&frame, (uint8_t)row),
+                    .foreground = color,
+                    .background = blu2usb_renderer_background_rgb565(&frame, (uint8_t)row),
+                    .captured = 0u,
+                };
+                const blu2usb_display_hal_t display = {
+                    .context = &capture,
+                    .fill_rect = capture_fill,
+                    .write_rgb565 = capture_plus,
+                };
+                assert(blu2usb_renderer_render(&display, &frame));
+                assert(capture.captured == 1u);
+            }
+        }
+    }
+}
+
 int main(void)
 {
     test_inventory_and_stable_ids();
+    test_mod_plus_is_visible_on_real_lcd_bitmap();
     test_route_and_all_six_layouts();
     test_lock_and_no_mutations();
     return 0;
