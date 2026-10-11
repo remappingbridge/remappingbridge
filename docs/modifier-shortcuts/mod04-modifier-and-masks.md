@@ -12,7 +12,14 @@ Baseline: operator-accepted MOD-03 commit `6e5ff857185466a459c1caa8633a1847f49ed
 5. BACKWARD
 6. MODIFIER
 
-`KEY A: APPLY AND BACK` requests a draft write; only after verified product-flash commit does the UX return to EDIT CUSTOM. `JOY PRESS` on target uses identical semantics. `KEY B` cancels without writing. `KEY A: APPLY CUSTOM` applies the persisted Custom candidate, updates active mouse remap and derived modifier source after successful flash commit. There is no ESCAPE target in these menus; Escape remains shortcut catalog item #7.
+`KEY A: APPLY AND BACK` requests a draft write; only after verified product-flash commit does the UX return to EDIT CUSTOM. `JOY PRESS` on a WILL BECOME target is a no-op: **only KEY A applies**. `KEY B` cancels without writing. `KEY A: APPLY CUSTOM` applies the persisted Custom candidate, updates active mouse remap and derived modifier source after successful flash commit. There is no ESCAPE target in these menus; Escape remains shortcut catalog item #7.
+
+## Corrected UI confirmation and colors
+
+- After a committed target returns to EDIT CUSTOM REMAP, its row must show the complete value (e.g. `LEFT IS MODIFIER`), never an empty target name.
+- When Custom is successfully applied with no pending draft, EDIT CUSTOM REMAP shows both `JOY PRESS: ACCESS` and `KEY B: BACK`; during a pending draft it shows `KEY A: APPLY CUSTOM`.
+- On WILL BECOME screens, only the saved target is cyan when not selected; the selected option is white; all other options use the system's actionable gray. Cyan is recomputed from the current target on every frame, so switching MIDDLE from FORWARD to BACKWARD clears cyan from FORWARD.
+- `JOY UP/DOWN` retains option selection; `JOY PRESS`, `KEY X`, `JOY LEFT/RIGHT` do not apply/save. `KEY Y` retains global lock/unlock to HOME.
 
 ## Applied vs draft, masks
 - Modifier target ID 6 is explicitly distinct from legacy ESCAPE ID 5. Only one physical source among LEFT/RIGHT/MIDDLE/FORWARD/BACKWARD can be Modifier.
