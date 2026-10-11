@@ -50,7 +50,7 @@ static void test_connected_route_and_persistence_command_boundary(void) {
     ux.screen=BLU2USB_SCREEN_MOUSE_OPTIONS;
     ux.selection=2u;
     assert(invoke(&ux,BLU2USB_CONTROL_JOY_PRESS).kind==BLU2USB_UX_COMMAND_NONE);
-    assert(ux.screen==BLU2USB_SCREEN_MOUSE_OPTIONS);
+    assert(ux.screen==BLU2USB_SCREEN_COMBINATIONS_1);
     assert(invoke(&ux,BLU2USB_CONTROL_KEY_A).kind==BLU2USB_UX_COMMAND_NONE);
 }
 static void test_help_navigation_lock(void) {
