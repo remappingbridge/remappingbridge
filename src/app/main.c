@@ -508,6 +508,12 @@ int main(void)
     blu2usb_hid_aggregator_init(&aggregator);
     blu2usb_profiles_init(&profiles);
     (void)restore_profiles(&profiles);
+    /* MOD-01 compatibility: retired v2 preset values are decoded but no
+     * longer activated.  Normalize in RAM only; the v2 flash payload and
+     * BLE/movement records remain untouched for MOD-03 migration. */
+    if (profiles.active_kind == BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP ||
+        profiles.active_kind == BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP)
+        profiles.active_kind = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
     synchronize_ux_profiles(&ux, &profiles);
 
     blu2usb_remap_init(&remap);
