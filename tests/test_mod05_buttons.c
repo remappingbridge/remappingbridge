@@ -265,6 +265,29 @@ static void test_preheld_secondary_is_not_a_new_combo(void)
     assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_LEFT,false));
     assert(s.queue_size==0u); /* neither COPY nor Escape */
 }
+static void test_clean_tap_jitter(void)
+{
+    blu2usb_modifier_shortcuts_t s;
+    blu2usb_hid_aggregator_t agg;
+    uint8_t assigned[12]={0};
+    assigned[0]=7;
+    blu2usb_modifier_shortcuts_init(&s);
+    blu2usb_hid_aggregator_init(&agg);
+    configure(&s,&agg,BLU2USB_MOUSE_SOURCE_LEFT,assigned);
+    assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_LEFT,true));
+    blu2usb_canonical_mouse_event_t e=button(0,false);
+    e.type=BLU2USB_MOUSE_EVENT_MOVE;
+    e.data.move.dx=1;e.data.move.dy=-1;
+    assert(blu2usb_modifier_shortcuts_process(&s,&e));
+    assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_LEFT,false));
+    assert(s.queue_size==1u);
+    acknowledge_action(&s,&agg,7u);
+    assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_LEFT,true));
+    e.data.move.dx=6;e.data.move.dy=3;
+    assert(blu2usb_modifier_shortcuts_process(&s,&e));
+    assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_LEFT,false));
+    assert(s.queue_size==0u);
+}
 int main(void)
 {
     assert(blu2usb_modifier_shortcuts_action_supported(1u));
@@ -272,6 +295,7 @@ int main(void)
     assert(!blu2usb_modifier_shortcuts_action_supported(19u));
     test_solo_release_escape_and_hold();
     test_preheld_secondary_is_not_a_new_combo();
+    test_clean_tap_jitter();
     test_copy_consumes_down_up_without_tap();
     test_unmapped_secondary_passes_and_suppresses_tap();
     test_passthrough_disabled_and_masks();
