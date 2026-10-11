@@ -612,13 +612,17 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         }
     }
 
-    /* Saved Devices uses a deliberately restrained identity-only highlight:
-     * the currently CONNECTED mouse's NAME is cyan, while every other
-     * nonblank character on every saved-device page uses the system's
-     * standard off-white/yellow (STATIC) tone. This includes the page
-     * counter, profile, DPI, rotation, remove action and navigation hints.
-     * Apply after generic selection/pressed-key highlighting so no stale
-     * emphasis leaks into the page. Other screens keep their v1.0 rules. */
+    /* MNT-01 / HF-01: Saved Devices has exactly ONE actionable choice.
+     * Keep navigation/selection state untouched: JOY LEFT/RIGHT still pages,
+     * JOY PRESS still opens Remove This for the displayed logical bond.
+     *
+     * - The CONNECTED mouse name alone keeps the current/cyan identity.
+     * - Hints are normal system gray, even while a HAT key is held.
+     * - REMOVE DEVICE is the implicitly focused single action: white.
+     * - With zero saved bonds the action cannot be activated, so it is gray.
+     * - The first row keeps the system TITLE magenta, like all screens.
+     * - Informational body rows stay in the established static/yellow tone.
+     * Apply after generic highlighting to prevent transient color leakage. */
     if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES) {
         const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
         const bool connected_name = blu2usb_ux_mouse_connected() &&
@@ -626,10 +630,18 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         for (uint8_t row = 0u; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
             for (uint8_t col = 0u; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
                 if (frame->cells[row][col].character == ' ') continue;
-                frame->cells[row][col].tone =
-                    row == 1u && connected_name
-                        ? BLU2USB_UI_TONE_CURRENT
-                        : BLU2USB_UI_TONE_STATIC;
+                blu2usb_ui_tone_t tone = BLU2USB_UI_TONE_STATIC;
+                if (row == 0u)
+                    tone = BLU2USB_UI_TONE_TITLE;
+                else if (row == 1u && connected_name)
+                    tone = BLU2USB_UI_TONE_CURRENT;
+                else if (row == 5u)
+                    tone = bond >= 0
+                        ? BLU2USB_UI_TONE_EMPHASIZED
+                        : BLU2USB_UI_TONE_ACTIONABLE;
+                else if (row >= 7u)
+                    tone = BLU2USB_UI_TONE_ACTIONABLE;
+                frame->cells[row][col].tone = tone;
             }
         }
     }

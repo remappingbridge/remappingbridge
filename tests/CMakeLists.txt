@@ -506,3 +506,13 @@ add_test(NAME mod10_full_30_action_keyboard_consumer_matrix
 
 add_test(NAME mod10_production_security_abi_source
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod10_source.py)
+
+# MNT-01 / HF-01 (v3.x): Saved Devices implicit single selected action
+# and system gray hint colors, without changing bond navigation.
+add_executable(blu2usb_test_mnt01_saved_devices_colors
+    test_mnt01_saved_devices_colors.c)
+target_link_libraries(blu2usb_test_mnt01_saved_devices_colors PRIVATE
+    blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt01_saved_devices_colors PRIVATE -UNDEBUG)
+add_test(NAME mnt01_saved_devices_implicit_selection_gray_hints
+    COMMAND blu2usb_test_mnt01_saved_devices_colors)
