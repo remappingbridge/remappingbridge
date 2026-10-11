@@ -48,7 +48,9 @@ static void all_help(void) {
         assert(ux.screen==screens[i]);
         tap(&ux,BLU2USB_CONTROL_KEY_B);
         assert(ux.screen==(screens[i]==BLU2USB_SCREEN_HOME_SEARCHING_HELP?
-                          BLU2USB_SCREEN_HOME_RETRY:BLU2USB_SCREEN_HOME));
+                          BLU2USB_SCREEN_HOME_RETRY:
+                          screens[i]==BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS?
+                          BLU2USB_SCREEN_MOUSE_OPTIONS:BLU2USB_SCREEN_HOME));
         assert(ux.remove_target_bond==3);
     }
 }
