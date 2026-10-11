@@ -362,3 +362,15 @@ target_link_libraries(blu2usb_test_mov08_saved_devices PRIVATE
     blu2usb_ux_model
 )
 add_test(NAME mov08_saved_devices_identity_and_values COMMAND blu2usb_test_mov08_saved_devices)
+
+add_executable(blu2usb_test_mov09_remove_this test_mov09_remove_this.c)
+target_link_libraries(blu2usb_test_mov09_remove_this PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mov09_remove_this_bond_scoped_flow COMMAND blu2usb_test_mov09_remove_this)
+
+add_test(
+    NAME mov09_pico_removal_runtime_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mov09_remove_runtime_source.py
+)
