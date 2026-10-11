@@ -239,6 +239,8 @@ static void test_home_connected_to_modifier_and_mask(void)
     blu2usb_ux_set_modifier_source(&ux, (int)modifier);
     tap(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
+    /* KEY B from Custom returns to the first Remapping option. */
+    tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     assert(ux.selection == 2u);
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
