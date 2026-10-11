@@ -31,6 +31,10 @@ typedef struct {
     uint8_t consumed_buttons; /* physical source bits whose down was consumed */
     uint8_t physical_buttons; /* edge detection for genuine press vs held repeats */
     uint8_t tap_motion; /* raw-count jitter budget for solo release */
+    bool area_selection; /* Spectacle rectangular region capture in progress */
+    bool area_trigger_ready; /* trigger button released; next press is drag */
+    bool area_drag_down; /* synthetic left mouse button held */
+    uint8_t area_trigger_source; /* physical SECONDARY button for the drag */
     bool gesture_latched;
     bool motion_seen;
     int32_t gesture_x;
@@ -71,6 +75,8 @@ bool blu2usb_modifier_shortcuts_process_event(
     blu2usb_movement_settings_t settings,
     uint32_t now_ms,
     blu2usb_canonical_mouse_event_t *forwarded);
+/* Synthetic selection drag bypasses Custom remap; release its owned left button
+ * on Modifier release, BLE/USB reset, profile change and Lock. */
 void blu2usb_modifier_shortcuts_tick(blu2usb_modifier_shortcuts_t *state,
                                      uint32_t now_ms);
 
