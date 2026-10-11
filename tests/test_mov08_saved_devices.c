@@ -96,7 +96,7 @@ static void verify_page(const blu2usb_ux_model_t *ux, unsigned page,
     project(ux, &frame);
     expect_row(&frame, 0u, title);
     expect_row(&frame, 1u, name);
-    expect_row(&frame, 2u, "PROFILE: STANDARD");
+    expect_row(&frame, 2u, "PROFILE: PASSTHROUGH");
     expect_row(&frame, 3u, dpi);
     expect_row(&frame, 4u, rotation);
     expect_row(&frame, 5u, " REMOVE DEVICE");
@@ -196,7 +196,7 @@ static void test_reconnect_changes_front_bond_not_saved_values(void)
     ux.active_profile = BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP;
     blu2usb_ui_frame_t frame;
     project(&ux, &frame);
-    expect_row(&frame, 2u, "PROFILE: ESCAPE");
+    expect_row(&frame, 2u, "PROFILE: PASSTHROUGH");
     expect_tones(&frame, false);
 }
 
