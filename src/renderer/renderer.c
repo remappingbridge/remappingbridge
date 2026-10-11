@@ -37,7 +37,7 @@ static uint8_t glyph_row(char character, uint8_t row)
     case ':': return (row == 2u || row == 5u) ? 0x04u : 0u;
     case '.': return row == 6u ? 0x04u : 0u;
     case '=': return (row == 2u || row == 4u) ? 0x1fu : 0u;
-    case '/': return row <= 4u ? (uint8_t)(1u << (4u - row)) : 0u;
+    case '\\': return row <= 4u ? (uint8_t)(1u << (4u - row)) : 0u;
     case '/': return row <= 4u ? (uint8_t)(1u << row) : 0u;
     case '>': { static const uint8_t rows[7]={0x10,0x08,0x04,0x02,0x04,0x08,0x10}; return rows[row]; }
     case '<': { static const uint8_t rows[7]={0x01,0x02,0x04,0x08,0x04,0x02,0x01}; return rows[row]; }
@@ -102,7 +102,7 @@ static bool home_renderer_supported(unsigned char value)
 {
     if ((value >= 'A' && value <= 'Z') || (value >= '0' && value <= '9'))
         return true;
-    return strchr(" -:.=//><?!,()", (int)value) != NULL;
+    return strchr(" -:.=/\\><?!,()", (int)value) != NULL;
 }
 
 static bool home_word_char(unsigned char value)
