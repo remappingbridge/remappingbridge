@@ -440,3 +440,12 @@ target_link_libraries(blu2usb_test_mod05_buttons PRIVATE blu2usb_modifier_shortc
 target_compile_options(blu2usb_test_mod05_buttons PRIVATE -UNDEBUG)
 add_test(NAME mod05_button_chords_usb_backpressure COMMAND blu2usb_test_mod05_buttons)
 add_test(NAME mod05_runtime_source_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod05_runtime_source.py)
+
+# MOD-06: wheel detents, directional MOVEs in post-rotation pre-gain coordinates.
+add_executable(blu2usb_test_mod06_gestures test_mod06_gestures.c)
+target_link_libraries(blu2usb_test_mod06_gestures PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_movement blu2usb_hid_aggregator)
+target_compile_options(blu2usb_test_mod06_gestures PRIVATE -UNDEBUG)
+add_test(NAME mod06_wheel_rotation_gestures COMMAND blu2usb_test_mod06_gestures)
+add_test(NAME mod06_runtime_before_movement_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod06_runtime_source.py)
