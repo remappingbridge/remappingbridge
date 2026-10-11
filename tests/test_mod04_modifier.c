@@ -194,9 +194,96 @@ static void test_legacy_escape_migration(void)
     assert(next.custom_targets[BLU2USB_MOUSE_SOURCE_LEFT]==BLU2USB_MOUSE_TARGET_LEFT);
     assert(blu2usb_profiles_modifier_source(next.custom_targets)==BLU2USB_MOUSE_SOURCE_COUNT);
 }
+static void test_home_connected_to_modifier_and_mask(void)
+{
+    blu2usb_ux_model_t ux;
+    blu2usb_ux_set_mouse_connected(true);
+    blu2usb_ux_init(&ux);
+    assert(ux.screen == BLU2USB_SCREEN_HOME);
+    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
+    tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
+    assert(ux.selection == 1u); /* Custom Remapping */
+    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
+    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen == BLU2USB_SCREEN_LEFT_WILL_BECOME);
+    tap(&ux, BLU2USB_CONTROL_JOY_UP); /* wrap first to sixth */
+    assert(ux.selection == 5u);
+    blu2usb_ux_command_t cmd = tap(&ux, BLU2USB_CONTROL_KEY_A);
+    assert(cmd.kind == BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET);
+    assert(cmd.source == BLU2USB_MOUSE_SOURCE_LEFT);
+    assert(cmd.target == BLU2USB_MOUSE_TARGET_MODIFIER);
+    assert(ux.screen == BLU2USB_SCREEN_LEFT_WILL_BECOME);
+    /* A failed flash transaction does not navigate or commit the draft. */
+    assert(ux.custom_targets[BLU2USB_MOUSE_SOURCE_LEFT] == BLU2USB_MOUSE_TARGET_LEFT);
+    blu2usb_profiles_t profiles;
+    blu2usb_profiles_init(&profiles);
+    assert(blu2usb_profiles_draft_set(&profiles, cmd.source, cmd.target));
+    uint8_t stored[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
+    assert(blu2usb_profiles_serialize_v3(&profiles,stored));
+    blu2usb_ux_custom_target_committed(&ux,cmd.source,profiles.draft_targets);
+    assert(ux.screen == BLU2USB_SCREEN_EDIT_CUSTOM);
+    assert(ux.selection == BLU2USB_MOUSE_SOURCE_LEFT);
+    assert(ux.custom_targets[BLU2USB_MOUSE_SOURCE_LEFT] == BLU2USB_MOUSE_TARGET_MODIFIER);
+    assert(ux.modifier_source == -1); /* Draft is not yet applied */
+    cmd = tap(&ux, BLU2USB_CONTROL_KEY_A);
+    assert(cmd.kind == BLU2USB_UX_COMMAND_APPLY_CUSTOM);
+    blu2usb_mouse_profile_config_t active;
+    assert(blu2usb_profiles_custom_candidate(&profiles,&active));
+    blu2usb_profiles_activate(&profiles,&active);
+    assert(blu2usb_profiles_serialize_v3(&profiles,stored));
+    const blu2usb_mouse_source_t modifier =
+        blu2usb_profiles_modifier_source(profiles.custom_targets);
+    assert(modifier == BLU2USB_MOUSE_SOURCE_LEFT);
+    blu2usb_ux_set_modifier_source(&ux, (int)modifier);
+    tap(&ux, BLU2USB_CONTROL_KEY_B);
+    assert(ux.screen == BLU2USB_SCREEN_MOUSE_OPTIONS);
+    tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
+    assert(ux.selection == 2u);
+    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
+    assert(ux.screen == BLU2USB_SCREEN_COMBINATIONS_1);
+    tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
+    assert(ux.screen == BLU2USB_SCREEN_COMBINATIONS_2);
+    blu2usb_ui_frame_t frame;
+    blu2usb_ui_project(&ux,&frame);
+    char word[22];
+    row_text(&frame,2,word);
+    assert(strcmp(word," UNAVAILABLE") == 0);
+    assert(tap(&ux, BLU2USB_CONTROL_JOY_PRESS).kind == BLU2USB_UX_COMMAND_NONE);
+    assert(ux.screen == BLU2USB_SCREEN_COMBINATIONS_2);
+}
+
+static void test_each_source_masks_only_itself(void)
+{
+    const unsigned slot_by_source[BLU2USB_MOUSE_SOURCE_COUNT] = {
+        2u, 3u, 1u, 4u, 5u
+    };
+    blu2usb_profiles_t p;
+    blu2usb_profiles_init(&p);
+    blu2usb_ux_model_t ux;
+    blu2usb_ux_init(&ux);
+    for (unsigned source=0; source<BLU2USB_MOUSE_SOURCE_COUNT; ++source) {
+        blu2usb_profiles_init(&p);
+        assert(blu2usb_profiles_draft_set(&p,(blu2usb_mouse_source_t)source,
+                                           BLU2USB_MOUSE_TARGET_MODIFIER));
+        blu2usb_mouse_profile_config_t config;
+        assert(blu2usb_profiles_custom_candidate(&p,&config));
+        blu2usb_profiles_activate(&p,&config);
+        blu2usb_ux_set_modifier_source(&ux,(int)source);
+        for (unsigned slot=0; slot<BLU2USB_MOD_COMBO_COUNT; ++slot) {
+            const bool expected=slot==slot_by_source[source];
+            assert(blu2usb_profiles_is_shortcut_unavailable(&p,slot)==expected);
+            assert(blu2usb_ux_combination_unavailable(&ux,slot)==expected);
+        }
+    }
+}
+
 int main(void)
 {
     check_layout();
+    test_home_connected_to_modifier_and_mask();
+    test_each_source_masks_only_itself();
     test_exclusive_draft_and_restore();
     test_masked_render_and_buttons();
     test_legacy_escape_migration();
