@@ -21,6 +21,7 @@ assert 'state->assignments[combo]' in core
 assert 'id == 1u || id == 7u' not in core
 assert '[19]' not in catalog and '[24]' not in catalog
 assert '[29]' not in catalog and '[30]' not in catalog
-assert 'KEY_KP_PLUS' in catalog and 'KEY_KP_MINUS' in catalog
-assert 'KEY_HOME' in catalog
-print("MOD-07 22-action Keyboard catalog and USB ACK runtime wiring PASS")
+assert 'KEY_EQUAL' in catalog and 'KEY_MINUS' in catalog
+assert 'KEY_HOME' not in catalog
+assert 'KEY_PRINT_SCREEN, MOD_SHIFT | MOD_META' in catalog
+print("MOD-07 21 direct Keyboard mappings plus Android Consumer AC Home and USB ACK runtime wiring PASS")
