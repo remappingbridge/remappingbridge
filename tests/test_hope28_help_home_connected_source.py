@@ -26,7 +26,7 @@ assert "ux->selection = selection % 4u;" in ux
 disconnect = """else if (ux->screen == BLU2USB_SCREEN_HELP_HOME_CONNECTED &&
                            ux->saved_device_count > 0u) {
                     /* Mouse UI v1 keeps Help visible on disconnect, but
-                     * retargets KEY B Back to home-searching. */
+                     * retargets Any-Key Back to home-searching. */
                     ux->return_screen = BLU2USB_SCREEN_HOME_SEARCHING;
                     ux->return_selection = 0u;"""
 assert disconnect in app
