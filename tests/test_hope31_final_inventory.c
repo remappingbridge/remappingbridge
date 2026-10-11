@@ -49,12 +49,17 @@ static const screen_expectation_t expected[] = {
     {BLU2USB_SCREEN_COMBINATIONS_4, "COMBINATIONS 4 OF 6"},
     {BLU2USB_SCREEN_COMBINATIONS_5, "COMBINATIONS 5 OF 6"},
     {BLU2USB_SCREEN_COMBINATIONS_6, "COMBINATIONS 6 OF 6"},
+    {BLU2USB_SCREEN_SHORTCUTS_1, "SHORTCUTS 1-6 OF 30"},
+    {BLU2USB_SCREEN_SHORTCUTS_2, "SHORTCUTS 7-12 OF 30"},
+    {BLU2USB_SCREEN_SHORTCUTS_3, "SHORTCUTS 13-18 OF 30"},
+    {BLU2USB_SCREEN_SHORTCUTS_4, "SHORTCUTS 19-24 OF 30"},
+    {BLU2USB_SCREEN_SHORTCUTS_5, "SHORTCUTS 25-30 OF 30"},
 };
 
-_Static_assert(BLU2USB_SCREEN_COUNT == 40,
-               "HOPE-31 final inventory MOD-01 must contain 40 screens after retiring four presets");
-_Static_assert(sizeof(expected) / sizeof(expected[0]) == 40,
-               "HOPE-31 expected-title inventory must contain 40 screens");
+_Static_assert(BLU2USB_SCREEN_COUNT == 45,
+               "HOPE-31 final inventory MOD-01 must contain 45 screens after retiring four presets");
+_Static_assert(sizeof(expected) / sizeof(expected[0]) == 45,
+               "HOPE-31 expected-title inventory must contain 45 screens");
 
 static void test_exact_inventory(void)
 {
