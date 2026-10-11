@@ -17,6 +17,10 @@ typedef struct {
 
 blu2usb_movement_settings_t blu2usb_movement_defaults(void);
 bool blu2usb_movement_valid(blu2usb_movement_settings_t settings);
+/* Pure, pre-gain coordinate transform; same canonical orientation as USB cursor. */
+void blu2usb_movement_rotate_delta(blu2usb_movement_settings_t settings,
+                                   int32_t source_x, int32_t source_y,
+                                   int64_t *rotated_x, int64_t *rotated_y);
 void blu2usb_movement_pipeline_clear(blu2usb_movement_pipeline_t *pipeline);
 void blu2usb_movement_pipeline_push(blu2usb_movement_pipeline_t *pipeline,
                                     blu2usb_movement_settings_t settings,
