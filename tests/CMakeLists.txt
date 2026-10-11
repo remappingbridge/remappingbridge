@@ -414,6 +414,7 @@ target_link_libraries(blu2usb_test_mod04_modifier PRIVATE
     blu2usb_profiles
     blu2usb_ux_model
     blu2usb_renderer
+    blu2usb_remap
 )
 # The production workflow configures Release (-DNDEBUG). Keep new gate
 # assertions active so test runs actually evaluate the physical and
