@@ -151,8 +151,8 @@ static void test_unmapped_secondary_passes_and_suppresses_tap(void)
     /* When Modifier is not held a normal drag can still be delivered. */
     assert(send_button(&s,BLU2USB_MOUSE_BUTTON_RIGHT,true));
     assert(send_button(&s,BLU2USB_MOUSE_BUTTON_RIGHT,false));
-    /* Future-supported labels may be saved, but must not misfire as another key. */
-    assigned[3]=19; /* Consumer PLAY PAUSE: MOD-08 */
+    /* Unknown/invalid IDs must never emit a misleading HID event. */
+    assigned[3]=31; /* Consumer PLAY PAUSE: MOD-08 */
     blu2usb_modifier_shortcuts_assignments(&s,assigned);
     assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_LEFT,true));
     assert(send_button(&s,BLU2USB_MOUSE_BUTTON_RIGHT,true));
@@ -292,7 +292,7 @@ int main(void)
 {
     assert(blu2usb_modifier_shortcuts_action_supported(1u));
     assert(blu2usb_modifier_shortcuts_action_supported(7u));
-    assert(!blu2usb_modifier_shortcuts_action_supported(19u));
+    assert(!blu2usb_modifier_shortcuts_action_supported(31u));
     test_solo_release_escape_and_hold();
     test_preheld_secondary_is_not_a_new_combo();
     test_clean_tap_jitter();
