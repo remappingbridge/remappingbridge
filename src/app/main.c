@@ -536,6 +536,7 @@ int main(void)
     blu2usb_usb_keyboard_report_t last_keyboard = {0};
     bool last_keyboard_valid = false;
     bool previous_usb_mounted = false;
+    uint16_t last_consumer_sent = 0u; /* last accepted report, 0 = released */
 
     blu2usb_ux_init(&ux);
     blu2usb_ux_set_mouse_connected(false);
@@ -587,6 +588,7 @@ int main(void)
             blu2usb_modifier_shortcuts_cancel(&shortcuts, &aggregator);
             last_keyboard_valid = false;
             last_mouse_valid = false;
+            last_consumer_sent = 0u; /* new USB session cannot own old report */
             previous_usb_mounted = usb_mounted;
         }
         blu2usb_modifier_shortcuts_tick(&shortcuts,
@@ -598,10 +600,38 @@ int main(void)
             (void)render_state(&display, &ux);
         service_usb_mouse(&aggregator, &motion, ux.movement_current,
                           &last_mouse_buttons, &last_mouse_valid);
-        blu2usb_modifier_shortcuts_prepare_usb(&shortcuts, &aggregator);
-        const bool keyboard_accepted =
-            service_usb_keyboard(&aggregator, &last_keyboard, &last_keyboard_valid);
-        blu2usb_modifier_shortcuts_ack_usb(&shortcuts, keyboard_accepted);
+        /* Both HID Report IDs share the same Keyboard interface endpoint.
+         * Serialize Consumer neutralization and Keyboard/Consumer actions so
+         * TinyUSB never has simultaneous writers to interface 1.
+         * Last accepted nonzero Consumer usage must be sent as zero even if
+         * the action was cancelled during BLE disconnect, profile or Lock. */
+        if (!blu2usb_modifier_shortcuts_consumer_phase(&shortcuts) &&
+            last_consumer_sent != 0u) {
+            if (blu2usb_usb_hid_pico_send_consumer(0u))
+                last_consumer_sent = 0u;
+        } else {
+            blu2usb_modifier_shortcuts_prepare_usb(&shortcuts, &aggregator);
+            if (blu2usb_modifier_shortcuts_consumer_phase(&shortcuts)) {
+                /* Boot Keyboard protocol permits only the legacy 8-byte
+                 * report. A Consumer action cannot be emitted there. */
+                if (!blu2usb_usb_hid_pico_consumer_available()) {
+                    blu2usb_modifier_shortcuts_cancel(&shortcuts, &aggregator);
+                    last_keyboard_valid = false;
+                } else {
+                    const uint16_t usage =
+                        blu2usb_modifier_shortcuts_consumer_usage(&shortcuts);
+                    const bool accepted =
+                        blu2usb_usb_hid_pico_send_consumer(usage);
+                    if (accepted) last_consumer_sent = usage;
+                    blu2usb_modifier_shortcuts_ack_usb(&shortcuts, accepted);
+                }
+            } else {
+                const bool keyboard_accepted =
+                    service_usb_keyboard(&aggregator, &last_keyboard,
+                                         &last_keyboard_valid);
+                blu2usb_modifier_shortcuts_ack_usb(&shortcuts, keyboard_accepted);
+            }
+        }
 
         blu2usb_hat_pico_task();
         blu2usb_hat_event_t event;
