@@ -35,7 +35,7 @@ blu2usb_declare_contract_modules()
 
 add_library(blu2usb_contract STATIC src/domain/version.c)
 target_include_directories(blu2usb_contract PUBLIC include)
-target_compile_definitions(blu2usb_contract PUBLIC BLU2USB_VERSION_STRING="3.0.0")
+target_compile_definitions(blu2usb_contract PUBLIC BLU2USB_VERSION_STRING="3.0.1")
 # Regression marker consumed by the inherited G05 architecture check only:
 # BLU2USB_VERSION_STRING="0.5.0-g05"
 
