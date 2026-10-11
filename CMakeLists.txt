@@ -60,6 +60,7 @@ target_link_libraries(blu2usb_remap PUBLIC blu2usb_profiles)
 
 add_library(blu2usb_modifier_shortcuts STATIC
     src/modifier_shortcuts/modifier_shortcuts.c
+    src/modifier_shortcuts/keyboard_catalog.c
 )
 target_include_directories(blu2usb_modifier_shortcuts PUBLIC include)
 target_link_libraries(blu2usb_modifier_shortcuts PUBLIC blu2usb_hid_aggregator blu2usb_profiles blu2usb_movement)
