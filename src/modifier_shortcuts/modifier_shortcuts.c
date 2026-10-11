@@ -78,6 +78,7 @@ void blu2usb_modifier_shortcuts_cancel(blu2usb_modifier_shortcuts_t *state,
     state->queue_head = state->queue_size = 0u;
     state->usb_phase = BLU2USB_MOD05_USB_IDLE;
     state->running_action = 0u;
+    state->usb_down_accepted_ms = 0u;
     state->running_consumer = false;
     state->consumer_usage = 0u;
 }
@@ -243,7 +244,10 @@ static uint32_t magnitude(int64_t v)
 void blu2usb_modifier_shortcuts_tick(blu2usb_modifier_shortcuts_t *state,
                                      uint32_t now_ms)
 {
-    if (state == NULL || !state->motion_seen) return;
+    if (state == NULL) return;
+    state->usb_time_valid = true;
+    state->usb_now_ms = now_ms;
+    if (!state->motion_seen) return;
     if ((uint32_t)(now_ms - state->motion_last_ms) < BLU2USB_MOD06_QUIET_MS)
         return;
     /* Rearm after true quiet, never just a diagonal/axis sign flicker. */
@@ -440,6 +444,14 @@ void blu2usb_modifier_shortcuts_prepare_usb(blu2usb_modifier_shortcuts_t *state,
 {
     if (state == NULL || aggregator == NULL) return;
     if (state->usb_phase == BLU2USB_MOD05_USB_NEED_UP) {
+        /* A successful endpoint queue does not mean the host has already
+         * processed the event. Preserve a short, nonblocking real-time down
+         * interval before the matching HID release is queued. */
+        const uint32_t min_hold = state->running_consumer ?
+            BLU2USB_MOD08_CONSUMER_HOLD_MS : BLU2USB_MOD08_KEYBOARD_HOLD_MS;
+        if (state->usb_time_valid &&
+            (uint32_t)(state->usb_now_ms - state->usb_down_accepted_ms) < min_hold)
+            return;
         if (state->running_consumer)
             state->consumer_usage = 0u;
         else
@@ -480,8 +492,10 @@ void blu2usb_modifier_shortcuts_ack_usb(blu2usb_modifier_shortcuts_t *state,
     bool report_accepted)
 {
     if (state == NULL || !report_accepted) return;
-    if (state->usb_phase == BLU2USB_MOD05_USB_WAIT_DOWN)
+    if (state->usb_phase == BLU2USB_MOD05_USB_WAIT_DOWN) {
+        state->usb_down_accepted_ms = state->usb_now_ms;
         state->usb_phase = BLU2USB_MOD05_USB_NEED_UP;
+    }
     else if (state->usb_phase == BLU2USB_MOD05_USB_WAIT_UP) {
         state->usb_phase = BLU2USB_MOD05_USB_IDLE;
         state->running_action = 0u;
