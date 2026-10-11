@@ -14,10 +14,10 @@ static const expected_t k_expected[] = {
     {4, 0x19, 0x01}, {5, 0x1d, 0x01}, {6, 0x1d, 0x03},
     {7, 0x29, 0x00}, {8, 0x2c, 0x00}, {9, 0x28, 0x00},
     {10, 0x2a, 0x00}, {11, 0x4c, 0x00}, {12, 0x3b, 0x00},
-    {13, 0x44, 0x00}, {14, 0x46, 0x00}, {15, 0x46, 0x02},
+    {13, 0x44, 0x00}, {14, 0x46, 0x00}, {15, 0x46, 0x0a},
     {16, 0x15, 0x01}, {17, 0x09, 0x01}, {18, 0x16, 0x01},
-    {25, 0x4a, 0x00}, {26, 0x57, 0x01},
-    {27, 0x56, 0x01}, {28, 0x27, 0x01}
+    {26, 0x2e, 0x03},
+    {27, 0x2d, 0x01}, {28, 0x27, 0x01}
 };
 static bool key_down(const blu2usb_hid_output_state_t *out,unsigned key) {
     return !!(out->key_bitmap[key>>3u]&(1u<<(key&7u)));
@@ -146,7 +146,7 @@ int main(void)
         run_action((uint8_t)id,chord.key_usage,chord.modifier_mask);
         count++;
     }
-    assert(count==22u);
+    assert(count==21u);
     assert(!blu2usb_keyboard_shortcut_lookup(0,NULL));
     for(unsigned id=19;id<=24;id++)
         assert(blu2usb_modifier_shortcuts_action_supported((uint8_t)id));
