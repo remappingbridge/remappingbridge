@@ -12,12 +12,12 @@ home_lines = [
 assert len(home_lines) == 3
 assert all("LEARN THE KEYS" not in line for line in home_lines)
 
-assert "case BLU2USB_SCREEN_HOME: return 3;" in ux
+assert "case BLU2USB_SCREEN_HOME: return 4;" in ux
 assert "case BLU2USB_SCREEN_HOME_RETRY: return 2;" in ux
-assert "selection % 3u" in ux
+assert "selection % 4u" in ux
 
 # HOME destinations expose only remapper, saved devices and Pair New.
-assert "static const blu2usb_screen_id_t dest[3]" in ux
+assert "static const blu2usb_screen_id_t dest[4]" in ux
 assert "static const blu2usb_screen_id_t dest[2]" in ux
 
 home_nav_start = ux.index(

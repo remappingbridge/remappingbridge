@@ -74,12 +74,14 @@ static void test_connected_mouse_is_always_page_one(void)
     assert(blu2usb_ux_saved_bond_for_page(&ux, 2u) == 2);
 
     project(&ux, &frame);
-    assert(frame.hint_start_row == 6u);
+    assert(frame.hint_start_row == 7u);
     assert_row(&frame, 0u, "1 OF 3");
     assert_row(&frame, 1u, "LOGITECH LIFT MOUSE");
     assert_tone(&frame, 1u, BLU2USB_UI_TONE_CURRENT);
-    assert_row(&frame, 2u, "STATUS: CONNECTED");
-    assert_row(&frame, 3u, "PROFILE: STANDARD");
+    assert_row(&frame, 2u, "PROFILE: STANDARD");
+    assert_row(&frame, 3u, "DPI: H 1 - V 1");
+    assert_row(&frame, 4u, "ROTATION: 0 DEGREE");
+    assert_row(&frame, 5u, " REMOVE DEVICE");
 }
 
 static void test_disconnect_keeps_name_and_front_page(void)
@@ -103,7 +105,7 @@ static void test_disconnect_keeps_name_and_front_page(void)
     assert_row(&frame, 0u, "1 OF 3");
     assert_row(&frame, 1u, "LOGITECH LIFT MOUSE");
     assert_tone(&frame, 1u, BLU2USB_UI_TONE_STATIC);
-    assert_row(&frame, 2u, "STATUS: DISCONNECTED");
+    assert_row(&frame, 2u, "PROFILE: STANDARD");
 }
 
 static void test_another_connected_mouse_becomes_page_one(void)
@@ -122,19 +124,19 @@ static void test_another_connected_mouse_becomes_page_one(void)
 
     project(&ux, &frame);
     assert_row(&frame, 1u, "MOUSE GAMMA");
-    assert_row(&frame, 2u, "STATUS: CONNECTED");
+    assert_row(&frame, 2u, "PROFILE: STANDARD");
 
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
     assert(ux.saved_page == 1u);
     project(&ux, &frame);
     assert_row(&frame, 1u, "MOUSE ALPHA");
-    assert_row(&frame, 2u, "STATUS: DISCONNECTED");
+    assert_row(&frame, 2u, "PROFILE: STANDARD");
 
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
     assert(ux.saved_page == 2u);
     project(&ux, &frame);
     assert_row(&frame, 1u, "LOGITECH LIFT MOUSE");
-    assert_row(&frame, 2u, "STATUS: DISCONNECTED");
+    assert_row(&frame, 2u, "PROFILE: STANDARD");
 }
 
 static void test_navigation_access_back_and_lock_contract(void)
@@ -151,6 +153,8 @@ static void test_navigation_access_back_and_lock_contract(void)
     const blu2usb_ux_command_t command =
         tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(command.kind == BLU2USB_UX_COMMAND_NONE);
+    assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
+    tap(&ux, BLU2USB_CONTROL_KEY_B);
     assert(ux.screen == BLU2USB_SCREEN_SAVED_DEVICES);
 
     tap(&ux, BLU2USB_CONTROL_KEY_B);

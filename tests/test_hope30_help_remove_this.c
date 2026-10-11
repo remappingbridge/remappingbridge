@@ -55,7 +55,7 @@ static void test_help_layout(void)
     blu2usb_ui_frame_t frame;
     init_remove_this(&ux);
 
-    (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
     assert(ux.screen == BLU2USB_SCREEN_HELP_REMOVE_THIS);
     assert(ux.return_screen == BLU2USB_SCREEN_REMOVE_THIS);
     assert(ux.remove_target_bond == 0);
@@ -66,8 +66,8 @@ static void test_help_layout(void)
     assert_row(&frame, 2u, "AUTOMATIC CONNECTION");
     assert_row(&frame, 3u, "WHEN TURNING ON THE");
     assert_row(&frame, 4u, "DEVICE AND DELETE ITS");
-    assert_row(&frame, 5u, "BUTTON REMAPPING");
-    assert_row(&frame, 6u, "PROFILE.");
+    assert_row(&frame, 5u, "BUTTON REMAPPING AND");
+    assert_row(&frame, 6u, "CUSTOM MOVEMENTS");
     assert_row(&frame, 7u, "");
     assert_row(&frame, 8u, "ANY KEY: BACK");
 }
@@ -82,14 +82,14 @@ static void test_any_key_returns_without_locking(void)
         BLU2USB_CONTROL_JOY_PRESS,
         BLU2USB_CONTROL_KEY_A,
         BLU2USB_CONTROL_KEY_B,
-        BLU2USB_CONTROL_KEY_X,
+        BLU2USB_CONTROL_KEY_Y,
         BLU2USB_CONTROL_KEY_Y,
     };
 
     for (unsigned i = 0u; i < sizeof(controls) / sizeof(controls[0]); ++i) {
         blu2usb_ux_model_t ux;
         init_remove_this(&ux);
-        (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
+        (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
         assert(ux.screen == BLU2USB_SCREEN_HELP_REMOVE_THIS);
 
         const int target = ux.remove_target_bond;
@@ -108,7 +108,7 @@ static void test_help_preserves_pinned_target_across_reorder(void)
     blu2usb_ux_model_t ux;
     blu2usb_ui_frame_t frame;
     init_remove_this(&ux);
-    (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
     assert(ux.screen == BLU2USB_SCREEN_HELP_REMOVE_THIS);
 
     /* A background reconnect may reorder Saved Devices while Help is open. */
@@ -140,7 +140,7 @@ static void test_help_not_entered_after_remove_started(void)
     assert(remove.kind == BLU2USB_UX_COMMAND_REMOVE_MOUSE);
     assert(ux.remove_pending);
 
-    (void)tap(&ux, BLU2USB_CONTROL_KEY_X);
+    (void)tap(&ux, BLU2USB_CONTROL_KEY_Y);
     assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
 }
 

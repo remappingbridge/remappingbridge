@@ -63,11 +63,12 @@ static void test_remove_this_projection_and_target(void)
     project(&ux, &frame);
     assert_row(&frame, 0u, "REMOVE THIS MOUSE");
     assert_row(&frame, 1u, "LOGITECH LIFT MOUSE");
-    assert_row(&frame, 3u, "PAIRING AND MAPPINGS");
-    assert_row(&frame, 4u, "WILL BE DELETED");
+    assert_row(&frame, 2u, "SAVED PAIRING AND");
+    assert_row(&frame, 3u, "PREFERENCES WILL");
+    assert_row(&frame, 4u, "BE DELETED.");
     assert_row(&frame, 6u, "KEY A: REMOVE");
     assert_row(&frame, 7u, "KEY B: CANCEL");
-    assert_row(&frame, 8u, "KEY X: HELP");
+    assert_row(&frame, 8u, "KEY Y: HELP");
 
     const blu2usb_ux_command_t remove =
         tap(&ux, BLU2USB_CONTROL_KEY_A);

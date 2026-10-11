@@ -4,19 +4,21 @@ Firmware plug-and-play para Raspberry Pi Pico 2 W que recebe Mouse HID Bluetooth
 
 ## Versão estável
 
-**RemappingBridge 1.0.0** é a primeira versão estável concluída após a série HOPE.
+**RemappingBridge 2.0.0** — Movimento horizontal/vertical independente, rotação anticlockwise de 0° a 270°, persistência de DPI e rotação por Mouse Bluetooth, Saved Devices por identidade e Help contextual. Todos os gates **MOV-01 a MOV-10** foram aceitos fisicamente.
 
-O firmware final inclui pareamento/reconexão de Mouse, Saved Devices persistentes, remoção de dispositivos, perfis Passthrough/Standard/Escape/Custom, Logitech Lift HID++, Lock/Help e a UX final de 29 telas canônicas.
+A versão mantém pareamento/reconexão HID Bluetooth, remoção de dispositivos, remapeamento Passthrough/Standard/Escape/Custom, Logitech Lift HID++, tela de bloqueio, interface 9×21 e identidade USB HID da v1.0.0.
+
+Firmware de produção e checksums: [Release v2.0.0](https://github.com/remappingbridge/remappingbridge/releases/tag/v2.0.0).
+Novidades e instruções: [docs/releases/v2.0.0.md](docs/releases/v2.0.0.md).
 
 ## Fontes normativas
 
-Para a versão 1.0, a precedência documental é:
+Para a versão 2.0, a precedência documental é:
 
-1. `docs/hope/00-final-screen-inventory.md` — inventário final das 29 telas;
-2. `docs/hope/02-final-navigation.md` — navegação e regras de controle;
-3. `docs/hope/01-final-architecture.md` — arquitetura efetivamente implementada;
-4. documentos Gxx/pré-HOPE — histórico e evidência, somente quando não conflitarem com `docs/hope/`;
-5. `docs/reference/00-reuse-evidence.md` — conhecimento reaproveitável, nunca autoridade sobre a UX final.
+1. [Movement Options — planner](https://github.com/remappingbridge/planner/tree/main/movement-options) e seus gates aceitos, para as telas e comportamentos novos/alterados;
+2. `docs/releases/v2.0.0.md` — contrato do lançamento;
+3. `docs/hope/00-final-screen-inventory.md`, `02-final-navigation.md` e `01-final-architecture.md` — comportamento anterior da v1.0.0 mantido quando não alterado pela v2.0;
+4. documentos Gxx/pré-HOPE e `docs/reference/00-reuse-evidence.md` — histórico técnico, não autoridade sobre a UX atual.
 
 Em caso de conflito, não se interpreta silenciosamente: a implementação para e o contrato é corrigido antes do código.
 

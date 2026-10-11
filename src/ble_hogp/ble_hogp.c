@@ -486,6 +486,10 @@ bool blu2usb_ble_hogp_decode_runtime_message(const blu2usb_bt_runtime_message_t 
         if (message->length != 0u) return false;
         event->type = BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVED;
         return true;
+    case BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED:
+        if (message->length != 0u) return false;
+        event->type = BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVE_FAILED;
+        return true;
     default:
         return false;
     }

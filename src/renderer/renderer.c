@@ -202,6 +202,14 @@ static int selected_row(const blu2usb_ux_model_t *ux)
     case BLU2USB_SCREEN_FORWARD_WILL_BECOME:
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME:
         return (int)(1u + ux->selection);
+    case BLU2USB_SCREEN_MOVEMENT_OPTIONS:
+        return (int)(ux->selection == 2u ? 4u : 1u + ux->selection);
+    case BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI:
+    case BLU2USB_SCREEN_HORIZONTAL_FAST_DPI:
+    case BLU2USB_SCREEN_VERTICAL_SLOW_DPI:
+    case BLU2USB_SCREEN_VERTICAL_FAST_DPI:
+    case BLU2USB_SCREEN_ROTATION:
+        return (int)(ux->selection + 1u);
     default: return -1;
     }
 }
@@ -233,43 +241,116 @@ static const char *saved_profile_name(blu2usb_mouse_profile_kind_t profile)
     }
 }
 
+static const char *movement_gain_name(uint8_t quarter);
+
 static void project_saved_devices(const blu2usb_ux_model_t *ux,
                                   blu2usb_ui_frame_t *frame)
 {
     char title[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char name[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char profile[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    char dpi[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    char rot[BLU2USB_RENDERER_TEXT_COLS + 1u];
     const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
-    const bool current =
-        blu2usb_ux_mouse_connected() &&
-        bond >= 0 &&
-        bond == ux->saved_connected_bond;
+    const bool current = blu2usb_ux_mouse_connected() &&
+                         bond >= 0 && bond == ux->saved_connected_bond;
     const char *saved_name =
         bond >= 0 && (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE &&
         ux->saved_mouse_names[bond][0] != '\0'
             ? ux->saved_mouse_names[bond]
             : (current ? ux->current_mouse_name : NULL);
-
+    const blu2usb_movement_settings_t settings =
+        bond >= 0 && (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE ?
+        ux->saved_movements[bond] : blu2usb_movement_defaults();
+    char h[7], v[7];
+    (void)snprintf(h, sizeof(h), "%s", movement_gain_name(settings.horizontal_quarters));
+    (void)snprintf(v, sizeof(v), "%s", movement_gain_name(settings.vertical_quarters));
+    h[strlen(h)-1u] = '\0';
+    v[strlen(v)-1u] = '\0';
     (void)snprintf(title, sizeof(title), "%u OF %u",
-                   ux->saved_device_count == 0u ? 0u : ux->saved_page + 1u,
+                   ux->saved_device_count ? ux->saved_page + 1u : 0u,
                    ux->saved_device_count);
     home_title(saved_name, name);
     (void)snprintf(profile, sizeof(profile), "PROFILE: %s",
                    saved_profile_name(ux->active_profile));
+    (void)snprintf(dpi, sizeof(dpi), "DPI: H %s - V %s", h, v);
+    (void)snprintf(rot, sizeof(rot), "ROTATION: %u DEGREE",
+                   (unsigned)settings.rotation_quadrants * 90u);
 
-    for (uint8_t row = 0u; row <= 3u; ++row) clear_row(frame, row);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 0u, 0u, title, BLU2USB_UI_TONE_TITLE);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 1u, 0u, name,
-        current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 2u, 0u,
-        current ? "STATUS: CONNECTED" : "STATUS: DISCONNECTED",
-        BLU2USB_UI_TONE_STATIC);
-    (void)blu2usb_ui_frame_set_text(
-        frame, 3u, 0u, profile, BLU2USB_UI_TONE_STATIC);
-    set_row_tone(frame, 4u, BLU2USB_UI_TONE_EMPHASIZED);
+    for (uint8_t row = 0u; row <= 5u; ++row) clear_row(frame, row);
+    (void)blu2usb_ui_frame_set_text(frame, 0u, 0u, title, BLU2USB_UI_TONE_TITLE);
+    (void)blu2usb_ui_frame_set_text(frame, 1u, 0u, name,
+                                   current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC);
+    (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, profile, BLU2USB_UI_TONE_STATIC);
+    (void)blu2usb_ui_frame_set_text(frame, 3u, 0u, dpi, BLU2USB_UI_TONE_CURRENT);
+    (void)blu2usb_ui_frame_set_text(frame, 4u, 0u, rot, BLU2USB_UI_TONE_CURRENT);
+    (void)blu2usb_ui_frame_set_text(frame, 5u, 0u, " REMOVE DEVICE",
+                                   BLU2USB_UI_TONE_EMPHASIZED);
+}
+
+static const char *movement_gain_name(uint8_t quarter)
+{
+    switch (quarter) {
+    case 1u: return "0.25X";
+    case 2u: return "0.5X";
+    case 3u: return "0.75X";
+    case 4u: return "1X";
+    case 5u: return "1.25X";
+    case 6u: return "1.5X";
+    case 8u: return "2X";
+    case 12u: return "3X";
+    default: return "1X";
+    }
+}
+
+static void project_movement_options(const blu2usb_ux_model_t *ux,
+                                     blu2usb_ui_frame_t *frame)
+{
+    char line[BLU2USB_RENDERER_TEXT_COLS + 1u];
+    clear_row(frame, 1u);
+    (void)snprintf(line, sizeof(line), " HORIZONTAL DPI %s",
+                   movement_gain_name(ux->movement_current.horizontal_quarters));
+    (void)blu2usb_ui_frame_set_text(frame, 1u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
+    (void)blu2usb_ui_frame_set_tone_span(frame, 1u, 16u,
+                (uint8_t)strlen(movement_gain_name(ux->movement_current.horizontal_quarters)),
+                BLU2USB_UI_TONE_CURRENT);
+    clear_row(frame, 2u);
+    (void)snprintf(line, sizeof(line), " VERTICAL DPI %s",
+                   movement_gain_name(ux->movement_current.vertical_quarters));
+    (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
+    (void)blu2usb_ui_frame_set_tone_span(frame, 2u, 14u,
+                (uint8_t)strlen(movement_gain_name(ux->movement_current.vertical_quarters)),
+                BLU2USB_UI_TONE_CURRENT);
+    clear_row(frame, 4u);
+    (void)snprintf(line, sizeof(line), " ROTATION %u-DEGREE",
+                   (unsigned)ux->movement_current.rotation_quadrants * 90u);
+    (void)blu2usb_ui_frame_set_text(frame, 4u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
+    (void)blu2usb_ui_frame_set_tone_span(frame, 4u, 10u,
+                (uint8_t)(strlen(line) - 10u), BLU2USB_UI_TONE_CURRENT);
+}
+
+static void project_movement_current_choice(const blu2usb_ux_model_t *ux,
+                                            blu2usb_ui_frame_t *frame)
+{
+    const uint8_t h = ux->movement_current.horizontal_quarters;
+    const uint8_t v = ux->movement_current.vertical_quarters;
+    const uint8_t val = ux->screen == BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI ||
+                        ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ? h : v;
+    if (ux->screen == BLU2USB_SCREEN_ROTATION) {
+        set_row_tone(frame, (uint8_t)(ux->movement_current.rotation_quadrants+1u),
+                     BLU2USB_UI_TONE_CURRENT);
+        return;
+    }
+    const bool fast = ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ||
+                      ux->screen == BLU2USB_SCREEN_VERTICAL_FAST_DPI;
+    static const uint8_t slow_values[4] = {4,3,2,1};
+    static const uint8_t fast_values[4] = {5,6,8,12};
+    for (unsigned i = 0; i < 4u; ++i) {
+        if (val == (fast ? fast_values[i] : slow_values[i])) {
+            set_row_tone(frame, (uint8_t)(i + 1u), BLU2USB_UI_TONE_CURRENT);
+            break;
+        }
+    }
 }
 
 static void project_remove_this(const blu2usb_ux_model_t *ux,
@@ -481,13 +562,46 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         set_row_tone(frame, current_row, BLU2USB_UI_TONE_CURRENT);
     }
 
+    if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS)
+        project_movement_options(ux, frame);
+    else if (ux->screen == BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI ||
+             ux->screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI ||
+             ux->screen == BLU2USB_SCREEN_VERTICAL_SLOW_DPI ||
+             ux->screen == BLU2USB_SCREEN_VERTICAL_FAST_DPI ||
+             ux->screen == BLU2USB_SCREEN_ROTATION)
+        project_movement_current_choice(ux, frame);
+
     const int selected = selected_row(ux);
+    if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && ux->selection == 2u)
+        emphasize_row(frame, 3u);
     if (selected >= 0 && selected < (int)BLU2USB_RENDERER_TEXT_ROWS) emphasize_row(frame,(uint8_t)selected);
 
     for (unsigned control = 0; control < BLU2USB_CONTROL_COUNT; ++control) {
         if (!blu2usb_interaction_is_pressed(&ux->interaction,(blu2usb_control_t)control)) continue;
         for (uint8_t row = hint; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
             if (row_has_control(screen->rows[row],(blu2usb_control_t)control)) emphasize_row(frame,row);
+        }
+    }
+
+    /* Saved Devices uses a deliberately restrained identity-only highlight:
+     * the currently CONNECTED mouse's NAME is cyan, while every other
+     * nonblank character on every saved-device page uses the system's
+     * standard off-white/yellow (STATIC) tone. This includes the page
+     * counter, profile, DPI, rotation, remove action and navigation hints.
+     * Apply after generic selection/pressed-key highlighting so no stale
+     * emphasis leaks into the page. Other screens keep their v1.0 rules. */
+    if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES) {
+        const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
+        const bool connected_name = blu2usb_ux_mouse_connected() &&
+            bond >= 0 && bond == ux->saved_connected_bond;
+        for (uint8_t row = 0u; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
+            for (uint8_t col = 0u; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
+                if (frame->cells[row][col].character == ' ') continue;
+                frame->cells[row][col].tone =
+                    row == 1u && connected_name
+                        ? BLU2USB_UI_TONE_CURRENT
+                        : BLU2USB_UI_TONE_STATIC;
+            }
         }
     }
 }

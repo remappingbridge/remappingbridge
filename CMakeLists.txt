@@ -14,7 +14,7 @@ if(BLU2USB_BUILD_PICO)
     include("${PICO_SDK_PATH}/external/pico_sdk_import.cmake")
 endif()
 
-project(blu2usb_picow VERSION 1.0.0 LANGUAGES C CXX ASM)
+project(blu2usb_picow VERSION 2.0.0 LANGUAGES C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -35,9 +35,12 @@ blu2usb_declare_contract_modules()
 
 add_library(blu2usb_contract STATIC src/domain/version.c)
 target_include_directories(blu2usb_contract PUBLIC include)
-target_compile_definitions(blu2usb_contract PUBLIC BLU2USB_VERSION_STRING="1.0.0")
+target_compile_definitions(blu2usb_contract PUBLIC BLU2USB_VERSION_STRING="2.0.0")
 # Regression marker consumed by the inherited G05 architecture check only:
 # BLU2USB_VERSION_STRING="0.5.0-g05"
+
+add_library(blu2usb_movement STATIC src/movement/movement.c)
+target_include_directories(blu2usb_movement PUBLIC include)
 
 add_library(blu2usb_hid_aggregator STATIC
     src/hid_aggregator/hid_aggregator.c
@@ -66,7 +69,7 @@ add_library(blu2usb_ux_model STATIC
     src/ux_model/profile_state.c
 )
 target_include_directories(blu2usb_ux_model PUBLIC include)
-target_link_libraries(blu2usb_ux_model PUBLIC blu2usb_interaction)
+target_link_libraries(blu2usb_ux_model PUBLIC blu2usb_interaction blu2usb_movement)
 
 add_library(blu2usb_renderer STATIC
     src/renderer/renderer.c
@@ -166,6 +169,7 @@ if(BLU2USB_BUILD_PICO)
     target_link_libraries(blu2usb_picow PRIVATE
         pico_stdlib
         blu2usb_contract
+        blu2usb_movement
         blu2usb_module_app
     )
     target_compile_definitions(blu2usb_picow PRIVATE CYW43_LWIP=0)

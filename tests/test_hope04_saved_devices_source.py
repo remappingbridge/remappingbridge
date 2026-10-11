@@ -8,8 +8,8 @@ ble_h = (root / "include/blu2usb/ble_hogp/ble_hogp.h").read_text(encoding="utf-8
 ble = (root / "src/ble_hogp/ble_hogp_pico.c").read_text(encoding="utf-8")
 app = (root / "src/app/main.c").read_text(encoding="utf-8")
 
-assert '"0 OF 0","UNKNOWN MOUSE","STATUS: DISCONNECTED","PROFILE: PASSTHROUGH"," REMOVE DEVICE"' in ux
-assert '"JOY RIGHT\\\\LEFT: PAGE","JOY PRESS: ACCESS","KEY B: BACK"' in ux
+assert '"0 OF 0","UNKNOWN MOUSE","PROFILE: PASSTHROUGH","DPI: H 1 - V 1","ROTATION: 0 DEGREE"," REMOVE DEVICE"' in ux
+assert '"JOY RIGHT\\\\LEFT: PAGE","JOY PRESS: ACCESS"' in ux
 assert "case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_HOME;" in ux
 assert "case BLU2USB_SCREEN_SAVED_DEVICES: return 0;" in ux
 # HOPE-04 froze the Saved Devices shell; HOPE-05 is allowed to activate
@@ -42,8 +42,8 @@ assert "ux->saved_connected_bond = -1;" in ux
 assert "project_saved_devices" in renderer
 assert "blu2usb_ux_saved_bond_for_page" in renderer
 assert "ux->saved_mouse_names[bond]" in renderer
-assert '"STATUS: CONNECTED"' in renderer
-assert '"STATUS: DISCONNECTED"' in renderer
+assert '"DPI: H %s - V %s"' in renderer
+assert '"ROTATION: %u DEGREE"' in renderer
 
 assert "blu2usb_ble_hogp_pico_saved_mouse_name" in ble_h
 assert "BLE_HOGP_SAVED_REGISTRY_TAG" in ble

@@ -292,3 +292,92 @@ add_test(
     COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test_hope31_final_inventory_source.py
 )
+
+add_executable(blu2usb_test_mov01_connected_entry test_mov01_connected_entry.c)
+target_link_libraries(blu2usb_test_mov01_connected_entry PRIVATE blu2usb_renderer blu2usb_ux_model)
+add_test(NAME mov01_connected_entry COMMAND blu2usb_test_mov01_connected_entry)
+
+add_executable(blu2usb_test_mov02_math test_mov02_math.c)
+target_link_libraries(blu2usb_test_mov02_math PRIVATE blu2usb_movement)
+add_test(NAME mov02_vector_math COMMAND blu2usb_test_mov02_math)
+
+add_executable(blu2usb_test_mov03_complete_flow test_mov03_complete_flow.c)
+target_link_libraries(blu2usb_test_mov03_complete_flow PRIVATE blu2usb_renderer blu2usb_ux_model)
+add_test(NAME mov03_complete_flow COMMAND blu2usb_test_mov03_complete_flow)
+
+add_executable(blu2usb_test_mov02_horizontal_slow test_mov02_horizontal_slow.c)
+target_link_libraries(blu2usb_test_mov02_horizontal_slow PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mov02_horizontal_slow_physical_flow COMMAND blu2usb_test_mov02_horizontal_slow)
+
+add_executable(blu2usb_test_mov03_horizontal_fast test_mov03_horizontal_fast.c)
+target_link_libraries(blu2usb_test_mov03_horizontal_fast PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mov03_fast_dpi_and_saved_devices_tones COMMAND blu2usb_test_mov03_horizontal_fast)
+
+add_executable(blu2usb_test_mov04_vertical_slow test_mov04_vertical_slow.c)
+target_link_libraries(blu2usb_test_mov04_vertical_slow PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_movement
+)
+add_test(NAME mov04_vertical_slow_physical_flow COMMAND blu2usb_test_mov04_vertical_slow)
+
+add_executable(blu2usb_test_mov05_vertical_fast test_mov05_vertical_fast.c)
+target_link_libraries(blu2usb_test_mov05_vertical_fast PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_movement
+)
+add_test(NAME mov05_vertical_fast_physical_flow COMMAND blu2usb_test_mov05_vertical_fast)
+
+add_executable(blu2usb_test_mov06_rotation test_mov06_rotation.c)
+target_link_libraries(blu2usb_test_mov06_rotation PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_movement
+)
+add_test(NAME mov06_rotation_physical_flow COMMAND blu2usb_test_mov06_rotation)
+
+add_executable(blu2usb_test_mov07_home_connected test_mov07_home_connected.c)
+target_link_libraries(blu2usb_test_mov07_home_connected PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_movement
+)
+add_test(NAME mov07_connected_home_four_routes COMMAND blu2usb_test_mov07_home_connected)
+
+add_test(
+    NAME mov07_pico_ble_home_runtime_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mov07_home_runtime_source.py
+)
+
+add_executable(blu2usb_test_mov08_saved_devices test_mov08_saved_devices.c)
+target_link_libraries(blu2usb_test_mov08_saved_devices PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mov08_saved_devices_identity_and_values COMMAND blu2usb_test_mov08_saved_devices)
+
+add_executable(blu2usb_test_mov09_remove_this test_mov09_remove_this.c)
+target_link_libraries(blu2usb_test_mov09_remove_this PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mov09_remove_this_bond_scoped_flow COMMAND blu2usb_test_mov09_remove_this)
+
+add_test(
+    NAME mov09_pico_removal_runtime_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mov09_remove_runtime_source.py
+)
+
+add_executable(blu2usb_test_mov10_all_help test_mov10_all_help.c)
+target_link_libraries(blu2usb_test_mov10_all_help PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mov10_all_help_copy_and_any_key_back COMMAND blu2usb_test_mov10_all_help)
