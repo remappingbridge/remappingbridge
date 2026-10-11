@@ -10,7 +10,8 @@ static const uint8_t k_mouse_report_descriptor[] = {
 };
 
 static const uint8_t k_keyboard_report_descriptor[] = {
-    TUD_HID_REPORT_DESC_KEYBOARD()
+    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(BLU2USB_USB_REPORT_ID_KEYBOARD)),
+    TUD_HID_REPORT_DESC_CONSUMER(HID_REPORT_ID(BLU2USB_USB_REPORT_ID_CONSUMER))
 };
 
 static const tusb_desc_device_t k_device_descriptor = {
