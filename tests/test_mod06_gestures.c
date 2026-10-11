@@ -83,8 +83,8 @@ static void check_wheel(void) {
     assert(s.queue_size==5); /* no extra modifier-released Escape */
     blu2usb_modifier_shortcuts_cancel(&s,&agg);
     assert(s.queue_size==0);
-    /* Unsupported semantic action does not impersonate keyboard; scroll passes. */
-    ids[6]=19;ids[7]=0;
+    /* Invalid action ID does not impersonate keyboard; scroll passes. */
+    ids[6]=31;ids[7]=0;
     start(&s,&agg,ids);press(&s,movement);
     assert(flow(&s,make_wheel(1,0),movement,1,&out));
     assert(out.data.wheel.vertical==1 && s.queue_size==0);
@@ -163,7 +163,7 @@ static void check_future_action_capture(void) {
     blu2usb_modifier_shortcuts_t s;blu2usb_hid_aggregator_t agg;
     blu2usb_canonical_mouse_event_t out;
     blu2usb_movement_settings_t m=blu2usb_movement_defaults();
-    uint8_t ids[12]={0}; ids[8]=19;ids[0]=7;
+    uint8_t ids[12]={0}; ids[8]=31;ids[0]=7;
     start(&s,&agg,ids);press(&s,m);
     assert(!flow(&s,make_move(-40,0),m,10,&out));
     assert(s.gesture_latched && s.queue_size==0);
