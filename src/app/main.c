@@ -602,7 +602,7 @@ int main(void)
                           &last_mouse_buttons, &last_mouse_valid);
         /* Both HID Report IDs share the same Keyboard interface endpoint.
          * Serialize Consumer neutralization and Keyboard/Consumer actions so
-         * TinyUSB never has simultaneous writers to interface 1.
+         * the HID endpoint has only one writer at a time.
          * Last accepted nonzero Consumer usage must be sent as zero even if
          * the action was cancelled during BLE disconnect, profile or Lock. */
         if (!blu2usb_modifier_shortcuts_consumer_phase(&shortcuts) &&
@@ -627,8 +627,7 @@ int main(void)
                 }
             } else {
                 const bool keyboard_accepted =
-                    service_usb_keyboard(&aggregator, &last_keyboard,
-                                         &last_keyboard_valid);
+                    service_usb_keyboard(&aggregator, &last_keyboard, &last_keyboard_valid);
                 blu2usb_modifier_shortcuts_ack_usb(&shortcuts, keyboard_accepted);
             }
         }
