@@ -877,9 +877,10 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         }
     }
 
+    /* JOY PRESS and other non-navigation keys must not commit target drafts.
+     * KEY B cancels via the existing global Back route; KEY Y keeps Lock. */
     if (is_will_become(ux->screen) &&
-        (control == BLU2USB_CONTROL_KEY_A ||
-         control == BLU2USB_CONTROL_JOY_PRESS)) {
+        control == BLU2USB_CONTROL_KEY_A) {
         const unsigned source = (unsigned)ux->custom_source;
         cmd.kind = BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET;
         cmd.source = ux->custom_source;
