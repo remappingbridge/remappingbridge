@@ -38,7 +38,9 @@ static void expect_tones(const blu2usb_ui_frame_t *frame,
         for (unsigned col = 0; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
             if (frame->cells[row][col].character == ' ') continue;
             blu2usb_ui_tone_t tone = BLU2USB_UI_TONE_STATIC;
-            if (row == 1u && connected_name)
+            if (row == 0u)
+                tone = BLU2USB_UI_TONE_TITLE;
+            else if (row == 1u && connected_name)
                 tone = BLU2USB_UI_TONE_CURRENT;
             else if (row == 5u)
                 tone = removable ? BLU2USB_UI_TONE_EMPHASIZED
@@ -48,9 +50,11 @@ static void expect_tones(const blu2usb_ui_frame_t *frame,
             assert(frame->cells[row][col].tone == tone);
         }
     }
-    /* MNT-01 supersedes only the old MOV-08 all-yellow action/hints:
-     * title/profile/DPI/rotation still yellow, active name still cyan. */
-    assert(frame->cells[0][0].tone == BLU2USB_UI_TONE_STATIC);
+    /* MNT-01 restores system magenta for first-row TITLE and changes
+     * only action/hints; profile/DPI/rotation remain yellow. */
+    assert(frame->cells[0][0].tone == BLU2USB_UI_TONE_TITLE);
+    assert(blu2usb_renderer_tone_rgb565(frame->cells[0][0].tone) ==
+           BLU2USB_COLOR_MAGENTA);
     assert(frame->cells[2][0].tone == BLU2USB_UI_TONE_STATIC);
     assert(frame->cells[3][0].tone == BLU2USB_UI_TONE_STATIC);
     assert(frame->cells[4][0].tone == BLU2USB_UI_TONE_STATIC);
