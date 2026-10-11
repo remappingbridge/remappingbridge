@@ -198,6 +198,13 @@ static int selected_row(const blu2usb_ux_model_t *ux)
     case BLU2USB_SCREEN_FORWARD_WILL_BECOME:
     case BLU2USB_SCREEN_BACKWARD_WILL_BECOME:
         return (int)(1u + ux->selection);
+    case BLU2USB_SCREEN_COMBINATIONS_1:
+    case BLU2USB_SCREEN_COMBINATIONS_2:
+    case BLU2USB_SCREEN_COMBINATIONS_3:
+    case BLU2USB_SCREEN_COMBINATIONS_4:
+    case BLU2USB_SCREEN_COMBINATIONS_5:
+    case BLU2USB_SCREEN_COMBINATIONS_6:
+        return (int)(1u + 2u * (ux->selection % BLU2USB_COMBINATIONS_PER_PAGE));
     case BLU2USB_SCREEN_MOVEMENT_OPTIONS:
         return (int)(ux->selection == 2u ? 4u : 1u + ux->selection);
     case BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI:
@@ -565,6 +572,9 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && ux->selection == 2u)
         emphasize_row(frame, 3u);
     if (selected >= 0 && selected < (int)BLU2USB_RENDERER_TEXT_ROWS) emphasize_row(frame,(uint8_t)selected);
+    if (blu2usb_ux_is_combinations_screen(ux->screen) &&
+        selected >= 1 && selected <= 3)
+        emphasize_row(frame, (uint8_t)(selected + 1)); /* Label + value are one choice. */
 
     for (unsigned control = 0; control < BLU2USB_CONTROL_COUNT; ++control) {
         if (!blu2usb_interaction_is_pressed(&ux->interaction,(blu2usb_control_t)control)) continue;
