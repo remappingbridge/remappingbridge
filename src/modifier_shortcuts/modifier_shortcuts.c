@@ -56,6 +56,10 @@ void blu2usb_modifier_shortcuts_cancel(blu2usb_modifier_shortcuts_t *state,
     state->consumed_buttons = 0u;
     state->physical_buttons = 0u;
     state->tap_motion = 0u;
+    state->gesture_latched = false;
+    state->motion_seen = false;
+    state->gesture_x = state->gesture_y = 0;
+    state->motion_last_ms = 0u;
     state->queue_head = state->queue_size = 0u;
     state->usb_phase = BLU2USB_MOD05_USB_IDLE;
     state->running_action = 0u;
@@ -128,6 +132,9 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
                 if (!state->modifier_down) {
                     state->modifier_down = true;
                     state->tap_motion = 0u;
+                    state->gesture_latched = false;
+                    state->motion_seen = false;
+                    state->gesture_x = state->gesture_y = 0;
                     state->secondary_used =
                         (state->physical_buttons & (uint8_t)~bit) != 0u;
                 }
@@ -137,6 +144,9 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
                 state->modifier_down = false;
                 state->secondary_used = false;
                 state->tap_motion = 0u;
+                state->gesture_latched = false;
+                state->motion_seen = false;
+                state->gesture_x = state->gesture_y = 0;
             }
             return false; /* Never leak physical modifier click */
         }
@@ -185,6 +195,126 @@ bool blu2usb_modifier_shortcuts_process(blu2usb_modifier_shortcuts_t *state,
         }
     }
     return true;
+}
+
+/* Saturating to a modest raw-count window prevents signed overflow and
+ * means gains (H/V DPI) never influence gesture threshold or direction. */
+static int32_t bounded_add(int32_t lhs, int64_t rhs)
+{
+    const int64_t v = (int64_t)lhs + rhs;
+    return v > 1024 ? 1024 : v < -1024 ? -1024 : (int32_t)v;
+}
+
+static uint32_t magnitude(int64_t v)
+{
+    if (v < 0) v = -v; /* receives int32 deltas, so no INT64_MIN */
+    return (uint32_t)v;
+}
+
+void blu2usb_modifier_shortcuts_tick(blu2usb_modifier_shortcuts_t *state,
+                                     uint32_t now_ms)
+{
+    if (state == NULL || !state->motion_seen) return;
+    if ((uint32_t)(now_ms - state->motion_last_ms) < BLU2USB_MOD06_QUIET_MS)
+        return;
+    /* Rearm after true quiet, never just a diagonal/axis sign flicker. */
+    state->gesture_latched = false;
+    state->gesture_x = state->gesture_y = 0;
+    state->motion_seen = false;
+}
+
+static bool has_move_assignment(const blu2usb_modifier_shortcuts_t *state)
+{
+    for (unsigned combo = 8u; combo <= 11u; ++combo)
+        if (state->assignments[combo] != 0u) return true;
+    return false;
+}
+
+static void update_tap_motion(blu2usb_modifier_shortcuts_t *state,
+                              int32_t x, int32_t y)
+{
+    const uint32_t units = magnitude(x) + magnitude(y);
+    const uint32_t total = (uint32_t)state->tap_motion + units;
+    state->tap_motion = (uint8_t)(total > 8u ? 8u : total);
+    if (state->tap_motion >= 8u)
+        state->secondary_used = true;
+}
+
+bool blu2usb_modifier_shortcuts_process_event(
+    blu2usb_modifier_shortcuts_t *state,
+    const blu2usb_canonical_mouse_event_t *event,
+    blu2usb_movement_settings_t settings,
+    uint32_t now_ms,
+    blu2usb_canonical_mouse_event_t *forwarded)
+{
+    if (state == NULL || event == NULL || forwarded == NULL) return false;
+    *forwarded = *event; /* normal Mouse reports remain byte-preserved */
+    if (event->type == BLU2USB_MOUSE_EVENT_BUTTON)
+        return blu2usb_modifier_shortcuts_process(state, event);
+    if (!state->enabled || !state->modifier_down)
+        return true;
+    if (event->type == BLU2USB_MOUSE_EVENT_WHEEL) {
+        const int32_t vertical = event->data.wheel.vertical;
+        if (vertical != 0 || event->data.wheel.horizontal != 0)
+            state->secondary_used = true;
+        if (vertical == 0) return true; /* pure horizontal pan */
+        const unsigned combo = vertical > 0 ? 6u : 7u;
+        const uint8_t id = state->assignments[combo];
+        if (!blu2usb_modifier_shortcuts_action_supported(id))
+            return true; /* no assignment or future-only action: keep scroll */
+        /* Signed canonical detents; bounded by the FIFO's remaining slots.
+         * Drop excess on overflow, without leaking already captured scroll. */
+        uint32_t count = magnitude(vertical);
+        if (count > BLU2USB_MOD05_QUEUE_CAPACITY)
+            count = BLU2USB_MOD05_QUEUE_CAPACITY;
+        for (uint32_t i = 0; i < count; ++i)
+            queue_action(state, id);
+        forwarded->data.wheel.vertical = 0;
+        return forwarded->data.wheel.horizontal != 0; /* preserve pan */
+    }
+    if (event->type != BLU2USB_MOUSE_EVENT_MOVE)
+        return true;
+    const int32_t raw_x = event->data.move.dx;
+    const int32_t raw_y = event->data.move.dy;
+    if (!has_move_assignment(state)) {
+        update_tap_motion(state, raw_x, raw_y);
+        return true; /* identical to MOD-05 when no MOVE is configured */
+    }
+    /* Do not write into the existing stateful Movement pipeline. It receives
+     * only unconsumed events. Shared PURE rotation is used before H/V gain. */
+    blu2usb_modifier_shortcuts_tick(state, now_ms);
+    if (raw_x == 0 && raw_y == 0) return false;
+    update_tap_motion(state, raw_x, raw_y);
+    int64_t rx = 0, ry = 0;
+    blu2usb_movement_rotate_delta(settings, raw_x, raw_y, &rx, &ry);
+    state->motion_last_ms = now_ms;
+    state->motion_seen = true;
+    if (state->gesture_latched) return false; /* no auto-repeat */
+    /* Significant reversal restarts unfinished gesture instead of allowing
+     * two opposite swipes to cancel and fire an unintended axis later. */
+    if ((state->gesture_x >= 8 && rx <= -8) ||
+        (state->gesture_x <= -8 && rx >= 8))
+        state->gesture_x = state->gesture_y = 0;
+    if ((state->gesture_y >= 8 && ry <= -8) ||
+        (state->gesture_y <= -8 && ry >= 8))
+        state->gesture_x = state->gesture_y = 0;
+    state->gesture_x = bounded_add(state->gesture_x, rx);
+    state->gesture_y = bounded_add(state->gesture_y, ry);
+    const uint32_t abs_x = magnitude(state->gesture_x);
+    const uint32_t abs_y = magnitude(state->gesture_y);
+    unsigned combo = BLU2USB_SHORTCUT_SLOT_COUNT;
+    if (abs_x >= BLU2USB_MOD06_MOVE_THRESHOLD &&
+        abs_x >= BLU2USB_MOD06_DOMINANCE_RATIO * abs_y)
+        combo = state->gesture_x > 0 ? 9u : 8u; /* RIGHT / LEFT */
+    else if (abs_y >= BLU2USB_MOD06_MOVE_THRESHOLD &&
+             abs_y >= BLU2USB_MOD06_DOMINANCE_RATIO * abs_x)
+        combo = state->gesture_y > 0 ? 11u : 10u; /* DOWN / UP */
+    if (combo < BLU2USB_SHORTCUT_SLOT_COUNT) {
+        state->gesture_latched = true;
+        state->secondary_used = true;
+        queue_action(state, state->assignments[combo]);
+    }
+    return false; /* freeze pointer, even before detection threshold */
 }
 
 static bool apply_key(blu2usb_hid_aggregator_t *agg,
