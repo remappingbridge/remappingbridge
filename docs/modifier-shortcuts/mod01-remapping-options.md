@@ -9,7 +9,7 @@ Planejamento: https://github.com/remappingbridge/planner/tree/main/modifier-shor
 - `JOY UP/DOWN` seleciona uma das três opções, `JOY PRESS` acessa as rotas disponíveis, `KEY B` volta para Home, `KEY X` exibe Help com os nomes novos.
 - A rota Custom está na segunda linha. A terceira linha é reconhecida, mas seu `JOY PRESS` é **intencionalmente no-op até MOD-02**, que criará COMBINATIONS 1 OF 6; nenhuma tela provisória é adicionada.
 - Somente Passthrough e Custom aparecem no resumo da HOME e em PROFILE de Saved Devices. Uma configuração v2 com perfil Standard/Escape ativo é lida, mas **normalizada para PASSTHROUGH somente em RAM** durante a inicialização. Este gate não atualiza o schema v2, não altera bonds e não escreve flash nessa transição. A migração persistente formal pertence ao MOD-03.
-- O cadastro `ESCAPE` no seletor Custom WILL BECOME e as quatro antigas telas de confirmação existem ainda no código como **compatibilidade interna**, mas não possuem rotas acessíveis pelo novo menu. Substituição de ESCAPE por MODIFIER nesses seletores é responsabilidade do MOD-04. Remoção física das quatro definições legadas acompanha a migração (MOD-03); não divulgar como já removidas do binário.
+- **As quatro antigas telas** de confirmação Standard/Escape (APPLY + APPLIED) e seus comandos UX foram removidos do código e do inventário de telas neste MOD-01: 38 → **34 telas de runtime**. O destino `ESCAPE` do editor Custom WILL BECOME e os valores serializados de perfil legado são **mantidos temporariamente** para proteger a migração v2→v3, sendo substituídos no MOD-04/MOD-03 respectivamente.
 - USB HID, BLE, Movement, cores Saved Devices e formato persistente da v2 mantidos neste gate.
 
 ## Teste físico (operador)
