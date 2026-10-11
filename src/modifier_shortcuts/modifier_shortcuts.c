@@ -1,8 +1,8 @@
 #include "blu2usb/modifier_shortcuts/modifier_shortcuts.h"
+#include "blu2usb/modifier_shortcuts/keyboard_catalog.h"
 
 #include <string.h>
 
-#define BLU2USB_KEY_C_USAGE 0x06u
 
 static blu2usb_hid_source_t shortcut_source(void)
 {
@@ -35,7 +35,8 @@ static unsigned button_combo(int source)
 
 bool blu2usb_modifier_shortcuts_action_supported(uint8_t id)
 {
-    return id == 1u || id == 7u; /* COPY = Ctrl+C, ESCAPE = HID 0x29 */
+    blu2usb_keyboard_shortcut_t spec;
+    return blu2usb_keyboard_shortcut_lookup(id, &spec);
 }
 
 void blu2usb_modifier_shortcuts_init(blu2usb_modifier_shortcuts_t *state)
@@ -328,14 +329,34 @@ static bool apply_key(blu2usb_hid_aggregator_t *agg,
     return blu2usb_hid_aggregator_apply_keyboard(agg, &e);
 }
 
-static bool apply_control(blu2usb_hid_aggregator_t *agg, bool pressed)
+static bool apply_modifier_mask(blu2usb_hid_aggregator_t *agg,
+                                uint8_t mask)
 {
-    blu2usb_canonical_keyboard_event_t e = {0};
-    e.source = shortcut_source();
-    e.type = BLU2USB_KEYBOARD_EVENT_MODIFIER;
-    e.data.modifier.modifier = BLU2USB_MOD_LEFT_CTRL;
-    e.data.modifier.pressed = pressed;
-    return blu2usb_hid_aggregator_apply_keyboard(agg, &e);
+    for (unsigned bit = 0u; bit < BLU2USB_MOD_COUNT; ++bit) {
+        if ((mask & (uint8_t)(1u << bit)) == 0u) continue;
+        blu2usb_canonical_keyboard_event_t e = {0};
+        e.source = shortcut_source();
+        e.type = BLU2USB_KEYBOARD_EVENT_MODIFIER;
+        e.data.modifier.modifier = (blu2usb_modifier_t)bit;
+        e.data.modifier.pressed = true;
+        if (!blu2usb_hid_aggregator_apply_keyboard(agg, &e))
+            return false;
+    }
+    return true;
+}
+
+/* A USB key already held by another HID source cannot create an observable
+ * new key-down edge. Defer until the other source releases it, without
+ * modifying or releasing any unrelated source-owned keyboard state. */
+static bool keyboard_key_available(
+    const blu2usb_hid_aggregator_t *agg, uint8_t key_usage)
+{
+    if (agg->key_refs[key_usage] != 0u) return false;
+    /* At most six key usages can be represented in our 6KRO descriptor. */
+    unsigned occupied = 0u;
+    for (unsigned key = 1u; key < BLU2USB_HID_KEY_COUNT; ++key)
+        occupied += agg->key_refs[key] != 0u;
+    return occupied < 6u;
 }
 
 void blu2usb_modifier_shortcuts_prepare_usb(blu2usb_modifier_shortcuts_t *state,
@@ -350,14 +371,20 @@ void blu2usb_modifier_shortcuts_prepare_usb(blu2usb_modifier_shortcuts_t *state,
     if (state->usb_phase != BLU2USB_MOD05_USB_IDLE || !state->queue_size)
         return;
     const uint8_t id = state->pending[state->queue_head];
+    blu2usb_keyboard_shortcut_t spec;
+    if (!blu2usb_keyboard_shortcut_lookup(id, &spec)) {
+        /* Defensive: invalid/future IDs are never emitted, even if a
+         * corrupted in-RAM queue somehow contains one. */
+        state->queue_head = (uint8_t)((state->queue_head + 1u) % BLU2USB_MOD05_QUEUE_CAPACITY);
+        --state->queue_size;
+        return;
+    }
+    if (!keyboard_key_available(aggregator, spec.key_usage))
+        return; /* wait for genuine key edge + 6KRO availability */
     state->queue_head = (uint8_t)((state->queue_head + 1u) % BLU2USB_MOD05_QUEUE_CAPACITY);
     --state->queue_size;
-    bool ok = true;
-    if (id == 1u) ok = apply_control(aggregator, true) &&
-                        apply_key(aggregator, BLU2USB_KEY_C_USAGE, true);
-    else if (id == 7u) ok = apply_key(aggregator, BLU2USB_KEY_ESCAPE, true);
-    else ok = false;
-    if (!ok) {
+    if (!apply_modifier_mask(aggregator, spec.modifier_mask) ||
+        !apply_key(aggregator, spec.key_usage, true)) {
         (void)blu2usb_hid_aggregator_release_source(aggregator, shortcut_source());
         return;
     }
