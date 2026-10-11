@@ -80,10 +80,10 @@ static void assert_page(blu2usb_ux_model_t *ux, unsigned page, unsigned focus)
     assert_text(&f, 8u, "KEY A: RESET SELECTED");
 
     assert_tone(&f, 0u, BLU2USB_UI_TONE_TITLE);
-    assert_tone(&f, 1u, focus == 0u ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_STATIC);
-    assert_tone(&f, 2u, focus == 0u ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_STATIC);
-    assert_tone(&f, 3u, focus == 1u ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_STATIC);
-    assert_tone(&f, 4u, focus == 1u ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_STATIC);
+    assert_tone(&f, 1u, focus == 0u ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_ACTIONABLE);
+    assert_tone(&f, 2u, focus == 0u ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_ACTIONABLE);
+    assert_tone(&f, 3u, focus == 1u ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_ACTIONABLE);
+    assert_tone(&f, 4u, focus == 1u ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_ACTIONABLE);
     assert(blu2usb_ux_selected_combination(ux) == (blu2usb_modifier_combo_id_t)(page*2u+focus));
 }
 
