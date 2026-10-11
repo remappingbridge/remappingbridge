@@ -120,9 +120,9 @@ static void test_all_home_routes_and_preserved_preferences(void)
             draw(&ux, &frame);
             expect_row(&frame, 1u, "LOGITECH LIFT MOUSE");
             expect_row(&frame, 3u, "DPI: H 2 - V 0.75");
-            expect_row(&frame, 4u, "ROTATION: 0 DEGREE");
-            /* Saved snapshot is populated by live BLE syncing, not by
-               set_movement for the active UX state alone. */
+            expect_row(&frame, 4u, "ROTATION: 270 DEGREE");
+            /* The active per-bond snapshot must agree with the connected
+               movement preferences already acknowledged by the UI. */
         }
         const blu2usb_ux_command_t back = tap(&ux, BLU2USB_CONTROL_KEY_B);
         assert(back.kind == BLU2USB_UX_COMMAND_NONE);
