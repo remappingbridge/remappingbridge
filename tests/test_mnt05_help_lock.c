@@ -45,7 +45,10 @@ static void all_help(void) {
         assert(blu2usb_interaction_is_locked(&ux.interaction));
         tap(&ux,BLU2USB_CONTROL_KEY_A); /* consumed unlock */
         assert(!blu2usb_interaction_is_locked(&ux.interaction));
-        assert(ux.screen==screens[i]);
+        assert(ux.screen==BLU2USB_SCREEN_HOME);
+        /* Reenter Help separately to verify KEY B navigation; unlock has
+         * already returned HOME via the same global path as other screens. */
+        ux.screen = screens[i];
         tap(&ux,BLU2USB_CONTROL_KEY_B);
         assert(ux.screen==(screens[i]==BLU2USB_SCREEN_HOME_SEARCHING_HELP?
                           BLU2USB_SCREEN_HOME_RETRY:
