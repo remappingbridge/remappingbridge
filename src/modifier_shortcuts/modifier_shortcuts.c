@@ -1,5 +1,6 @@
 #include "blu2usb/modifier_shortcuts/modifier_shortcuts.h"
 #include "blu2usb/modifier_shortcuts/keyboard_catalog.h"
+#include "blu2usb/modifier_shortcuts/consumer_catalog.h"
 
 #include <string.h>
 
@@ -36,7 +37,9 @@ static unsigned button_combo(int source)
 bool blu2usb_modifier_shortcuts_action_supported(uint8_t id)
 {
     blu2usb_keyboard_shortcut_t spec;
-    return blu2usb_keyboard_shortcut_lookup(id, &spec);
+    uint16_t usage = 0u;
+    return blu2usb_keyboard_shortcut_lookup(id, &spec) ||
+           blu2usb_consumer_shortcut_lookup(id, &usage);
 }
 
 void blu2usb_modifier_shortcuts_init(blu2usb_modifier_shortcuts_t *state)
@@ -64,6 +67,8 @@ void blu2usb_modifier_shortcuts_cancel(blu2usb_modifier_shortcuts_t *state,
     state->queue_head = state->queue_size = 0u;
     state->usb_phase = BLU2USB_MOD05_USB_IDLE;
     state->running_action = 0u;
+    state->running_consumer = false;
+    state->consumer_usage = 0u;
 }
 
 void blu2usb_modifier_shortcuts_configure(blu2usb_modifier_shortcuts_t *state,
@@ -364,7 +369,10 @@ void blu2usb_modifier_shortcuts_prepare_usb(blu2usb_modifier_shortcuts_t *state,
 {
     if (state == NULL || aggregator == NULL) return;
     if (state->usb_phase == BLU2USB_MOD05_USB_NEED_UP) {
-        (void)blu2usb_hid_aggregator_release_source(aggregator, shortcut_source());
+        if (state->running_consumer)
+            state->consumer_usage = 0u;
+        else
+            (void)blu2usb_hid_aggregator_release_source(aggregator, shortcut_source());
         state->usb_phase = BLU2USB_MOD05_USB_WAIT_UP;
         return;
     }
@@ -372,20 +380,25 @@ void blu2usb_modifier_shortcuts_prepare_usb(blu2usb_modifier_shortcuts_t *state,
         return;
     const uint8_t id = state->pending[state->queue_head];
     blu2usb_keyboard_shortcut_t spec;
-    if (!blu2usb_keyboard_shortcut_lookup(id, &spec)) {
-        /* Defensive: invalid/future IDs are never emitted, even if a
-         * corrupted in-RAM queue somehow contains one. */
+    uint16_t consumer = 0u;
+    const bool keyboard = blu2usb_keyboard_shortcut_lookup(id, &spec);
+    if (!keyboard && !blu2usb_consumer_shortcut_lookup(id, &consumer)) {
+        /* Reject corrupted queue items; never emit a semantic alias. */
         state->queue_head = (uint8_t)((state->queue_head + 1u) % BLU2USB_MOD05_QUEUE_CAPACITY);
         --state->queue_size;
         return;
     }
-    if (!keyboard_key_available(aggregator, spec.key_usage))
-        return; /* wait for genuine key edge + 6KRO availability */
+    if (keyboard && !keyboard_key_available(aggregator, spec.key_usage))
+        return; /* wait for genuine down edge and 6KRO availability */
     state->queue_head = (uint8_t)((state->queue_head + 1u) % BLU2USB_MOD05_QUEUE_CAPACITY);
     --state->queue_size;
-    if (!apply_modifier_mask(aggregator, spec.modifier_mask) ||
-        !apply_key(aggregator, spec.key_usage, true)) {
+    state->running_consumer = !keyboard;
+    state->consumer_usage = consumer;
+    if (keyboard && (!apply_modifier_mask(aggregator, spec.modifier_mask) ||
+                     !apply_key(aggregator, spec.key_usage, true))) {
         (void)blu2usb_hid_aggregator_release_source(aggregator, shortcut_source());
+        state->running_consumer = false;
+        state->consumer_usage = 0u;
         return;
     }
     state->running_action = id;
@@ -401,5 +414,21 @@ void blu2usb_modifier_shortcuts_ack_usb(blu2usb_modifier_shortcuts_t *state,
     else if (state->usb_phase == BLU2USB_MOD05_USB_WAIT_UP) {
         state->usb_phase = BLU2USB_MOD05_USB_IDLE;
         state->running_action = 0u;
+        state->running_consumer = false;
+        state->consumer_usage = 0u;
     }
+}
+
+bool blu2usb_modifier_shortcuts_consumer_phase(
+    const blu2usb_modifier_shortcuts_t *state)
+{
+    return state != NULL && state->running_consumer &&
+           state->usb_phase != BLU2USB_MOD05_USB_IDLE;
+}
+
+uint16_t blu2usb_modifier_shortcuts_consumer_usage(
+    const blu2usb_modifier_shortcuts_t *state)
+{
+    return blu2usb_modifier_shortcuts_consumer_phase(state)
+        ? state->consumer_usage : 0u;
 }
