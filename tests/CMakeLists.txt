@@ -459,3 +459,12 @@ add_test(NAME mod07_keyboard_catalog_22_actions
     COMMAND blu2usb_test_mod07_keyboard_catalog)
 add_test(NAME mod07_keyboard_runtime_source_contract
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod07_keyboard_source.py)
+
+# MOD-08 Consumer Media / Volume / Brightness and Report-ID ABI.
+add_executable(blu2usb_test_mod08_consumer test_mod08_consumer.c)
+target_link_libraries(blu2usb_test_mod08_consumer PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_usb_hid)
+target_compile_options(blu2usb_test_mod08_consumer PRIVATE -UNDEBUG)
+add_test(NAME mod08_consumer_8_usages_ack COMMAND blu2usb_test_mod08_consumer)
+add_test(NAME mod08_combined_descriptor_boot_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod08_descriptor_source.py)
