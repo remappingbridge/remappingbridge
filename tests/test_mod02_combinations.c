@@ -75,7 +75,7 @@ static void assert_page(blu2usb_ux_model_t *ux, unsigned page, unsigned focus)
     assert_text(&f, 3u, labels[page][1]);
     assert_text(&f, 4u, " NOT CUSTOMIZED");
     assert_text(&f, 5u, "");
-    assert_text(&f, 6u, "JOY LEFT\\RIGHT: PAGE");
+    assert_text(&f, 6u, "JOY LEFT/RIGHT: PAGE");
     assert_text(&f, 7u, "JOY PRESS: ACCESS");
     assert_text(&f, 8u, "KEY A: RESET SELECTED");
 
