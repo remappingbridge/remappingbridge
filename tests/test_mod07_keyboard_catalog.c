@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "blu2usb/modifier_shortcuts/keyboard_catalog.h"
+#include "blu2usb/modifier_shortcuts/consumer_catalog.h"
 #include "blu2usb/modifier_shortcuts/modifier_shortcuts.h"
 #include "blu2usb/hid_aggregator/hid_aggregator.h"
 
@@ -127,8 +128,11 @@ int main(void)
     for(unsigned id=0;id<=255;++id) {
         blu2usb_keyboard_shortcut_t chord={0};
         bool found=blu2usb_keyboard_shortcut_lookup((uint8_t)id,&chord);
+        uint16_t consumer_usage=0u;
+        const bool consumer=blu2usb_consumer_shortcut_lookup((uint8_t)id,&consumer_usage);
         bool supported=blu2usb_modifier_shortcuts_action_supported((uint8_t)id);
-        assert(found==supported);
+        assert(supported==(found||consumer));
+        assert(!(found && consumer));
         if(!found) continue;
         assert(chord.key_usage!=0 && (chord.modifier_mask&0xfcu)==0);
         bool matched=false;
@@ -145,9 +149,9 @@ int main(void)
     assert(count==22u);
     assert(!blu2usb_keyboard_shortcut_lookup(0,NULL));
     for(unsigned id=19;id<=24;id++)
-        assert(!blu2usb_modifier_shortcuts_action_supported((uint8_t)id));
-    assert(!blu2usb_modifier_shortcuts_action_supported(29u));
-    assert(!blu2usb_modifier_shortcuts_action_supported(30u));
+        assert(blu2usb_modifier_shortcuts_action_supported((uint8_t)id));
+    assert(blu2usb_modifier_shortcuts_action_supported(29u));
+    assert(blu2usb_modifier_shortcuts_action_supported(30u));
     keyboard_ownership_and_kro();
     FIFO_and_cancel();
     return 0;
