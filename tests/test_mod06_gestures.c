@@ -154,10 +154,10 @@ static void check_no_assignment_and_future_only(void) {
     uint8_t ids[12]={0};ids[0]=7;
     start(&s,&agg,ids);
     press(&s,m);
-    assert(flow(&s,make_move(2,4),m,10,&out));
-    assert(out.data.move.dx==2 && out.data.move.dy==4);
+    assert(flow(&s,make_move(5,4),m,10,&out));
+    assert(out.data.move.dx==5 && out.data.move.dy==4);
     release(&s,m);
-    assert(s.queue_size==0); /* movement intentionally cancels tap threshold >= 8? 6 only => should still release */
+    assert(s.queue_size==0); /* ordinary MOVE forwards; deliberate 9-count motion cancels tap */
 }
 static void check_future_action_capture(void) {
     blu2usb_modifier_shortcuts_t s;blu2usb_hid_aggregator_t agg;
@@ -194,6 +194,7 @@ int main(void) {
     check_rotated_direction(2,25,0,8,1,4,4);
     check_rotated_direction(3,25,0,11,7,4,8);
     check_motion_capture_and_diagonal();
+    check_no_assignment_and_future_only();
     check_future_action_capture();
     check_wheel_queue_overflow();
     return 0;
