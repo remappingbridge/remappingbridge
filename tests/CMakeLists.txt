@@ -407,3 +407,14 @@ add_test(NAME mod03_shortcuts_source_contract
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod03_shortcuts_source.py
             ${PROJECT_SOURCE_DIR}
 )
+
+# MOD-04: exclusive physical modifier, reversible UNAVAILABLE and legacy v3.
+add_executable(blu2usb_test_mod04_modifier test_mod04_modifier.c)
+target_link_libraries(blu2usb_test_mod04_modifier PRIVATE
+    blu2usb_profiles
+    blu2usb_ux_model
+    blu2usb_renderer
+)
+add_test(NAME mod04_modifier_exclusivity_and_masks COMMAND blu2usb_test_mod04_modifier)
+add_test(NAME mod04_modifier_source_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod04_modifier_source.py)
