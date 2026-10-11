@@ -104,6 +104,7 @@ int main(void)
     check_consumer(22u,0x00e9u);
     check_consumer(23u,0x00eau);
     check_consumer(24u,0x00e2u);
+    check_consumer(25u,0x0223u);
     check_consumer(29u,0x006fu);
     check_consumer(30u,0x0070u);
     check_cancel_and_order();
