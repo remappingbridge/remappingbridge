@@ -509,6 +509,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
     if (blu2usb_bt_runtime_take_overflow()) {
         (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
         (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
+        blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
         *mouse_valid = false;
         *keyboard_valid = false;
     }
