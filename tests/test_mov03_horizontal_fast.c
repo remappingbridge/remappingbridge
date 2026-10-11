@@ -116,8 +116,8 @@ static void test_fast_gains_and_independent_axis(void)
 {
     static const uint8_t expected_gains[4] = {5u, 6u, 8u, 12u};
     static const char *const summaries[4] = {
-        " HORIZONTAL DPI 1.25X", " HORIZONTAL DPI 1.5X",
-        " HORIZONTAL DPI 2X", " HORIZONTAL DPI 3X"
+        " HORIZONTAL DPI 1.25", " HORIZONTAL DPI 1.5",
+        " HORIZONTAL DPI 2", " HORIZONTAL DPI 3"
     };
     for (unsigned selected = 0u; selected < 4u; ++selected) {
         blu2usb_ux_model_t ux;
@@ -143,7 +143,7 @@ static void test_fast_gains_and_independent_axis(void)
         draw(&ux, &frame);
         assert_row(&frame, 1u, summaries[selected]);
         assert(frame.cells[1][16].tone == BLU2USB_UI_TONE_CURRENT);
-        assert_row(&frame, 2u, " VERTICAL DPI 1X");
+        assert_row(&frame, 2u, " VERTICAL DPI 1");
 
         tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
         assert(ux.screen == BLU2USB_SCREEN_HORIZONTAL_FAST_DPI);
