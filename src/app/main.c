@@ -103,10 +103,13 @@ static bool same_profile_config(const blu2usb_mouse_profile_config_t *left,
            memcmp(left->targets, right->targets, sizeof(left->targets)) == 0;
 }
 
+/* Do not overwrite a loaded record whose application schema is unknown or corrupt. */
+static bool g_profile_writes_allowed = true;
+
 static bool persist_profiles(const blu2usb_profiles_t *profiles)
 {
     uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
-    return blu2usb_profiles_serialize_v3(profiles, payload) &&
+    return g_profile_writes_allowed && blu2usb_profiles_serialize_v3(profiles, payload) &&
            blu2usb_storage_store(payload, sizeof(payload));
 }
 
@@ -117,8 +120,10 @@ static bool restore_profiles(blu2usb_profiles_t *profiles)
     if (!blu2usb_storage_load(payload, sizeof(payload), &payload_size)) return false;
     blu2usb_profiles_t candidate;
     bool migrate = false;
-    if (!blu2usb_profiles_restore_any(&candidate, payload, payload_size, &migrate))
-        return false; /* Unknown/corrupt payload is never overwritten here. */
+    if (!blu2usb_profiles_restore_any(&candidate, payload, payload_size, &migrate)) {
+        g_profile_writes_allowed = false;
+        return false; /* Unknown/corrupt payload is never overwritten. */
+    }
     if (migrate && !persist_profiles(&candidate)) {
         /* A failed migration leaves existing flash intact and a safe
          * in-RAM interpretation of v2. Retrying may occur on next boot. */
