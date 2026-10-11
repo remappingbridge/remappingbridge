@@ -40,10 +40,12 @@ typedef struct {
     uint8_t queue_head, queue_size;
     blu2usb_mod05_usb_phase_t usb_phase;
     uint8_t running_action;
+    bool running_consumer; /* same FIFO/USB phase, alternate Report ID 2 */
+    uint16_t consumer_usage; /* current 16-bit usage, or 0 for key-up */
 } blu2usb_modifier_shortcuts_t;
 
-/* MOD-07: semantic IDs 1..18 and 25..28 are executable with Keyboard HID;
- * Consumer Media/Brightness IDs 19..24 and 29..30 remain MOD-08 only. */
+/* MOD-08: all 30 semantic IDs now encode to Keyboard or Consumer HID.
+ * Host effects (especially brightness) require independent physical proof. */
 bool blu2usb_modifier_shortcuts_action_supported(uint8_t shortcut_id);
 void blu2usb_modifier_shortcuts_init(blu2usb_modifier_shortcuts_t *state);
 void blu2usb_modifier_shortcuts_cancel(blu2usb_modifier_shortcuts_t *state,
@@ -79,5 +81,11 @@ void blu2usb_modifier_shortcuts_prepare_usb(blu2usb_modifier_shortcuts_t *state,
     blu2usb_hid_aggregator_t *aggregator);
 void blu2usb_modifier_shortcuts_ack_usb(blu2usb_modifier_shortcuts_t *state,
     bool report_accepted);
+/* Return true only during Consumer down/up phase. Both reports share
+ * the keyboard USB interface and are serialized with Keyboard reports. */
+bool blu2usb_modifier_shortcuts_consumer_phase(
+    const blu2usb_modifier_shortcuts_t *state);
+uint16_t blu2usb_modifier_shortcuts_consumer_usage(
+    const blu2usb_modifier_shortcuts_t *state);
 
 #endif
