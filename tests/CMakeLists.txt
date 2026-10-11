@@ -415,6 +415,12 @@ target_link_libraries(blu2usb_test_mod04_modifier PRIVATE
     blu2usb_ux_model
     blu2usb_renderer
 )
+# The production workflow configures Release (-DNDEBUG). Keep new gate
+# assertions active so test runs actually evaluate the physical and
+# storage invariants rather than compiling those checks away.
+target_compile_options(blu2usb_test_mod02_combinations PRIVATE -UNDEBUG)
+target_compile_options(blu2usb_test_mod03_shortcuts PRIVATE -UNDEBUG)
+target_compile_options(blu2usb_test_mod04_modifier PRIVATE -UNDEBUG)
 add_test(NAME mod04_modifier_exclusivity_and_masks COMMAND blu2usb_test_mod04_modifier)
 add_test(NAME mod04_modifier_source_contract
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod04_modifier_source.py)
