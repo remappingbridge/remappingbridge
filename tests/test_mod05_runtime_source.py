@@ -10,7 +10,8 @@ for name in ("blu2usb_modifier_shortcuts_configure", "blu2usb_modifier_shortcuts
 assert "BLU2USB_HID_SOURCE_SYNTHETIC_SHORTCUT" in hid
 assert "blu2usb_keyboard_shortcut_lookup" in core
 assert "keyboard_key_available" in core
-assert "BLU2USB_KEY_ESCAPE" in core
+assert "blu2usb_keyboard_shortcut_lookup" in core
+assert "blu2usb_modifier_shortcuts_prepare_usb" in core
 assert "queue_action(state, state->assignments[0])" in core
 assert "const bool keyboard_accepted" in main
 assert "blu2usb_modifier_shortcuts_ack_usb(&shortcuts, keyboard_accepted)" in main
