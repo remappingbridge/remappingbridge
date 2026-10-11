@@ -22,7 +22,7 @@ for i,(left,right) in enumerate(expected,1):
     assert f'" {left}"' in screen
     assert f'" {right}"' in screen
     assert screen.count('" NOT CUSTOMIZED"')==2
-    assert r'JOY LEFT\\RIGHT: PAGE' in screen
+    assert r'JOY LEFT/RIGHT: PAGE' in screen
     assert '"JOY PRESS: ACCESS"' in screen
     assert '"KEY A: RESET SELECTED"' in screen
     assert "DYN(2)|DYN(4)" in screen
