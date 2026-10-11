@@ -5,14 +5,15 @@ Baseline: MOD-01 physically accepted, branch `feature/modifier-shortcuts-mod01`,
 ## Implemented behavior
 
 - `home-connected → REMAPPING OPTIONS → MODIFIER SHORTCUTS → COMBINATIONS 1 OF 6`.
-- Six sequential pages, two combination slots per page, IDs 0..11:
+- Six sequential pages, two combination slots per page, IDs 0..11. The LCD 5×7 font explicitly supports the `+` glyph in every `MOD +` label:
+
   1. MODIFIER RELEASED IS / MOD + MIDDLE IS
   2. MOD + LEFT CLICK IS / MOD + RIGHT CLICK IS
   3. MOD + FORWARD IS / MOD + BACKWARD IS
   4. MOD + WHEEL UP IS / MOD + WHEEL DOWN IS
   5. MOD + MOVE LEFT IS / MOD + MOVE RIGHT IS
   6. MOD + MOVE UP IS / MOD + MOVE DOWN IS
-- Each selected slot consists of **two body rows** (label and current value). Both rows become white when selected; unselected rows remain the standard off-white/yellow. A slot starts as `NOT CUSTOMIZED`. Header is magenta; the 9×21 physical layout is retained. No assignment is stored yet; no cyan highlight denotes an applied shortcut.
+- Each selected slot consists of **two body rows** (label and current value). Both rows become white when selected; unselected label/value rows use the system's standard light gray. A slot starts as `NOT CUSTOMIZED`. Header is magenta; the 9×21 physical layout is retained. No assignment is stored yet; no cyan highlight denotes an applied shortcut.
 - `JOY UP/DOWN` changes selected slot with wrap. `JOY LEFT/RIGHT` changes pages with wrap 1 ↔ 6 **without losing logical selection**. `KEY B` returns to Remapping Options and preserves focus on MODIFIER SHORTCUTS; re-entry starts at combination 1 and first slot.
 - `KEY A: RESET SELECTED` is an idempotent no-op for a NONE slot; no flash write. `JOY PRESS: ACCESS` is also a no-op in this gate, since MOD-03 will supply the 5 shortcut-picker pages and transactional persistence.
 - `KEY X` is ignored (no new Help layout authorized). `KEY Y` keeps system Lock, and the first unlock event is consumed.
