@@ -5,8 +5,9 @@ import sys
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
 cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
 
+# Version-independent G06 architecture checks remain enforced; release version is v3.0.0.
 required_cmake = (
-    'BLU2USB_VERSION_STRING="2.0.0"',
+    'BLU2USB_VERSION_STRING="3.0.0"',
     'src/profiles/profiles.c',
     'add_library(blu2usb_remap STATIC src/remap/remap.c)',
     'add_library(blu2usb_storage STATIC src/storage/storage.c)',
