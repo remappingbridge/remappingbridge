@@ -143,8 +143,8 @@ static void test_cancel_help_apply_persisted_state_and_isolation(void)
     ux.screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
     ux.selection = 0u;
     project(&ux, &frame);
-    expect_row(&frame, 1u, " HORIZONTAL DPI 0.5X");
-    expect_row(&frame, 2u, " VERTICAL DPI 1X");
+    expect_row(&frame, 1u, " HORIZONTAL DPI 0.5");
+    expect_row(&frame, 2u, " VERTICAL DPI 1");
 
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI);
