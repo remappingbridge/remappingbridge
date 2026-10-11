@@ -13,8 +13,8 @@ assert "BLU2USB_KEY_ESCAPE" in core
 assert "queue_action(state, state->assignments[0])" in core
 assert "const bool keyboard_accepted" in main
 assert "blu2usb_modifier_shortcuts_ack_usb(&shortcuts, keyboard_accepted)" in main
-assert "if (!blu2usb_modifier_shortcuts_process(shortcuts, &event.mouse))" in main
-assert main.index("blu2usb_modifier_shortcuts_process(shortcuts, &event.mouse)")<main.index("blu2usb_remap_process_mouse(remap, &event.mouse, &mapped)")
+assert "blu2usb_modifier_shortcuts_process_event(" in main
+assert main.index("blu2usb_modifier_shortcuts_process_event(")<main.index("blu2usb_remap_process_mouse(remap, &forwarded, &mapped)")
 assert 'if (!blu2usb_usb_hid_pico_send_keyboard(&report)) return false;' in main
 assert "blu2usb_modifier_shortcuts_cancel(&shortcuts, &aggregator)" in main
 assert "BLU2USB_USB_HID_INTERFACE_COUNT 2u" in (r/"include/blu2usb/usb_hid/usb_hid.h").read_text()
