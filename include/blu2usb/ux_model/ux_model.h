@@ -135,6 +135,7 @@ typedef struct {
     blu2usb_mouse_target_t custom_targets[BLU2USB_MOUSE_SOURCE_COUNT];
     uint8_t shortcut_assignments[BLU2USB_MOD_COMBO_COUNT];
     uint8_t editing_combination; /* stable combo ID; 0..11 */
+    int8_t modifier_source; /* -1 none, 0..4 source from persisted Custom */
 } blu2usb_ux_model_t;
 
 void blu2usb_ux_init(blu2usb_ux_model_t *ux);
@@ -163,6 +164,11 @@ blu2usb_modifier_combo_id_t blu2usb_ux_selected_combination(const blu2usb_ux_mod
 bool blu2usb_ux_is_shortcuts_screen(blu2usb_screen_id_t screen);
 uint8_t blu2usb_ux_selected_shortcut(const blu2usb_ux_model_t *ux);
 const char *blu2usb_ux_shortcut_name(uint8_t shortcut_id);
+bool blu2usb_ux_combination_unavailable(const blu2usb_ux_model_t *ux, unsigned combination_id);
+void blu2usb_ux_set_modifier_source(blu2usb_ux_model_t *ux, int source);
+void blu2usb_ux_custom_target_committed(blu2usb_ux_model_t *ux,
+    blu2usb_mouse_source_t source,
+    const blu2usb_mouse_target_t targets[BLU2USB_MOUSE_SOURCE_COUNT]);
 void blu2usb_ux_shortcut_committed(blu2usb_ux_model_t *ux,
     uint8_t combination_id, uint8_t shortcut_id);
 uint16_t blu2usb_ux_learn_white_span_mask(const blu2usb_ux_model_t *ux);
