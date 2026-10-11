@@ -53,6 +53,11 @@ typedef enum {
     BLU2USB_SCREEN_COMBINATIONS_4,
     BLU2USB_SCREEN_COMBINATIONS_5,
     BLU2USB_SCREEN_COMBINATIONS_6,
+    BLU2USB_SCREEN_SHORTCUTS_1,
+    BLU2USB_SCREEN_SHORTCUTS_2,
+    BLU2USB_SCREEN_SHORTCUTS_3,
+    BLU2USB_SCREEN_SHORTCUTS_4,
+    BLU2USB_SCREEN_SHORTCUTS_5,
     BLU2USB_SCREEN_COUNT
 } blu2usb_screen_id_t;
 
@@ -76,6 +81,8 @@ typedef enum {
 
 #define BLU2USB_COMBINATIONS_PAGE_COUNT 6u
 #define BLU2USB_COMBINATIONS_PER_PAGE 2u
+#define BLU2USB_SHORTCUTS_PAGE_COUNT 5u
+#define BLU2USB_SHORTCUTS_PER_PAGE 6u
 
 typedef enum {
     BLU2USB_UX_COMMAND_NONE = 0,
@@ -84,7 +91,9 @@ typedef enum {
     BLU2USB_UX_COMMAND_APPLY_CUSTOM,
     BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET,
     BLU2USB_UX_COMMAND_REMOVE_MOUSE,
-    BLU2USB_UX_COMMAND_APPLY_MOVEMENT
+    BLU2USB_UX_COMMAND_APPLY_MOVEMENT,
+    BLU2USB_UX_COMMAND_SET_SHORTCUT,
+    BLU2USB_UX_COMMAND_RESET_SHORTCUT
 } blu2usb_ux_command_kind_t;
 
 typedef struct {
@@ -93,6 +102,8 @@ typedef struct {
     blu2usb_mouse_target_t target;
     int saved_bond;
     blu2usb_movement_settings_t movement;
+    uint8_t combination_id;
+    uint8_t shortcut_id; /* 1..30 for SET; 0 for RESET */
 } blu2usb_ux_command_t;
 
 typedef struct {
@@ -122,6 +133,8 @@ typedef struct {
     bool custom_dirty;
     blu2usb_mouse_source_t custom_source;
     blu2usb_mouse_target_t custom_targets[BLU2USB_MOUSE_SOURCE_COUNT];
+    uint8_t shortcut_assignments[BLU2USB_MOD_COMBO_COUNT];
+    uint8_t editing_combination; /* stable combo ID; 0..11 */
 } blu2usb_ux_model_t;
 
 void blu2usb_ux_init(blu2usb_ux_model_t *ux);
@@ -147,6 +160,11 @@ const blu2usb_screen_template_t *blu2usb_ux_screen_template(blu2usb_screen_id_t 
 unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux);
 bool blu2usb_ux_is_combinations_screen(blu2usb_screen_id_t screen);
 blu2usb_modifier_combo_id_t blu2usb_ux_selected_combination(const blu2usb_ux_model_t *ux);
+bool blu2usb_ux_is_shortcuts_screen(blu2usb_screen_id_t screen);
+uint8_t blu2usb_ux_selected_shortcut(const blu2usb_ux_model_t *ux);
+const char *blu2usb_ux_shortcut_name(uint8_t shortcut_id);
+void blu2usb_ux_shortcut_committed(blu2usb_ux_model_t *ux,
+    uint8_t combination_id, uint8_t shortcut_id);
 uint16_t blu2usb_ux_learn_white_span_mask(const blu2usb_ux_model_t *ux);
 
 #endif
