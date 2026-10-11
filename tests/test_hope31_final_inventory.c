@@ -16,7 +16,7 @@ static const screen_expectation_t expected[] = {
     {BLU2USB_SCREEN_HOME_RETRY, "DEVICE NOT FOUND"},
     {BLU2USB_SCREEN_HOME_RETRY_HELP, "HOME RETRY HELP"},
     {BLU2USB_SCREEN_MOUSE_OPTIONS, "REMAPPING OPTIONS"},
-    {BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS, "REMAPPER OPTIONS HELP"},
+    {BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS, "REMAPPING OPTIONS HELP"},
     {BLU2USB_SCREEN_PAIR_MOUSE, "PAIR NEW MOUSE"},
     {BLU2USB_SCREEN_HELP_PAIR_NEW, "PAIR NEW DEVICE HELP"},
     {BLU2USB_SCREEN_RETRY_PAIR_NEW, "NEW MOUSE NOT FOUND"},
@@ -24,10 +24,6 @@ static const screen_expectation_t expected[] = {
     {BLU2USB_SCREEN_MOUSE_SAVED, "FIRST MOUSE CONNECTED"},
     {BLU2USB_SCREEN_APPLY_PASSTHROUGH, "APPLY PASSTHROUGH"},
     {BLU2USB_SCREEN_PASSTHROUGH_APPLIED, "PASSTHROUGH ACTIVE"},
-    {BLU2USB_SCREEN_APPLY_DEFAULT, "APPLY STANDARD REMAP"},
-    {BLU2USB_SCREEN_DEFAULT_APPLIED, "STANDARD REMAP ACTIVE"},
-    {BLU2USB_SCREEN_APPLY_ESCAPE, "APPLY ESCAPE REMAP"},
-    {BLU2USB_SCREEN_ESCAPE_APPLIED, "ESCAPE APPLIED ACTIVE"},
     {BLU2USB_SCREEN_EDIT_CUSTOM, "EDIT CUSTOM REMAP"},
     {BLU2USB_SCREEN_LEFT_WILL_BECOME, "LEFT WILL BECOME"},
     {BLU2USB_SCREEN_RIGHT_WILL_BECOME, "RIGHT WILL BECOME"},
@@ -49,10 +45,10 @@ static const screen_expectation_t expected[] = {
     {BLU2USB_SCREEN_HELP_ROTATION, "ROTATION HELP"},
 };
 
-_Static_assert(BLU2USB_SCREEN_COUNT == 38,
-               "HOPE-31 final inventory must contain the original 29 screens plus Movement Options");
-_Static_assert(sizeof(expected) / sizeof(expected[0]) == 38,
-               "HOPE-31 expected-title inventory must contain 38 screens");
+_Static_assert(BLU2USB_SCREEN_COUNT == 34,
+               "HOPE-31 final inventory MOD-01 must contain 34 screens after retiring four presets");
+_Static_assert(sizeof(expected) / sizeof(expected[0]) == 34,
+               "HOPE-31 expected-title inventory must contain 34 screens");
 
 static void test_exact_inventory(void)
 {
