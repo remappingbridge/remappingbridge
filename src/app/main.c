@@ -82,6 +82,21 @@ static void build_keyboard_report(const blu2usb_hid_output_state_t *output,
     blu2usb_usb_hid_build_keyboard_report(report, output->modifiers, keys);
 }
 
+/* USB unplug, BLE overflow and disconnect must discard transient motion,
+ * not replay old wheel/pointer movement in a fresh session. Button and
+ * Keyboard ownership are separate and remain under their source owners. */
+static void discard_stale_mouse_motion(blu2usb_hid_aggregator_t *aggregator,
+                                       blu2usb_movement_pipeline_t *motion)
+{
+    if (aggregator == NULL || motion == NULL) return;
+    blu2usb_movement_pipeline_clear(motion);
+    blu2usb_hid_output_state_t snapshot;
+    blu2usb_hid_aggregator_snapshot(aggregator, &snapshot);
+    (void)blu2usb_hid_aggregator_consume_relative(
+        aggregator, snapshot.dx, snapshot.dy,
+        snapshot.wheel_vertical, snapshot.wheel_horizontal);
+}
+
 static bool service_usb_keyboard(blu2usb_hid_aggregator_t *aggregator,
                                  blu2usb_usb_keyboard_report_t *last,
                                  bool *last_valid)
@@ -219,6 +234,10 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
         if (!blu2usb_profiles_is_shortcut_unavailable(profiles, command.combination_id) &&
             blu2usb_profiles_set_shortcut(profiles, command.combination_id, id) &&
             persist_profiles(profiles)) {
+            /* Committed shortcut edits invalidate pending/running actions
+             * from the previous mapping, not the other HID source owners.
+             * Already accepted Consumer down is neutralized by USB service. */
+            blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
             blu2usb_modifier_shortcuts_assignments(shortcuts, profiles->shortcuts);
             blu2usb_ux_shortcut_committed(ux, command.combination_id, id);
         } else {
@@ -380,7 +399,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             break;
         case BLU2USB_BLE_HOGP_EVENT_DISCONNECTED:
-            blu2usb_movement_pipeline_clear(motion);
+            discard_stale_mouse_motion(aggregator, motion);
             if (ux != NULL && (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS ||
                 (ux->screen >= BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI &&
                  ux->screen <= BLU2USB_SCREEN_HELP_ROTATION))) {
@@ -446,7 +465,7 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             break;
         case BLU2USB_BLE_HOGP_EVENT_PAIR_NEW_PROMOTED:
-            blu2usb_movement_pipeline_clear(motion);
+            discard_stale_mouse_motion(aggregator, motion);
             /* Atomic product-side half of the handoff: neutralize any held
              * old Mouse/Escape output before candidate reports are consumed. */
             (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
@@ -519,6 +538,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
         }
     }
     if (blu2usb_bt_runtime_take_overflow()) {
+        /* Lost edges imply lost transient deltas as well as held buttons. */
+        discard_stale_mouse_motion(aggregator, motion);
         (void)blu2usb_hid_aggregator_release_source(aggregator, mouse);
         (void)blu2usb_hid_aggregator_release_source(aggregator, synthetic);
         blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
@@ -590,6 +611,7 @@ int main(void)
         blu2usb_usb_hid_pico_task();
         const bool usb_mounted = blu2usb_usb_hid_pico_mounted();
         if (usb_mounted != previous_usb_mounted) {
+            discard_stale_mouse_motion(&aggregator, &motion);
             /* USB reset/disconnect discards in-flight keyboard actions and
              * invalidates last reports from the previous host session. */
             blu2usb_modifier_shortcuts_cancel(&shortcuts, &aggregator);

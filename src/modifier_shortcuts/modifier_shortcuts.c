@@ -259,7 +259,8 @@ void blu2usb_modifier_shortcuts_tick(blu2usb_modifier_shortcuts_t *state,
 static bool has_move_assignment(const blu2usb_modifier_shortcuts_t *state)
 {
     for (unsigned combo = 8u; combo <= 11u; ++combo)
-        if (state->assignments[combo] != 0u) return true;
+        if (blu2usb_modifier_shortcuts_action_supported(state->assignments[combo]))
+            return true; /* corrupt/unknown IDs must never freeze mouse motion */
     return false;
 }
 

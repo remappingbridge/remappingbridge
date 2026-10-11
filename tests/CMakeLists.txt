@@ -476,3 +476,13 @@ target_link_libraries(blu2usb_test_mod08_reported_fixes PRIVATE
 target_compile_options(blu2usb_test_mod08_reported_fixes PRIVATE -UNDEBUG)
 add_test(NAME mod08_operator_kde_android_zooms_and_media_dwell
     COMMAND blu2usb_test_mod08_reported_fixes)
+
+# MOD-09: recovery, busy USB, BLE cancellation and held source ownership.
+add_executable(blu2usb_test_mod09_recovery test_mod09_recovery.c)
+target_link_libraries(blu2usb_test_mod09_recovery PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator blu2usb_movement)
+target_compile_options(blu2usb_test_mod09_recovery PRIVATE -UNDEBUG)
+add_test(NAME mod09_recovery_cancel_overflow_and_ownership
+    COMMAND blu2usb_test_mod09_recovery)
+add_test(NAME mod09_app_saved_devices_safety_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod09_source.py)
