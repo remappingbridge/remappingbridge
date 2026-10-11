@@ -18,6 +18,53 @@ static bool target_valid(blu2usb_mouse_target_t target)
     return (unsigned)target < BLU2USB_MOUSE_TARGET_COUNT;
 }
 
+/* Reserved v2 ESCAPE target (5) is legal only for v2 codec; the
+ * v3 mapping uses explicit MODIFIER (6) and never aliases ESCAPE. */
+static bool target_v3_valid(blu2usb_mouse_target_t target)
+{
+    return target_valid(target) && target != BLU2USB_MOUSE_TARGET_ESCAPE;
+}
+
+blu2usb_mouse_source_t blu2usb_profiles_modifier_source(
+    const blu2usb_mouse_target_t targets[BLU2USB_MOUSE_SOURCE_COUNT])
+{
+    if (targets == NULL) return (blu2usb_mouse_source_t)BLU2USB_MOUSE_SOURCE_COUNT;
+    for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i)
+        if (targets[i] == BLU2USB_MOUSE_TARGET_MODIFIER)
+            return (blu2usb_mouse_source_t)i;
+    return (blu2usb_mouse_source_t)BLU2USB_MOUSE_SOURCE_COUNT;
+}
+
+bool blu2usb_profiles_is_shortcut_unavailable(const blu2usb_profiles_t *profiles,
+                                               unsigned combination_id)
+{
+    if (profiles == NULL || combination_id >= BLU2USB_SHORTCUT_SLOT_COUNT)
+        return false;
+    const blu2usb_mouse_source_t src =
+        blu2usb_profiles_modifier_source(profiles->custom_targets);
+    /* The 12 stable combo ordinals are: released, middle, left, right,
+     * forward, backward, wheel up/down, move L/R/U/D. */
+    switch (combination_id) {
+    case 1u: return src == BLU2USB_MOUSE_SOURCE_MIDDLE;
+    case 2u: return src == BLU2USB_MOUSE_SOURCE_LEFT;
+    case 3u: return src == BLU2USB_MOUSE_SOURCE_RIGHT;
+    case 4u: return src == BLU2USB_MOUSE_SOURCE_FORWARD;
+    case 5u: return src == BLU2USB_MOUSE_SOURCE_BACKWARD;
+    default: return false;
+    }
+}
+
+static bool unique_modifier(const blu2usb_mouse_target_t targets[BLU2USB_MOUSE_SOURCE_COUNT])
+{
+    unsigned modifier_count = 0u;
+    for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i) {
+        if (!target_v3_valid(targets[i])) return false;
+        if (targets[i] == BLU2USB_MOUSE_TARGET_MODIFIER)
+            ++modifier_count;
+    }
+    return modifier_count <= 1u;
+}
+
 static blu2usb_mouse_target_t identity_target(blu2usb_mouse_source_t source)
 {
     switch (source) {
@@ -100,8 +147,7 @@ void blu2usb_profiles_activate(blu2usb_profiles_t *profiles,
         config->kind < BLU2USB_MOUSE_PROFILE_PASSTHROUGH ||
         config->kind > BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP) return;
     if (config->kind == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP) {
-        for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i)
-            if (!target_valid(config->targets[i])) return;
+        if (!unique_modifier(config->targets)) return;
         memcpy(profiles->custom_targets, config->targets, sizeof(profiles->custom_targets));
         memcpy(profiles->draft_targets, config->targets, sizeof(profiles->draft_targets));
         profiles->draft_valid = false;
@@ -119,6 +165,15 @@ bool blu2usb_profiles_draft_set(blu2usb_profiles_t *profiles,
         profiles->draft_valid = true;
     }
     profiles->draft_targets[source] = target;
+    if (target == BLU2USB_MOUSE_TARGET_MODIFIER) {
+        /* Explicit exclusive choice: the previous modifier source returns
+         * to its own physical identity without deleting shortcut slots. */
+        for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i) {
+            if (i != (unsigned)source &&
+                profiles->draft_targets[i] == BLU2USB_MOUSE_TARGET_MODIFIER)
+                profiles->draft_targets[i] = identity_target((blu2usb_mouse_source_t)i);
+        }
+    }
     return true;
 }
 
@@ -201,7 +256,9 @@ bool blu2usb_profiles_restore(blu2usb_profiles_t *profiles,
             (blu2usb_mouse_target_t)data[PROFILE_CUSTOM_OFFSET + i];
         const blu2usb_mouse_target_t draft =
             (blu2usb_mouse_target_t)data[PROFILE_DRAFT_OFFSET + i];
-        if (!target_valid(custom) || !target_valid(draft)) return false;
+        if ((unsigned)custom > (unsigned)BLU2USB_MOUSE_TARGET_ESCAPE ||
+            (unsigned)draft > (unsigned)BLU2USB_MOUSE_TARGET_ESCAPE)
+            return false;
         candidate.custom_targets[i] = custom;
         candidate.draft_targets[i] = candidate.draft_valid ? draft : custom;
     }
@@ -247,11 +304,13 @@ bool blu2usb_profiles_serialize_v3(const blu2usb_profiles_t *profiles,
     candidate[0] = PROFILE_V3_SCHEMA_VERSION;
     candidate[PROFILE_ACTIVE_OFFSET] = (uint8_t)profiles->active_kind;
     candidate[PROFILE_DRAFT_VALID_OFFSET] = profiles->draft_valid ? 1u : 0u;
+    if (!unique_modifier(profiles->custom_targets) ||
+        (profiles->draft_valid && !unique_modifier(profiles->draft_targets)))
+        return false;
     for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i) {
         const blu2usb_mouse_target_t custom = profiles->custom_targets[i];
         const blu2usb_mouse_target_t draft = profiles->draft_valid
             ? profiles->draft_targets[i] : custom;
-        if (!target_valid(custom) || !target_valid(draft)) return false;
         candidate[PROFILE_CUSTOM_OFFSET+i] = (uint8_t)custom;
         candidate[PROFILE_DRAFT_OFFSET+i] = (uint8_t)draft;
     }
@@ -298,15 +357,31 @@ bool blu2usb_profiles_restore_any(blu2usb_profiles_t *profiles,
         candidate.active_kind =
             (blu2usb_mouse_profile_kind_t)data[PROFILE_ACTIVE_OFFSET];
         candidate.draft_valid = data[PROFILE_DRAFT_VALID_OFFSET] != 0u;
+        /* MOD-03's v3 could still contain legacy ESCAPE=5. Safely
+         * canonicalize it to source identity, never to MODIFIER=6. */
+        bool rewrite_legacy_escape = false;
         for (unsigned i = 0u; i < BLU2USB_MOUSE_SOURCE_COUNT; ++i) {
-            const blu2usb_mouse_target_t custom =
+            blu2usb_mouse_target_t custom =
                 (blu2usb_mouse_target_t)data[PROFILE_CUSTOM_OFFSET+i];
-            const blu2usb_mouse_target_t draft =
+            blu2usb_mouse_target_t draft =
                 (blu2usb_mouse_target_t)data[PROFILE_DRAFT_OFFSET+i];
             if (!target_valid(custom) || !target_valid(draft)) return false;
+            if (custom == BLU2USB_MOUSE_TARGET_ESCAPE) {
+                custom = identity_target((blu2usb_mouse_source_t)i);
+                rewrite_legacy_escape = true;
+            }
+            if (draft == BLU2USB_MOUSE_TARGET_ESCAPE) {
+                draft = identity_target((blu2usb_mouse_source_t)i);
+                rewrite_legacy_escape = true;
+            }
             candidate.custom_targets[i] = custom;
             candidate.draft_targets[i] = candidate.draft_valid ? draft : custom;
         }
+        if (!unique_modifier(candidate.custom_targets) ||
+            (candidate.draft_valid && !unique_modifier(candidate.draft_targets)))
+            return false;
+        if (rewrite_legacy_escape && migrated_v2 != NULL)
+            *migrated_v2 = true; /* Existing boot migration writer is reusable. */
         for (unsigned i = 0u; i < BLU2USB_SHORTCUT_SLOT_COUNT; ++i) {
             const uint8_t id = data[PROFILE_V3_SHORTCUT_OFFSET+i];
             if (id > BLU2USB_SHORTCUT_COUNT) return false;
@@ -325,7 +400,8 @@ const char *blu2usb_profiles_target_name(blu2usb_mouse_target_t target)
     case BLU2USB_MOUSE_TARGET_MIDDLE: return "MIDDLE";
     case BLU2USB_MOUSE_TARGET_BACKWARD: return "BACKWARD";
     case BLU2USB_MOUSE_TARGET_FORWARD: return "FORWARD";
-    case BLU2USB_MOUSE_TARGET_ESCAPE: return "ESCAPE";
+    case BLU2USB_MOUSE_TARGET_ESCAPE: return "ESCAPE"; /* legacy */
+    case BLU2USB_MOUSE_TARGET_MODIFIER: return "MODIFIER";
     default: return "?";
     }
 }
