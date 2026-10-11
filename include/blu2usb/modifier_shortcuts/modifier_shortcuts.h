@@ -42,8 +42,8 @@ typedef struct {
     uint8_t running_action;
 } blu2usb_modifier_shortcuts_t;
 
-/* MOD-05 executes only Escape (ID 7) and Copy (ID 1).
- * The rest of the catalog is preserved but not falsely emitted. */
+/* MOD-07: semantic IDs 1..18 and 25..28 are executable with Keyboard HID;
+ * Consumer Media/Brightness IDs 19..24 and 29..30 remain MOD-08 only. */
 bool blu2usb_modifier_shortcuts_action_supported(uint8_t shortcut_id);
 void blu2usb_modifier_shortcuts_init(blu2usb_modifier_shortcuts_t *state);
 void blu2usb_modifier_shortcuts_cancel(blu2usb_modifier_shortcuts_t *state,
