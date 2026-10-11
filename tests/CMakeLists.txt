@@ -381,3 +381,15 @@ target_link_libraries(blu2usb_test_mov10_all_help PRIVATE
     blu2usb_ux_model
 )
 add_test(NAME mov10_all_help_copy_and_any_key_back COMMAND blu2usb_test_mov10_all_help)
+
+# MOD-02 — six combinations pages + navigation and no-op reset boundary.
+add_executable(blu2usb_test_mod02_combinations test_mod02_combinations.c)
+target_link_libraries(blu2usb_test_mod02_combinations PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+add_test(NAME mod02_combinations_physical_flow COMMAND blu2usb_test_mod02_combinations)
+add_test(NAME mod02_combinations_source_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod02_combinations_source.py
+            ${PROJECT_SOURCE_DIR}
+)
