@@ -425,3 +425,12 @@ target_compile_options(blu2usb_test_mod04_modifier PRIVATE -UNDEBUG)
 add_test(NAME mod04_modifier_exclusivity_and_masks COMMAND blu2usb_test_mod04_modifier)
 add_test(NAME mod04_modifier_source_contract
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mod04_modifier_source.py)
+
+# MOD-04 physical corrective candidate: 4 operator-reported UI regressions.
+add_executable(blu2usb_test_mod04_ui_bugfix test_mod04_ui_bugfix.c)
+target_link_libraries(blu2usb_test_mod04_ui_bugfix PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+)
+target_compile_options(blu2usb_test_mod04_ui_bugfix PRIVATE -UNDEBUG)
+add_test(NAME mod04_operator_ui_regressions COMMAND blu2usb_test_mod04_ui_bugfix)
