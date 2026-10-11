@@ -544,3 +544,5 @@ target_compile_options(blu2usb_test_mnt05_help_lock PRIVATE -UNDEBUG)
 add_test(NAME mnt05_all_help_b_back_y_lock COMMAND blu2usb_test_mnt05_help_lock)
 
 add_test(NAME mnt06_first_mouse_global_lock_hint COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt06_lock_hint.py)
+
+add_test(NAME mnt07_pale_cyan_palette COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt07_pale_cyan.py)
