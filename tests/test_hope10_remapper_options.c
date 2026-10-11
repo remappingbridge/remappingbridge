@@ -74,8 +74,8 @@ static void test_routes_and_no_legacy_commands(void) {
     ux.selection=2u;
     const blu2usb_ux_command_t cmd=tap(&ux,BLU2USB_CONTROL_JOY_PRESS);
     assert(cmd.kind==BLU2USB_UX_COMMAND_NONE);
-    assert(ux.screen==BLU2USB_SCREEN_MOUSE_OPTIONS && ux.selection==2u);
-    /* MOD-02 adds the COMBINATIONS screen. No obsolete preset must be invoked. */
+    assert(ux.screen==BLU2USB_SCREEN_COMBINATIONS_1);
+    /* Third menu item opens the combinations picker, not a legacy preset. */
 }
 static void test_colors_and_legacy_status(void) {
     blu2usb_ux_model_t ux;
