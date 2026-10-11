@@ -334,3 +334,11 @@ target_link_libraries(blu2usb_test_mov05_vertical_fast PRIVATE
     blu2usb_movement
 )
 add_test(NAME mov05_vertical_fast_physical_flow COMMAND blu2usb_test_mov05_vertical_fast)
+
+add_executable(blu2usb_test_mov06_rotation test_mov06_rotation.c)
+target_link_libraries(blu2usb_test_mov06_rotation PRIVATE
+    blu2usb_renderer
+    blu2usb_ux_model
+    blu2usb_movement
+)
+add_test(NAME mov06_rotation_physical_flow COMMAND blu2usb_test_mov06_rotation)
