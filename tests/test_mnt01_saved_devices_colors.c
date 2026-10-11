@@ -74,7 +74,7 @@ static void check_saved_screen(blu2usb_ux_model_t *ux,
     blu2usb_ui_frame_t frame;
     render(ux, &frame);
     assert_row(&frame, 5u, " REMOVE DEVICE");
-    assert_row(&frame, 7u, "JOY RIGHT\\LEFT: PAGE");
+    assert_row(&frame, 7u, "JOY RIGHT/LEFT: PAGE");
     assert_row(&frame, 8u, "JOY PRESS: ACCESS");
     assert_colors(&frame, current, removable);
 }

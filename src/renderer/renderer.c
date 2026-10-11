@@ -37,8 +37,8 @@ static uint8_t glyph_row(char character, uint8_t row)
     case ':': return (row == 2u || row == 5u) ? 0x04u : 0u;
     case '.': return row == 6u ? 0x04u : 0u;
     case '=': return (row == 2u || row == 4u) ? 0x1fu : 0u;
-    case '/': return row <= 4u ? (uint8_t)(1u << (4u - row)) : 0u;
-    case '\\': return row <= 4u ? (uint8_t)(1u << row) : 0u;
+    case '\\': return row <= 4u ? (uint8_t)(1u << (4u - row)) : 0u;
+    case '/': return row <= 4u ? (uint8_t)(1u << row) : 0u;
     case '>': { static const uint8_t rows[7]={0x10,0x08,0x04,0x02,0x04,0x08,0x10}; return rows[row]; }
     case '<': { static const uint8_t rows[7]={0x01,0x02,0x04,0x08,0x04,0x02,0x01}; return rows[row]; }
     case '?': { static const uint8_t rows[7]={0x0e,0x11,0x01,0x02,0x04,0x00,0x04}; return rows[row]; }
@@ -420,7 +420,7 @@ static bool row_has_control(const char *row, blu2usb_control_t control)
     switch (control) {
     case BLU2USB_CONTROL_JOY_UP: return strstr(row, "JOY UP") != NULL;
     case BLU2USB_CONTROL_JOY_DOWN: return strstr(row, "JOY DOWN") != NULL;
-    case BLU2USB_CONTROL_JOY_LEFT: return strstr(row, "JOY LEFT") != NULL || strstr(row, "RIGHT\\LEFT") != NULL;
+    case BLU2USB_CONTROL_JOY_LEFT: return strstr(row, "JOY LEFT") != NULL || strstr(row, "RIGHT/LEFT") != NULL;
     case BLU2USB_CONTROL_JOY_RIGHT: return strstr(row, "JOY RIGHT") != NULL;
     case BLU2USB_CONTROL_JOY_PRESS: return strstr(row, "JOY PRESS") != NULL;
     case BLU2USB_CONTROL_KEY_A: return strstr(row, "KEY A") != NULL;

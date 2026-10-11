@@ -45,10 +45,10 @@ static void expect_tone(const blu2usb_ui_frame_t *f,unsigned row,blu2usb_ui_tone
 }
 static const char *const names[30]={
     "COPY","CUT","SELECT ALL","PASTE","UNDO","REDO",
-    "ESCAPE","SPACE","ENTER\\RETURN","BACKSPACE","DELETE","RENAME",
+    "ESCAPE","SPACE","ENTER/RETURN","BACKSPACE","DELETE","RENAME",
     "FULL SCREEN","SCREENSHOT FULL","SCREENSHOT AREA","REFRESH","FIND","SAVE",
-    "PLAY\\PAUSE","NEXT TRACK","PREVIOUS TRACK","VOLUME UP","VOLUME DOWN","MUTE",
-    "HOME SCREEN\\PAGE","ZOOM IN","ZOOM OUT","RESET ZOOM","BRIGHTNESS UP","BRIGHTNESS DOWN"
+    "PLAY/PAUSE","NEXT TRACK","PREVIOUS TRACK","VOLUME UP","VOLUME DOWN","MUTE",
+    "HOME SCREEN/PAGE","ZOOM IN","ZOOM OUT","RESET ZOOM","BRIGHTNESS UP","BRIGHTNESS DOWN"
 };
 static void assert_picker(blu2usb_ux_model_t *ux,unsigned page,unsigned selected)
 {
