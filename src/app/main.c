@@ -493,11 +493,16 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             break;
         case BLU2USB_BLE_HOGP_EVENT_MOUSE: {
-            /* Source physical identity is evaluated before Custom remapping. */
-            if (!blu2usb_modifier_shortcuts_process(shortcuts, &event.mouse))
+            /* MOD-06 filters physical events before Custom remap and passes
+             * on only events not captured as Modifier Wheel/MOVE gestures. */
+            blu2usb_canonical_mouse_event_t forwarded;
+            if (!blu2usb_modifier_shortcuts_process_event(
+                    shortcuts, &event.mouse,
+                    ux != NULL ? ux->movement_current : blu2usb_movement_defaults(),
+                    to_ms_since_boot(get_absolute_time()), &forwarded))
                 break;
             blu2usb_remap_result_t mapped;
-            if (!blu2usb_remap_process_mouse(remap, &event.mouse, &mapped)) break;
+            if (!blu2usb_remap_process_mouse(remap, &forwarded, &mapped)) break;
             if (mapped.has_mouse)
                 (void)blu2usb_hid_aggregator_apply_mouse(aggregator, &mapped.mouse);
             if (mapped.has_keyboard)
@@ -584,6 +589,8 @@ int main(void)
             last_mouse_valid = false;
             previous_usb_mounted = usb_mounted;
         }
+        blu2usb_modifier_shortcuts_tick(&shortcuts,
+                                       to_ms_since_boot(get_absolute_time()));
         const bool ble_ui_changed =
             service_ble_messages(&ux, &aggregator, &shortcuts, &motion, &remap,
                                  &last_mouse_valid, &last_keyboard_valid);
