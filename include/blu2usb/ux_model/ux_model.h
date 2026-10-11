@@ -47,8 +47,35 @@ typedef enum {
     BLU2USB_SCREEN_HELP_SLOW_DPI,
     BLU2USB_SCREEN_HELP_FAST_DPI,
     BLU2USB_SCREEN_HELP_ROTATION,
+    BLU2USB_SCREEN_COMBINATIONS_1,
+    BLU2USB_SCREEN_COMBINATIONS_2,
+    BLU2USB_SCREEN_COMBINATIONS_3,
+    BLU2USB_SCREEN_COMBINATIONS_4,
+    BLU2USB_SCREEN_COMBINATIONS_5,
+    BLU2USB_SCREEN_COMBINATIONS_6,
     BLU2USB_SCREEN_COUNT
 } blu2usb_screen_id_t;
+
+/* Stable modifier-combination ordinals.  Slots/assignments are added in
+ * MOD-03; MOD-02 presents the editor with all slots NOT CUSTOMIZED. */
+typedef enum {
+    BLU2USB_MOD_COMBO_RELEASED = 0,
+    BLU2USB_MOD_COMBO_MIDDLE,
+    BLU2USB_MOD_COMBO_LEFT,
+    BLU2USB_MOD_COMBO_RIGHT,
+    BLU2USB_MOD_COMBO_FORWARD,
+    BLU2USB_MOD_COMBO_BACKWARD,
+    BLU2USB_MOD_COMBO_WHEEL_UP,
+    BLU2USB_MOD_COMBO_WHEEL_DOWN,
+    BLU2USB_MOD_COMBO_MOVE_LEFT,
+    BLU2USB_MOD_COMBO_MOVE_RIGHT,
+    BLU2USB_MOD_COMBO_MOVE_UP,
+    BLU2USB_MOD_COMBO_MOVE_DOWN,
+    BLU2USB_MOD_COMBO_COUNT
+} blu2usb_modifier_combo_id_t;
+
+#define BLU2USB_COMBINATIONS_PAGE_COUNT 6u
+#define BLU2USB_COMBINATIONS_PER_PAGE 2u
 
 typedef enum {
     BLU2USB_UX_COMMAND_NONE = 0,
@@ -118,6 +145,8 @@ void blu2usb_ux_set_mouse_connected(bool connected);
 bool blu2usb_ux_mouse_connected(void);
 const blu2usb_screen_template_t *blu2usb_ux_screen_template(blu2usb_screen_id_t screen);
 unsigned blu2usb_ux_option_count(const blu2usb_ux_model_t *ux);
+bool blu2usb_ux_is_combinations_screen(blu2usb_screen_id_t screen);
+blu2usb_modifier_combo_id_t blu2usb_ux_selected_combination(const blu2usb_ux_model_t *ux);
 uint16_t blu2usb_ux_learn_white_span_mask(const blu2usb_ux_model_t *ux);
 
 #endif
