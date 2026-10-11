@@ -24,6 +24,7 @@ typedef struct {
     bool modifier_down;
     bool secondary_used;
     uint8_t consumed_buttons; /* physical source bits whose down was consumed */
+    uint8_t physical_buttons; /* edge detection for genuine press vs held repeats */
     uint8_t pending[BLU2USB_MOD05_QUEUE_CAPACITY];
     uint8_t queue_head, queue_size;
     blu2usb_mod05_usb_phase_t usb_phase;
