@@ -106,6 +106,8 @@ static void test_route_and_all_six_layouts(void)
         assert(tap(&ux, BLU2USB_CONTROL_KEY_A).kind == BLU2USB_UX_COMMAND_NONE);
         assert_page(&ux, page, 0u);
         assert(tap(&ux, BLU2USB_CONTROL_JOY_PRESS).kind == BLU2USB_UX_COMMAND_NONE);
+        assert(ux.screen == BLU2USB_SCREEN_SHORTCUTS_1);
+        assert(tap(&ux, BLU2USB_CONTROL_KEY_B).kind == BLU2USB_UX_COMMAND_NONE);
         assert_page(&ux, page, 0u);
         tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
         assert_page(&ux, page, 1u);
@@ -149,6 +151,8 @@ static void test_lock_and_no_mutations(void)
     assert(tap(&ux, BLU2USB_CONTROL_KEY_X).kind == BLU2USB_UX_COMMAND_NONE);
     assert_page(&ux, 2u, 1u); /* No unapproved Help screen */
     assert(tap(&ux, BLU2USB_CONTROL_JOY_PRESS).kind == BLU2USB_UX_COMMAND_NONE);
+    assert(ux.screen == BLU2USB_SCREEN_SHORTCUTS_1);
+    tap(&ux, BLU2USB_CONTROL_KEY_B);
     assert_page(&ux, 2u, 1u);
     assert(ux.active_profile == before);
     assert(!ux.custom_dirty);
