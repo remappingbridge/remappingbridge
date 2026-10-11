@@ -35,7 +35,7 @@ enum_match = re.search(
 )
 assert enum_match
 ids = re.findall(r"BLU2USB_SCREEN_[A-Z0-9_]+", enum_match.group(1))
-assert len(ids) == 40, ids
+assert len(ids) == 45, ids
 assert len(set(ids)) == 40
 assert "BLU2USB_SCREEN_APPLY_DEFAULT" not in ids
 assert "BLU2USB_SCREEN_DEFAULT_APPLIED" not in ids
