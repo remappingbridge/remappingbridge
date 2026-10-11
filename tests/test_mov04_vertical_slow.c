@@ -106,7 +106,11 @@ static void test_cancel_help_apply_and_axis_independence(void)
     assert(ux.movement_current.horizontal_quarters == 8u);
     assert(ux.movement_current.rotation_quadrants == 3u);
 
-    tap(&ux, BLU2USB_CONTROL_JOY_PRESS); /* menu selection is VERTICAL */
+    /* Existing v1.0 screen-entry policy resets parent selection to 0. */
+    assert(ux.selection == 0u);
+    tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
+    assert(ux.selection == 1u);
+    tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_VERTICAL_SLOW_DPI);
     assert(ux.selection == 0u);
     tap(&ux, BLU2USB_CONTROL_JOY_UP); /* VERY SLOW 0.25x */
