@@ -21,6 +21,10 @@
 #define BLE_HOGP_SAVED_REGISTRY_VERSION_V1 1u
 #define BLE_HOGP_SAVED_REGISTRY_TAG UINT32_C(0x4232534e) /* B2SN */
 #define BLE_HOGP_MOVEMENT_TAG UINT32_C(0x42324d56) /* B2MV */
+#define BLE_HOGP_PROFILE_TAG UINT32_C(0x42325046) /* B2PF */
+#define BLE_HOGP_PROFILE_VERSION 1u
+#define BLE_HOGP_PROFILE_ENTRY_SIZE (1u + 1u + 6u + 16u + BLU2USB_PROFILE_V3_SERIALIZED_SIZE)
+#define BLE_HOGP_PROFILE_PAYLOAD_SIZE (1u + BLE_HOGP_SAVED_REGISTRY_CAPACITY * BLE_HOGP_PROFILE_ENTRY_SIZE)
 #define BLE_HOGP_MOVEMENT_VERSION 1u
 #define BLE_HOGP_MOVEMENT_ENTRY_SIZE (1u + 1u + 6u + 16u + 3u)
 #define BLE_HOGP_MOVEMENT_PAYLOAD_SIZE (1u + 8u * BLE_HOGP_MOVEMENT_ENTRY_SIZE)
@@ -99,6 +103,21 @@ typedef struct {
 } ble_hogp_saved_movement_t;
 static ble_hogp_saved_movement_t g_movements[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
 static bool g_movements_loaded;
+/* BTstack TLV owns durable per-mouse remaps, drafts and 12 shortcuts.
+ * Never key these records by a recyclable Saved Devices page ordinal. */
+typedef struct {
+    bool used;
+    bd_addr_type_t address_type;
+    bd_addr_t address;
+    sm_key_t irk;
+    uint8_t profile[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
+} ble_hogp_saved_profile_t;
+static ble_hogp_saved_profile_t g_profiles[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+static bool g_profiles_loaded;
+static bool g_profiles_have_registry;
+static bool g_profiles_corrupt;
+static bool g_legacy_profile_valid;
+static uint8_t g_legacy_profile[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
 static btstack_packet_callback_registration_t g_hci_registration;
 static btstack_packet_callback_registration_t g_sm_registration;
 static btstack_timer_source_t g_vendor_timer;
