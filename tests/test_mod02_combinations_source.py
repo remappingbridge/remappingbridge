@@ -32,7 +32,7 @@ assert "BLU2USB_SCREEN_COMBINATIONS_1 + next" in ux
 assert "ux->selection = 2u; /* Restore MODIFIER SHORTCUTS entry focus. */" in ux
 assert "BLU2USB_UX_COMMAND_RESET_SHORTCUT" in ux
 assert "BLU2USB_UX_COMMAND_SET_SHORTCUT" in ux
-assert "emphasize_row(frame, (uint8_t)(selected + 1))" in renderer
+assert "focus_row(frame, (uint8_t)(selected + 1))" in renderer
 assert "BLU2USB_SCREEN_COMBINATIONS_1" not in app, "MOD-02 must not touch BLE/HID runtime"
 assert "MOD + WHELL" not in ux
 assert "COMBINATIONS 1 0F 6" not in ux
