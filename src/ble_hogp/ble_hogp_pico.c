@@ -21,6 +21,10 @@
 #define BLE_HOGP_SAVED_REGISTRY_VERSION_V1 1u
 #define BLE_HOGP_SAVED_REGISTRY_TAG UINT32_C(0x4232534e) /* B2SN */
 #define BLE_HOGP_MOVEMENT_TAG UINT32_C(0x42324d56) /* B2MV */
+#define BLE_HOGP_PROFILE_TAG UINT32_C(0x42325046) /* B2PF */
+#define BLE_HOGP_PROFILE_VERSION 1u
+#define BLE_HOGP_PROFILE_ENTRY_SIZE (1u + 1u + 6u + 16u + BLU2USB_PROFILE_V3_SERIALIZED_SIZE)
+#define BLE_HOGP_PROFILE_PAYLOAD_SIZE (1u + BLE_HOGP_SAVED_REGISTRY_CAPACITY * BLE_HOGP_PROFILE_ENTRY_SIZE)
 #define BLE_HOGP_MOVEMENT_VERSION 1u
 #define BLE_HOGP_MOVEMENT_ENTRY_SIZE (1u + 1u + 6u + 16u + 3u)
 #define BLE_HOGP_MOVEMENT_PAYLOAD_SIZE (1u + 8u * BLE_HOGP_MOVEMENT_ENTRY_SIZE)
@@ -99,6 +103,21 @@ typedef struct {
 } ble_hogp_saved_movement_t;
 static ble_hogp_saved_movement_t g_movements[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
 static bool g_movements_loaded;
+/* BTstack TLV owns durable per-mouse remaps, drafts and 12 shortcuts.
+ * Never key these records by a recyclable Saved Devices page ordinal. */
+typedef struct {
+    bool used;
+    bd_addr_type_t address_type;
+    bd_addr_t address;
+    sm_key_t irk;
+    uint8_t profile[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
+} ble_hogp_saved_profile_t;
+static ble_hogp_saved_profile_t g_profiles[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+static bool g_profiles_loaded;
+static bool g_profiles_have_registry;
+static bool g_profiles_corrupt;
+static bool g_legacy_profile_valid;
+static uint8_t g_legacy_profile[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
 static btstack_packet_callback_registration_t g_hci_registration;
 static btstack_packet_callback_registration_t g_sm_registration;
 static btstack_timer_source_t g_vendor_timer;
@@ -155,7 +174,7 @@ static void service_vendor_output(void);
 static bool publish_status(blu2usb_ble_hogp_message_type_t type);
 static void saved_names_load(void);
 static void saved_names_remember_bond(int bond_index, const char *name);
-static void saved_names_remove_identity(bd_addr_type_t address_type,
+static bool saved_names_remove_identity(bd_addr_type_t address_type,
                                         const bd_addr_t address,
                                         const sm_key_t irk);
 static void dedupe_current_bond(void);
@@ -423,25 +442,28 @@ static void saved_names_remember_bond(int bond_index, const char *name)
     (void)saved_names_store();
 }
 
-static void saved_names_remove_identity(bd_addr_type_t address_type,
+static bool saved_names_remove_identity(bd_addr_type_t address_type,
                                         const bd_addr_t address,
                                         const sm_key_t irk)
 {
     saved_names_load();
+    ble_hogp_saved_name_t old[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+    memcpy(old, g_saved_names, sizeof(old));
     bool changed = false;
     for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index) {
         ble_hogp_saved_name_t *entry = &g_saved_names[index];
         if (!entry->used) continue;
         if (!bond_identity_equal(entry->address_type, entry->address, entry->irk,
-                                 address_type, address, irk))
-            continue;
+                                 address_type, address, irk)) continue;
         memset(entry, 0, sizeof(*entry));
         changed = true;
     }
-    if (changed) (void)saved_names_store();
+    if (!changed || saved_names_store()) return true;
+    memcpy(g_saved_names, old, sizeof(old));
+    return false;
 }
 
-static void remove_bonds_for_identity(bd_addr_type_t address_type,
+static bool remove_bonds_for_identity(bd_addr_type_t address_type,
                                       const bd_addr_t address,
                                       const sm_key_t irk)
 {
@@ -454,8 +476,18 @@ static void remove_bonds_for_identity(bd_addr_type_t address_type,
                                 address_type, address, irk))
             le_device_db_remove(slot);
     }
+    /* Acknowledge only after every matching BLE bond is gone. */
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t saved_address;
+        sm_key_t saved_irk;
+        if (bond_slot_info(slot, &type, saved_address, saved_irk) &&
+            bond_identity_equal(type, saved_address, saved_irk,
+                                address_type, address, irk))
+            return false;
+    }
+    return true;
 }
-
 static bool capture_logical_identity(int logical_bond,
                                      bd_addr_type_t *address_type,
                                      bd_addr_t address,
@@ -480,6 +512,137 @@ static bool current_matches_identity(bd_addr_type_t address_type,
                             address_type, address, irk);
 }
 
+
+
+static bool profiles_store(void)
+{
+    if (g_profiles_corrupt) return false;
+    const btstack_tlv_t *tlv = NULL;
+    void *context = NULL;
+    btstack_tlv_get_instance(&tlv, &context);
+    if (tlv == NULL || context == NULL) return false;
+    uint8_t bytes[BLE_HOGP_PROFILE_PAYLOAD_SIZE] = {0};
+    bytes[0] = BLE_HOGP_PROFILE_VERSION;
+    size_t p = 1u;
+    for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+        const ble_hogp_saved_profile_t *entry = &g_profiles[i];
+        bytes[p++] = entry->used ? 1u : 0u;
+        bytes[p++] = (uint8_t)entry->address_type;
+        memcpy(&bytes[p], entry->address, 6u); p += 6u;
+        memcpy(&bytes[p], entry->irk, 16u); p += 16u;
+        memcpy(&bytes[p], entry->profile, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+        p += BLU2USB_PROFILE_V3_SERIALIZED_SIZE;
+    }
+    const bool ok = tlv->store_tag(context, BLE_HOGP_PROFILE_TAG,
+                                    bytes, sizeof(bytes)) == 0;
+    if (ok) g_profiles_have_registry = true;
+    return ok;
+}
+
+static bool profiles_load(void)
+{
+    if (g_profiles_loaded) return !g_profiles_corrupt;
+    const btstack_tlv_t *tlv = NULL;
+    void *context = NULL;
+    btstack_tlv_get_instance(&tlv, &context);
+    if (tlv == NULL || context == NULL) return false;
+    uint8_t bytes[BLE_HOGP_PROFILE_PAYLOAD_SIZE] = {0};
+    const int n = tlv->get_tag(context, BLE_HOGP_PROFILE_TAG,
+                               bytes, sizeof(bytes));
+    if (n <= 0) {
+        g_profiles_loaded = true;
+        return true; /* Migration required, even when there are no bonds. */
+    }
+    if (n != (int)sizeof(bytes) || bytes[0] != BLE_HOGP_PROFILE_VERSION) {
+        g_profiles_corrupt = true; /* Never overwrite unknown schema. */
+        return false;
+    }
+    ble_hogp_saved_profile_t entries[BLE_HOGP_SAVED_REGISTRY_CAPACITY] = {0};
+    size_t p = 1u;
+    for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+        ble_hogp_saved_profile_t *entry = &entries[i];
+        entry->used = bytes[p++] != 0u;
+        entry->address_type = (bd_addr_type_t)bytes[p++];
+        memcpy(entry->address, &bytes[p], 6u); p += 6u;
+        memcpy(entry->irk, &bytes[p], 16u); p += 16u;
+        memcpy(entry->profile, &bytes[p], BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+        p += BLU2USB_PROFILE_V3_SERIALIZED_SIZE;
+        if (entry->used) {
+            blu2usb_profiles_t check;
+            if (!blu2usb_profiles_restore_any(&check, entry->profile,
+                BLU2USB_PROFILE_V3_SERIALIZED_SIZE, NULL)) {
+                g_profiles_corrupt = true;
+                return false;
+            }
+        }
+    }
+    memcpy(g_profiles, entries, sizeof(g_profiles));
+    g_profiles_have_registry = true;
+    g_profiles_loaded = true;
+    return true;
+}
+
+static int profiles_find(bd_addr_type_t type,
+                         const bd_addr_t address, const sm_key_t irk)
+{
+    for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i)
+        if (g_profiles[i].used &&
+            bond_identity_equal(g_profiles[i].address_type,
+                g_profiles[i].address, g_profiles[i].irk,
+                type, address, irk))
+            return (int)i;
+    return -1;
+}
+
+/* One-time v3-global migration: snapshot legacy profile for identities
+ * bonded BEFORE installation. The durable empty registry marker prevents
+ * re-paired/deleted devices from inheriting that old global profile. */
+static bool profiles_seed_legacy(void)
+{
+    if (!profiles_load()) return false;
+    if (g_profiles_have_registry) return true;
+    if (g_legacy_profile_valid) {
+        for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+            if (!bond_slot_is_first_for_identity(slot)) continue;
+            bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+            bd_addr_t address;
+            sm_key_t irk;
+            if (!bond_slot_info(slot, &type, address, irk)) continue;
+            for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+                if (g_profiles[i].used) continue;
+                g_profiles[i].used = true;
+                g_profiles[i].address_type = type;
+                memcpy(g_profiles[i].address, address, sizeof(bd_addr_t));
+                memcpy(g_profiles[i].irk, irk, sizeof(sm_key_t));
+                memcpy(g_profiles[i].profile, g_legacy_profile,
+                       BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+                break;
+            }
+        }
+    }
+    return profiles_store();
+}
+
+static bool profiles_remove_identity(bd_addr_type_t type,
+                                      const bd_addr_t address,
+                                      const sm_key_t irk)
+{
+    if (!profiles_load() || !g_profiles_have_registry) return false;
+    ble_hogp_saved_profile_t snapshot[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+    memcpy(snapshot, g_profiles, sizeof(snapshot));
+    bool changed = false;
+    for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+        if (!g_profiles[i].used ||
+            !bond_identity_equal(g_profiles[i].address_type,
+                 g_profiles[i].address, g_profiles[i].irk,
+                 type, address, irk)) continue;
+        memset(&g_profiles[i], 0, sizeof(g_profiles[i]));
+        changed = true;
+    }
+    if (!changed || profiles_store()) return true;
+    memcpy(g_profiles, snapshot, sizeof(snapshot));
+    return false;
+}
 
 /* Movement preferences live in their own TLV record, preserving the v1.0
  * saved-name/IRK registry and product profile storage format byte-for-byte. */
@@ -587,12 +750,19 @@ bool blu2usb_ble_hogp_pico_set_current_movement(blu2usb_movement_settings_t sett
 static bool movements_remove_identity(bd_addr_type_t type, const bd_addr_t addr, const sm_key_t irk)
 {
     movements_load();
-    const int idx = movements_find(type, addr, irk);
-    if (idx < 0) return true;
-    const ble_hogp_saved_movement_t prior = g_movements[idx];
-    memset(&g_movements[idx], 0, sizeof(g_movements[idx]));
-    if (movements_store()) return true;
-    g_movements[idx] = prior;
+    ble_hogp_saved_movement_t snapshot[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+    memcpy(snapshot, g_movements, sizeof(snapshot));
+    bool changed = false;
+    for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+        if (!g_movements[i].used ||
+            !bond_identity_equal(g_movements[i].address_type,
+                g_movements[i].address, g_movements[i].irk,
+                type, addr, irk)) continue;
+        memset(&g_movements[i], 0, sizeof(g_movements[i]));
+        changed = true;
+    }
+    if (!changed || movements_store()) return true;
+    memcpy(g_movements, snapshot, sizeof(snapshot));
     return false;
 }
 
@@ -600,6 +770,13 @@ static void complete_remove_target(void)
 {
     if (!g_remove_target_valid) return;
 
+    /* Delete identity-scoped profile first; never ack if flash refused. */
+    if (!profiles_remove_identity(g_remove_target_type,
+                                  g_remove_target_address, g_remove_target_irk)) {
+        g_remove_target_valid = false;
+        (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
+        return;
+    }
     /* Do not delete credentials if clearing the identity's preferences fails.
      * The operator can retry removal without settings leaking to a future bond. */
     if (!movements_remove_identity(g_remove_target_type, g_remove_target_address,
@@ -608,12 +785,20 @@ static void complete_remove_target(void)
         (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
         return;
     }
-    saved_names_remove_identity(g_remove_target_type,
-                                g_remove_target_address,
-                                g_remove_target_irk);
-    remove_bonds_for_identity(g_remove_target_type,
-                              g_remove_target_address,
-                              g_remove_target_irk);
+    if (!saved_names_remove_identity(g_remove_target_type,
+                                      g_remove_target_address,
+                                      g_remove_target_irk)) {
+        g_remove_target_valid = false;
+        (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
+        return;
+    }
+    if (!remove_bonds_for_identity(g_remove_target_type,
+                                   g_remove_target_address,
+                                   g_remove_target_irk)) {
+        g_remove_target_valid = false;
+        (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
+        return;
+    }
     (void)gap_load_resolving_list_from_le_device_db();
 
     g_remove_target_valid = false;
@@ -1531,7 +1716,8 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
         if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING &&
             g_state == BLE_HOGP_STATE_WAITING_FOR_STACK) {
             saved_names_load();
-            reconnect_or_scan();
+            /* Seed the registry before any new pairing can create a bond. */
+            if (profiles_seed_legacy()) reconnect_or_scan();
         }
         break;
 
@@ -1853,6 +2039,10 @@ static void ble_hogp_session_setup(void)
     g_saved_names_loaded = false;
     memset(g_movements, 0, sizeof(g_movements));
     g_movements_loaded = false;
+    memset(g_profiles, 0, sizeof(g_profiles));
+    g_profiles_loaded = false;
+    g_profiles_have_registry = false;
+    g_profiles_corrupt = false;
     memset(g_remote_address, 0, sizeof(g_remote_address));
     g_remote_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_rejected_next = 0u;
@@ -1970,6 +2160,82 @@ void blu2usb_ble_hogp_pico_request_pair_new(void)
 void blu2usb_ble_hogp_pico_cancel_pair_new(void)
 {
     atomic_store_explicit(&g_pair_new_cancel, true, memory_order_release);
+}
+
+void blu2usb_ble_hogp_pico_set_legacy_profiles(
+    const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    g_legacy_profile_valid = false;
+    if (payload == NULL) return;
+    blu2usb_profiles_t decoded;
+    if (!blu2usb_profiles_restore_any(&decoded, payload,
+            BLU2USB_PROFILE_V3_SERIALIZED_SIZE, NULL)) return;
+    memcpy(g_legacy_profile, payload, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+    g_legacy_profile_valid = true;
+}
+
+bool blu2usb_ble_hogp_pico_current_profile(
+    uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    if (payload == NULL || !profiles_load() || !g_profiles_have_registry)
+        return false;
+    const int bond = resolve_current_bond_index();
+    bd_addr_type_t type;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(bond, &type, address, irk)) return false;
+    const int idx = profiles_find(type, address, irk);
+    if (idx < 0) return false; /* Newly paired: app must use defaults. */
+    memcpy(payload, g_profiles[idx].profile, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+    return true;
+}
+
+bool blu2usb_ble_hogp_pico_saved_profile(
+    int logical_bond, uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    if (payload == NULL || !profiles_load() || !g_profiles_have_registry)
+        return false;
+    const int bond = bond_slot_for_ordinal(logical_bond);
+    bd_addr_type_t type;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(bond, &type, address, irk)) return false;
+    const int idx = profiles_find(type, address, irk);
+    if (idx < 0) return false;
+    memcpy(payload, g_profiles[idx].profile, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+    return true;
+}
+
+bool blu2usb_ble_hogp_pico_set_current_profile(
+    const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    if (payload == NULL || !profiles_load() || !g_profiles_have_registry)
+        return false;
+    blu2usb_profiles_t check;
+    if (!blu2usb_profiles_restore_any(&check, payload,
+            BLU2USB_PROFILE_V3_SERIALIZED_SIZE, NULL)) return false;
+    const int bond = resolve_current_bond_index();
+    bd_addr_type_t type;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(bond, &type, address, irk)) return false;
+    int idx = profiles_find(type, address, irk);
+    if (idx < 0) {
+        for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i)
+            if (!g_profiles[i].used) { idx = (int)i; break; }
+    }
+    if (idx < 0) return false;
+    const ble_hogp_saved_profile_t previous = g_profiles[idx];
+    ble_hogp_saved_profile_t *entry = &g_profiles[idx];
+    memset(entry, 0, sizeof(*entry));
+    entry->used = true;
+    entry->address_type = type;
+    memcpy(entry->address, address, 6u);
+    memcpy(entry->irk, irk, 16u);
+    memcpy(entry->profile, payload, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+    if (profiles_store()) return true;
+    g_profiles[idx] = previous;
+    return false;
 }
 
 void blu2usb_ble_hogp_pico_request_remove_saved_mouse(int logical_bond)

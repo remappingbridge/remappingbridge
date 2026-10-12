@@ -266,8 +266,10 @@ void blu2usb_ux_init(blu2usb_ux_model_t *ux) {
     ux->current_mouse_name[0] = '\0';
     ux->active_profile = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
     ux->movement_current = blu2usb_movement_defaults();
-    for (unsigned m = 0u; m < BLU2USB_UX_MAX_SAVED_MICE; ++m)
+    for (unsigned m = 0u; m < BLU2USB_UX_MAX_SAVED_MICE; ++m) {
         ux->saved_movements[m] = blu2usb_movement_defaults();
+        ux->saved_profile_kinds[m] = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
+    }
     memset(ux->movement_dpi_selections, 0, sizeof(ux->movement_dpi_selections));
     ux->custom_dirty = false;
     memset(ux->shortcut_assignments, 0, sizeof(ux->shortcut_assignments));
@@ -289,8 +291,10 @@ void blu2usb_ux_set_saved_device_count(blu2usb_ux_model_t *ux, unsigned count) {
     if (ux->saved_page >= ux->saved_pages) ux->saved_page = ux->saved_pages - 1u;
     if (ux->saved_connected_bond >= (int)count) ux->saved_connected_bond = -1;
     if (ux->saved_front_bond >= (int)count) ux->saved_front_bond = -1;
-    for (unsigned index = count; index < BLU2USB_UX_MAX_SAVED_MICE; ++index)
+    for (unsigned index = count; index < BLU2USB_UX_MAX_SAVED_MICE; ++index) {
         ux->saved_mouse_names[index][0] = '\0';
+        ux->saved_profile_kinds[index] = BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
+    }
     if (ux->selection >= blu2usb_ux_option_count(ux)) ux->selection = 0;
 }
 
@@ -414,6 +418,17 @@ static unsigned selection_from_gain(uint8_t gain, bool fast)
     for (unsigned i = 0u; i < 4u; ++i)
         if (gain_from_selection(fast, i) == gain) return i;
     return 0u;
+}
+
+void blu2usb_ux_set_saved_profile(blu2usb_ux_model_t *ux,
+                                  unsigned logical_bond,
+                                  blu2usb_mouse_profile_kind_t kind)
+{
+    if (ux == NULL || logical_bond >= BLU2USB_UX_MAX_SAVED_MICE) return;
+    ux->saved_profile_kinds[logical_bond] =
+        kind == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP
+            ? BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP
+            : BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
 }
 
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target) {

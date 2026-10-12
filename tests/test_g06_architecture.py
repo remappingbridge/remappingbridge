@@ -118,7 +118,7 @@ for token in (
     'BLU2USB_UX_COMMAND_APPLY_PASSTHROUGH',
     'BLU2USB_UX_COMMAND_APPLY_CUSTOM',
     'blu2usb_storage_load',
-    'blu2usb_storage_store',
+    'blu2usb_ble_hogp_pico_set_current_profile',
     'synchronize_ux_profiles',
 ):
     assert token in app, f'app G06 composition missing: {token}'

@@ -4,14 +4,14 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 
 ## Versão estável
 
-**RemappingBridge 3.1.4** — MNT-09 aceito: primeira opção da HOME CONNECTED agora é sempre REMAPPING OPTIONS, independentemente do perfil ativo. Navegação, perfil CUSTOM/PASSTHROUGH, cores, BLE/HID e persistência permanecem preservados.
+**RemappingBridge 3.2.0** — MNT-10 aceito fisicamente: remoção por SAVED DEVICES limpa registros ativos do mouse excluído, incluindo perfil, remap, Modifier, atalhos, Movement e vínculo BLE; ao parear novamente, ele inicia nos padrões. Perfis agora são persistidos por identidade de mouse, com migração do formato global anterior.
 
 ### Modifier Shortcuts
 - Dois perfis: **PASSTHROUGH** e **CUSTOM**. As opções antigas STANDARD REMAP e ESCAPE REMAP foram removidas da UI.
 - Um dos cinco botões físicos (Left/Right/Middle/Forward/Backward) pode ser configurado como **MODIFIER**, sem gerar seu clique físico durante a combinação.
 - **12 combinações**: MODIFIER RELEASED, cinco botões, WHEEL UP/DOWN e MOVE LEFT/RIGHT/UP/DOWN.
 - **30 ações** de teclado e mídia, com fluxos HOME CONNECTED → REMAPPING OPTIONS → MODIFIER SHORTCUTS → COMBINATIONS 1..6 → SHORTCUTS 1..5 → KEY A: APPLY AND BACK; reset por seleção.
-- Persistência global de profile e assignments no schema v3; `UNAVAILABLE` quando uma combinação usa o próprio Modifier, sem apagar a atribuição.
+- Persistência de profile e assignments **por identidade de mouse** (registros Bluetooth e payload v3), com migração do antigo registro global; `UNAVAILABLE` quando uma combinação usa o próprio Modifier, sem apagar a atribuição.
 - Proteção contra stuck-key, interrupção BLE/USB, filas sob backpressure e cancelamento em lock/reconfiguração.
 
 ### Funcionalidades preservadas da v2
@@ -19,7 +19,7 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 - Reconexão/pareamento BLE, Saved Devices, Logitech Lift HID++, Help/lock, tela 9×21, wheel/pan e identidade USB estável.
 - Na tela **Saved Devices**, o cabeçalho usa magenta padrão, o nome do mouse ativo é o único texto ciano, os dados do mouse permanecem amarelos, **REMOVE DEVICE** é branco quando acionável e as dicas são cinzas.
 
-Firmware/checksums: [Release v3.1.4](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.1.4). Detalhes: [docs/releases/v3.1.4.md](docs/releases/v3.1.4.md). Histórico: [v3.0.3](docs/releases/v3.0.3.md), [v3.0.2](docs/releases/v3.0.2.md), [v3.0.1](docs/releases/v3.0.1.md) e [v3.0.0](docs/releases/v3.0.0.md).
+Firmware/checksums: [Release v3.2.0](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.0). Detalhes: [docs/releases/v3.2.0.md](docs/releases/v3.2.0.md). Histórico: [v3.0.3](docs/releases/v3.0.3.md), [v3.0.2](docs/releases/v3.0.2.md), [v3.0.1](docs/releases/v3.0.1.md) e [v3.0.0](docs/releases/v3.0.0.md).
 
 ## Compatibilidade de atualização
 

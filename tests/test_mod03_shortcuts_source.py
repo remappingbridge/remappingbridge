@@ -11,7 +11,9 @@ for i in range(1,6):
 assert "BLU2USB_PROFILE_V3_SERIALIZED_SIZE 26u" in (root/"include/blu2usb/profiles/profiles.h").read_text()
 assert "PROFILE_V3_SCHEMA_VERSION 3u" in profiles
 assert "blu2usb_profiles_restore_any" in profiles
-assert "migrate && !persist_profiles(&candidate)" in app
+assert "blu2usb_ble_hogp_pico_set_legacy_profiles" in app
+assert "blu2usb_ble_hogp_pico_set_current_profile" in app
+assert "blu2usb_storage_store(payload" not in app
 assert "blu2usb_profiles_serialize_v3" in app
 assert "BLU2USB_UX_COMMAND_SET_SHORTCUT" in app
 assert "BLU2USB_UX_COMMAND_RESET_SHORTCUT" in app
