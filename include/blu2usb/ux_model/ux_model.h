@@ -129,6 +129,7 @@ typedef struct {
     blu2usb_mouse_profile_kind_t active_profile;
     blu2usb_movement_settings_t movement_current;
     blu2usb_movement_settings_t saved_movements[BLU2USB_UX_MAX_SAVED_MICE];
+    blu2usb_mouse_profile_kind_t saved_profile_kinds[BLU2USB_UX_MAX_SAVED_MICE];
     uint8_t movement_dpi_selections[4]; /* last selected index per axis/page */
     bool custom_dirty;
     blu2usb_mouse_source_t custom_source;
@@ -149,6 +150,8 @@ void blu2usb_ux_set_current_mouse_name(blu2usb_ux_model_t *ux, const char *name)
 void blu2usb_ux_set_movement(blu2usb_ux_model_t *ux, blu2usb_movement_settings_t settings);
 void blu2usb_ux_set_saved_movement(blu2usb_ux_model_t *ux, unsigned logical_bond,
                                    blu2usb_movement_settings_t settings);
+void blu2usb_ux_set_saved_profile(blu2usb_ux_model_t *ux, unsigned logical_bond,
+                                  blu2usb_mouse_profile_kind_t kind);
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target);
 void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux, blu2usb_mouse_profile_kind_t active_profile);
 void blu2usb_ux_restore_profile_state(
