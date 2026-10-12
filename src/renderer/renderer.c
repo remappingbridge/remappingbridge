@@ -672,6 +672,45 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     }
 }
 
+
+/* MNT-13: final, non-persistent selection overlay. Run after the applied
+ * visual contract so the marker inherits the definitive focused tone.
+ * Never modify template labels or touch an informational row. */
+void blu2usb_ui_apply_selection_marker(const blu2usb_ux_model_t *ux,
+                                       blu2usb_ui_frame_t *frame)
+{
+    if (ux == NULL || frame == NULL) return;
+
+    /* Idempotent even when callers reuse the frame before a new projection. */
+    for (uint8_t row = 1u; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
+        if (frame->cells[row][0].character == '>') {
+            frame->cells[row][0].character = ' ';
+            frame->cells[row][0].tone = BLU2USB_UI_TONE_ACTIONABLE;
+        }
+    }
+
+    int row = -1;
+    if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES) {
+        if (blu2usb_ux_saved_bond_for_page(ux, ux->saved_page) >= 0)
+            row = 5; /* Single implicit REMOVE DEVICE action. */
+    } else {
+        const unsigned count = blu2usb_ux_option_count(ux);
+        if (count != 0u && ux->selection < count)
+            row = selected_row(ux);
+    }
+
+    if (row <= 0 || row >= (int)BLU2USB_RENDERER_TEXT_ROWS ||
+        row >= (int)frame->hint_start_row)
+        return;
+    /* Every selectable label reserves column 0; never overwrite text. */
+    if (frame->cells[row][0].character != ' ' ||
+        frame->cells[row][1].character == ' ')
+        return;
+
+    frame->cells[row][0].character = '>';
+    frame->cells[row][0].tone = frame->cells[row][1].tone;
+}
+
 uint16_t blu2usb_renderer_tone_rgb565(blu2usb_ui_tone_t tone)
 {
     switch (tone) {
