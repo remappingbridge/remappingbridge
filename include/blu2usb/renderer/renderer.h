@@ -32,6 +32,7 @@
 #define BLU2USB_COLOR_WHITE 0xffffu
 #define BLU2USB_COLOR_MAGENTA 0xf81fu
 #define BLU2USB_COLOR_CYAN 0xd7ffu
+#define BLU2USB_COLOR_CYAN_FOCUSED 0x07ffu
 #define BLU2USB_COLOR_OFF_WHITE_YELLOW 0xffb8u
 #define BLU2USB_COLOR_LIGHT_GRAY 0xc618u
 #define BLU2USB_COLOR_DARK_MAGENTA 0x0801u
@@ -41,7 +42,8 @@ typedef enum {
     BLU2USB_UI_TONE_STATIC,
     BLU2USB_UI_TONE_ACTIONABLE,
     BLU2USB_UI_TONE_EMPHASIZED,
-    BLU2USB_UI_TONE_CURRENT
+    BLU2USB_UI_TONE_CURRENT,
+    BLU2USB_UI_TONE_SELECTED_CURRENT
 } blu2usb_ui_tone_t;
 
 typedef struct {
@@ -67,6 +69,9 @@ bool blu2usb_ui_frame_set_text(blu2usb_ui_frame_t *frame, uint8_t row, uint8_t c
 bool blu2usb_ui_frame_set_tone_span(blu2usb_ui_frame_t *frame, uint8_t row, uint8_t column, uint8_t length, blu2usb_ui_tone_t tone);
 void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame);
 void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame);
+/* Focus lifts a selectable CURRENT item to standard cyan; all other
+ * selectable items follow the established gray-to-white behavior. */
+blu2usb_ui_tone_t blu2usb_ui_tone_on_focus(blu2usb_ui_tone_t normal);
 uint16_t blu2usb_renderer_tone_rgb565(blu2usb_ui_tone_t tone);
 uint16_t blu2usb_renderer_background_rgb565(const blu2usb_ui_frame_t *frame, uint8_t row);
 uint16_t blu2usb_renderer_separator_boundary_y(const blu2usb_ui_frame_t *frame);
