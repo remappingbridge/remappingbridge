@@ -85,7 +85,7 @@ static void test_modifier_summary_all_five_sources(void)
         for (const char *p=" IS MODIFIER";*p;++p) expected[n++]=*p;
         expected[n]='\0';
         expected_text(&frame,src+1u,expected);
-        assert(frame.cells[src+1u][0].tone==BLU2USB_UI_TONE_EMPHASIZED);
+        assert(frame.cells[src+1u][0].tone==BLU2USB_UI_TONE_EMPHASIZED); /* Draft is not the currently applied value. */
     }
 }
 
@@ -175,10 +175,10 @@ static void test_single_cyan_only_for_current_target(void)
     expect_tone(&frame,5u,BLU2USB_UI_TONE_CURRENT); /* only BACKWARD cyan */
     expect_tone(&frame,6u,BLU2USB_UI_TONE_ACTIONABLE);
 
-    ux.selection=4u; /* Selection overrides current with white. */
+    ux.selection=4u; /* Focus on current value changes pale cyan to standard cyan. */
     project(&ux,&frame);
     expect_tone(&frame,4u,BLU2USB_UI_TONE_ACTIONABLE);
-    expect_tone(&frame,5u,BLU2USB_UI_TONE_EMPHASIZED);
+    expect_tone(&frame,5u,BLU2USB_UI_TONE_SELECTED_CURRENT);
 
     committed[BLU2USB_MOUSE_SOURCE_MIDDLE]=BLU2USB_MOUSE_TARGET_MODIFIER;
     blu2usb_ux_custom_target_committed(&ux,BLU2USB_MOUSE_SOURCE_MIDDLE,committed);

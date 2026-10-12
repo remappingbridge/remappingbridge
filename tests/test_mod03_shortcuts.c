@@ -64,7 +64,14 @@ static void assert_picker(blu2usb_ux_model_t *ux,unsigned page,unsigned selected
         char text[22];
         snprintf(text,sizeof(text)," %s",names[page*6+j]);
         expect_row(&frame,j+1,text);
-        expect_tone(&frame,j+1,j==selected?BLU2USB_UI_TONE_EMPHASIZED:BLU2USB_UI_TONE_ACTIONABLE);
+        const bool assigned =
+            ux->shortcut_assignments[ux->editing_combination] == page*6u+j+1u;
+        expect_tone(&frame,j+1,
+                    j==selected
+                        ? (assigned ? BLU2USB_UI_TONE_SELECTED_CURRENT
+                                    : BLU2USB_UI_TONE_EMPHASIZED)
+                        : (assigned ? BLU2USB_UI_TONE_CURRENT
+                                    : BLU2USB_UI_TONE_ACTIONABLE));
     }
     expect_row(&frame,7,"");
     expect_row(&frame,8,"KEY A: APPLY AND BACK");
@@ -234,7 +241,7 @@ static void test_saved_shortcut_focus_and_lock(void)
     assert_picker(&ux,1,1); /* restore saved focus if on page */
     blu2usb_ui_frame_t f;
     inspect(&ux,&f);
-    expect_tone(&f,2,BLU2USB_UI_TONE_EMPHASIZED);
+    expect_tone(&f,2,BLU2USB_UI_TONE_SELECTED_CURRENT);
     tap(&ux,BLU2USB_CONTROL_JOY_UP);
     inspect(&ux,&f);
     expect_tone(&f,2,BLU2USB_UI_TONE_CURRENT);
