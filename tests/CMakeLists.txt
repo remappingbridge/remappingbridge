@@ -595,3 +595,6 @@ target_link_libraries(blu2usb_test_mnt13_selection_marker PRIVATE
 target_compile_options(blu2usb_test_mnt13_selection_marker PRIVATE -UNDEBUG)
 add_test(NAME mnt13_all_menus_first_column_focus_only
     COMMAND blu2usb_test_mnt13_selection_marker)
+
+add_test(NAME mnt13_production_frame_overlay_source
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt13_source.py)
