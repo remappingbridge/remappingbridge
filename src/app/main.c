@@ -27,6 +27,7 @@ static bool render_state(const blu2usb_display_hal_t *display,
     blu2usb_ui_frame_t frame;
     blu2usb_ui_project(ux, &frame);
     blu2usb_ui_enforce_applied_visual_contract(ux, &frame);
+    blu2usb_ui_apply_selection_marker(ux, &frame);
     return blu2usb_renderer_render(display, &frame);
 }
 
