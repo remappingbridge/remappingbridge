@@ -40,6 +40,7 @@ static uint8_t glyph_row(char character, uint8_t row)
     case '\\': return row <= 4u ? (uint8_t)(1u << (4u - row)) : 0u;
     case '/': return row <= 4u ? (uint8_t)(1u << row) : 0u;
     case '>': { static const uint8_t rows[7]={0x10,0x08,0x04,0x02,0x04,0x08,0x10}; return rows[row]; }
+    case '|': return 0x04u; /* Full-height 1-pixel vertical selection bar. */
     case '<': { static const uint8_t rows[7]={0x01,0x02,0x04,0x08,0x04,0x02,0x01}; return rows[row]; }
     case '?': { static const uint8_t rows[7]={0x0e,0x11,0x01,0x02,0x04,0x00,0x04}; return rows[row]; }
     case '!': return (row < 5u || row == 6u) ? 0x04u : 0u;
@@ -683,7 +684,7 @@ void blu2usb_ui_apply_selection_marker(const blu2usb_ux_model_t *ux,
 
     /* Idempotent even when callers reuse the frame before a new projection. */
     for (uint8_t row = 1u; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
-        if (frame->cells[row][0].character == '>') {
+        if (frame->cells[row][0].character == '|') {
             frame->cells[row][0].character = ' ';
             frame->cells[row][0].tone = BLU2USB_UI_TONE_ACTIONABLE;
         }
@@ -695,20 +696,31 @@ void blu2usb_ui_apply_selection_marker(const blu2usb_ux_model_t *ux,
             row = 5; /* Single implicit REMOVE DEVICE action. */
     } else {
         const unsigned count = blu2usb_ux_option_count(ux);
-        if (count != 0u && ux->selection < count)
+        if (count != 0u && ux->selection < count) {
             row = selected_row(ux);
+            /* A two-line COMBINATIONS choice is marked on its second,
+             * VALUE line, never on the heading/first line. */
+            if (blu2usb_ux_is_combinations_screen(ux->screen)) ++row;
+        }
     }
 
     if (row <= 0 || row >= (int)BLU2USB_RENDERER_TEXT_ROWS ||
         row >= (int)frame->hint_start_row)
         return;
-    /* Every selectable label reserves column 0; never overwrite text. */
+    /* Every selectable line reserves column 0; never overwrite text. */
     if (frame->cells[row][0].character != ' ' ||
         frame->cells[row][1].character == ' ')
         return;
 
-    frame->cells[row][0].character = '>';
-    frame->cells[row][0].tone = frame->cells[row][1].tone;
+    frame->cells[row][0].character = '|';
+    /* UNAVAILABLE values keep their static color (MNT-12), but the marker
+     * still represents focus: use the first-line focused tone in that case.
+     * Ordinary/current values inherit their own definitive focused tone. */
+    blu2usb_ui_tone_t marker_tone = frame->cells[row][1].tone;
+    if (blu2usb_ux_is_combinations_screen(ux->screen) &&
+        marker_tone == BLU2USB_UI_TONE_STATIC)
+        marker_tone = frame->cells[row - 1][1].tone;
+    frame->cells[row][0].tone = marker_tone;
 }
 
 uint16_t blu2usb_renderer_tone_rgb565(blu2usb_ui_tone_t tone)
