@@ -49,7 +49,7 @@ static unsigned expected_row(blu2usb_screen_id_t screen, unsigned selection)
         return 4u; /* Not the informational COUNTERCLOCKWISE row 3. */
     if (screen >= BLU2USB_SCREEN_COMBINATIONS_1 &&
         screen <= BLU2USB_SCREEN_COMBINATIONS_6)
-        return 1u + 2u * selection; /* Label, never assignment value. */
+        return 2u + 2u * selection; /* Second line: value/status, never label. */
     return 1u + selection;
 }
 
@@ -58,12 +58,17 @@ static void assert_marker(const blu2usb_ui_frame_t *frame, int row)
     unsigned count = 0u;
     for (unsigned r = 0u; r < BLU2USB_RENDERER_TEXT_ROWS; ++r) {
         const char c = frame->cells[r][0].character;
-        if (c != '>') continue;
+        if (c != '|') continue;
         ++count;
         assert(row == (int)r);
         assert(r > 0u && r < frame->hint_start_row);
         assert(frame->cells[r][1].character != ' ');
-        assert(frame->cells[r][0].tone == frame->cells[r][1].tone);
+        /* Disabled UNAVAILABLE keeps its static text; its pipe uses the
+         * selected first-line label tone instead. */
+        const blu2usb_ui_tone_t expected_tone =
+            frame->cells[r][1].tone == BLU2USB_UI_TONE_STATIC
+                ? frame->cells[r - 1u][1].tone : frame->cells[r][1].tone;
+        assert(frame->cells[r][0].tone == expected_tone);
         assert(frame->cells[r][0].tone == BLU2USB_UI_TONE_EMPHASIZED ||
                frame->cells[r][0].tone == BLU2USB_UI_TONE_SELECTED_CURRENT);
     }
@@ -92,7 +97,7 @@ static void project_with_marker(const blu2usb_ux_model_t *ux,
     }
     assert_marker(frame, expected);
 
-    /* Re-entry must neither add a second arrow nor damage the line. */
+    /* Re-entry must neither add a second pipe nor damage the line. */
     blu2usb_ui_frame_t once = *frame;
     blu2usb_ui_apply_selection_marker(ux, frame);
     for (unsigned r = 0u; r < BLU2USB_RENDERER_TEXT_ROWS; ++r)
@@ -136,7 +141,7 @@ static void test_no_menu_and_transition_cleanup(void)
     ux.selection = 2u;
     project_with_marker(&ux, &frame, 3);
 
-    /* Every screen not in the list inventory must have no arrow. */
+    /* Every screen not in the list inventory must have no pipe. */
     for (unsigned screen = 0u; screen < BLU2USB_SCREEN_COUNT; ++screen) {
         ux.screen = (blu2usb_screen_id_t)screen;
         if (screen == BLU2USB_SCREEN_SAVED_DEVICES ||
@@ -149,7 +154,7 @@ static void test_no_menu_and_transition_cleanup(void)
     /* Clear/recalculate when switching menu, page, Help, selection. */
     ux.screen = BLU2USB_SCREEN_COMBINATIONS_6;
     ux.selection = 1u;
-    project_with_marker(&ux, &frame, 3);
+    project_with_marker(&ux, &frame, 4);
     ux.screen = BLU2USB_SCREEN_HELP_REMAPPER_OPTIONS;
     project_with_marker(&ux, &frame, -1);
     ux.screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
@@ -174,10 +179,10 @@ static void test_saved_devices_implicit_action(void)
     blu2usb_ux_set_saved_device_count(&ux, 1u);
     assert(blu2usb_ux_saved_bond_for_page(&ux, ux.saved_page) >= 0);
     project_with_marker(&ux, &frame, 5);
-    assert(frame.cells[1][0].character != '>'); /* Name isn't a choice. */
-    assert(frame.cells[2][0].character != '>'); /* Profile is informational. */
-    assert(frame.cells[3][0].character != '>'); /* DPI is informational. */
-    assert(frame.cells[4][0].character != '>'); /* Rotation informational. */
+    assert(frame.cells[1][0].character != '|'); /* Name isn't a choice. */
+    assert(frame.cells[2][0].character != '|'); /* Profile is informational. */
+    assert(frame.cells[3][0].character != '|'); /* DPI is informational. */
+    assert(frame.cells[4][0].character != '|'); /* Rotation informational. */
 
     blu2usb_ux_set_saved_device_count(&ux, 2u);
     for (unsigned page = 0u; page < 2u; ++page) {
@@ -209,10 +214,21 @@ static void test_focus_color_not_applied_color(void)
     assert(frame.cells[3][1].tone == BLU2USB_UI_TONE_CURRENT);
 
     ux.screen = BLU2USB_SCREEN_COMBINATIONS_2;
-    ux.selection = 1u;
-    project_with_marker(&ux, &frame, 3);
-    assert(frame.cells[2][0].character == ' '); /* UNAVAILABLE/value. */
-    assert(frame.cells[4][0].character == ' '); /* Assigned/status value. */
+    ux.selection = 1u; /* Modifier RIGHT makes selected RIGHT unavailable. */
+    assert(blu2usb_ux_combination_unavailable(&ux, BLU2USB_MOD_COMBO_RIGHT));
+    project_with_marker(&ux, &frame, 4);
+    assert(frame.cells[3][0].character == ' '); /* First-line label. */
+    assert(frame.cells[4][0].character == '|'); /* Second-line status. */
+    assert(frame.cells[4][1].tone == BLU2USB_UI_TONE_STATIC);
+    assert(frame.cells[4][0].tone == BLU2USB_UI_TONE_EMPHASIZED);
+
+    ux.selection = 0u;
+    ux.shortcut_assignments[BLU2USB_MOD_COMBO_LEFT] = 4u;
+    project_with_marker(&ux, &frame, 2);
+    assert(frame.cells[1][0].character == ' '); /* Label unchanged. */
+    assert(frame.cells[2][0].character == '|');
+    assert(frame.cells[2][0].tone == BLU2USB_UI_TONE_SELECTED_CURRENT);
+    assert(frame.cells[2][1].tone == BLU2USB_UI_TONE_SELECTED_CURRENT);
 }
 
 int main(void)
