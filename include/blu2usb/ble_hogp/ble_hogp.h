@@ -148,6 +148,8 @@ void blu2usb_ble_hogp_pico_set_legacy_profiles(
     const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE]);
 bool blu2usb_ble_hogp_pico_current_profile(
     uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE]);
+bool blu2usb_ble_hogp_pico_saved_profile(
+    int logical_bond, uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE]);
 bool blu2usb_ble_hogp_pico_set_current_profile(
     const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE]);
 /* Identity-based movement settings are separate from button profiles. */
