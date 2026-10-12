@@ -600,8 +600,8 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         project_movement_current_choice(ux, frame);
 
     if (blu2usb_ux_is_shortcuts_screen(ux->screen)) {
-        /* Current saved action (if present on this page) is cyan, unless
-         * highlighted by selection (which is always white). */
+        /* Saved action is normal cyan without focus and pastel cyan with
+         * focus; unassigned options remain gray/white. */
         const uint8_t assigned = ux->shortcut_assignments[ux->editing_combination];
         const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_SHORTCUTS_1);
         if (assigned > 0u && (assigned - 1u) / BLU2USB_SHORTCUTS_PER_PAGE == page)
