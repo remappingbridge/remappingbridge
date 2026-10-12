@@ -8,6 +8,7 @@
 #include "blu2usb/bt_runtime/bt_runtime.h"
 #include "blu2usb/domain/hid.h"
 #include "blu2usb/movement/movement.h"
+#include "blu2usb/profiles/profiles.h"
 
 #define BLU2USB_BLE_HOGP_MAX_FIELDS 48u
 #define BLU2USB_BLE_HOGP_MAX_REPORTS 16u
@@ -141,7 +142,15 @@ void blu2usb_ble_hogp_pico_cancel_saved_search(void);
 void blu2usb_ble_hogp_pico_request_pair_new(void);
 void blu2usb_ble_hogp_pico_cancel_pair_new(void);
 void blu2usb_ble_hogp_pico_request_remove_saved_mouse(int logical_bond);
-/* Identity-based movement settings are separate from global button profiles. */
+/* MNT-10: bond-scoped profile data. Legacy flash is read only for initial
+ * migration of bonds already saved when this firmware is first booted. */
+void blu2usb_ble_hogp_pico_set_legacy_profiles(
+    const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE]);
+bool blu2usb_ble_hogp_pico_current_profile(
+    uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE]);
+bool blu2usb_ble_hogp_pico_set_current_profile(
+    const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE]);
+/* Identity-based movement settings are separate from button profiles. */
 blu2usb_movement_settings_t blu2usb_ble_hogp_pico_saved_movement(int logical_bond);
 bool blu2usb_ble_hogp_pico_set_current_movement(blu2usb_movement_settings_t settings);
 
