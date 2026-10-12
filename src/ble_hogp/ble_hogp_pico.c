@@ -740,12 +740,19 @@ bool blu2usb_ble_hogp_pico_set_current_movement(blu2usb_movement_settings_t sett
 static bool movements_remove_identity(bd_addr_type_t type, const bd_addr_t addr, const sm_key_t irk)
 {
     movements_load();
-    const int idx = movements_find(type, addr, irk);
-    if (idx < 0) return true;
-    const ble_hogp_saved_movement_t prior = g_movements[idx];
-    memset(&g_movements[idx], 0, sizeof(g_movements[idx]));
-    if (movements_store()) return true;
-    g_movements[idx] = prior;
+    ble_hogp_saved_movement_t snapshot[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+    memcpy(snapshot, g_movements, sizeof(snapshot));
+    bool changed = false;
+    for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
+        if (!g_movements[i].used ||
+            !bond_identity_equal(g_movements[i].address_type,
+                g_movements[i].address, g_movements[i].irk,
+                type, addr, irk)) continue;
+        memset(&g_movements[i], 0, sizeof(g_movements[i]));
+        changed = true;
+    }
+    if (!changed || movements_store()) return true;
+    memcpy(g_movements, snapshot, sizeof(snapshot));
     return false;
 }
 
