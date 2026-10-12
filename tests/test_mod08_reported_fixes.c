@@ -48,7 +48,7 @@ static void check_catalog(void)
     assert(blu2usb_keyboard_shortcut_lookup(15,&k));
     assert(k.key_usage==0x46u && k.modifier_mask==0x0au); /* Meta Shift Print */
     assert(blu2usb_keyboard_shortcut_lookup(26,&k));
-    assert(k.key_usage==0x2eu && k.modifier_mask==0x03u); /* Ctrl Shift '=' */
+    assert(k.key_usage==0x2eu && k.modifier_mask==0x01u); /* Ctrl '=' (no Shift) */
     assert(blu2usb_keyboard_shortcut_lookup(27,&k));
     assert(k.key_usage==0x2du && k.modifier_mask==0x01u); /* Ctrl '-' */
     assert(blu2usb_keyboard_shortcut_lookup(28,&k));
