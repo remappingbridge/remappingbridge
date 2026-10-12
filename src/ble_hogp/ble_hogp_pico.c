@@ -2176,6 +2176,22 @@ bool blu2usb_ble_hogp_pico_current_profile(
     return true;
 }
 
+bool blu2usb_ble_hogp_pico_saved_profile(
+    int logical_bond, uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    if (payload == NULL || !profiles_load() || !g_profiles_have_registry)
+        return false;
+    const int bond = bond_slot_for_ordinal(logical_bond);
+    bd_addr_type_t type;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(bond, &type, address, irk)) return false;
+    const int idx = profiles_find(type, address, irk);
+    if (idx < 0) return false;
+    memcpy(payload, g_profiles[idx].profile, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+    return true;
+}
+
 bool blu2usb_ble_hogp_pico_set_current_profile(
     const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
 {
