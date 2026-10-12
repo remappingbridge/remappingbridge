@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 #include "blu2usb/renderer/renderer.h"
 #include "blu2usb/ux_model/ux_model.h"
 
@@ -28,6 +29,7 @@ static void check_names(const char *ble_name, const char *want)
     blu2usb_ui_project(&ux,&f);
     blu2usb_ui_enforce_applied_visual_contract(&ux,&f);
     row_text(&f,0u,rendered);
+    if (strcmp(rendered,want)!=0) fprintf(stderr,"BLE=%s got='%s' expected='%s'\\n",ble_name?ble_name:"(null)",rendered,want);
     assert(strcmp(rendered,want)==0);
     assert(strlen(rendered)<=BLU2USB_RENDERER_TEXT_COLS);
     assert(f.cells[0][0].tone==BLU2USB_UI_TONE_TITLE);
