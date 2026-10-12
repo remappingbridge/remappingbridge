@@ -105,12 +105,6 @@ static bool home_renderer_supported(unsigned char value)
     return strchr(" -:.=/\\><?!,()", (int)value) != NULL;
 }
 
-static bool home_word_char(unsigned char value)
-{
-    return (value >= 'A' && value <= 'Z') ||
-           (value >= '0' && value <= '9') || value == '_';
-}
-
 static void home_title(const char *input,
                        char out[BLU2USB_RENDERER_TEXT_COLS + 1u])
 {
@@ -132,10 +126,9 @@ static void home_title(const char *input,
     upper[original_length] = '\0';
 
     for (size_t i = 0u; i + 5u <= original_length; ++i) {
-        if (memcmp(upper + i, "MOUSE", 5u) == 0 &&
-            (i == 0u || !home_word_char((unsigned char)upper[i - 1u])) &&
-            (i + 5u == original_length ||
-             !home_word_char((unsigned char)upper[i + 5u]))) {
+        /* MNT-11: any occurrence (also 0MOUSE2/MOUSEPAD) counts.
+         * The scan happens on the full normalized input before LCD clipping. */
+        if (memcmp(upper + i, "MOUSE", 5u) == 0) {
             contains_mouse = true;
             break;
         }
