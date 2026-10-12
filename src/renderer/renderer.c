@@ -268,7 +268,10 @@ static void project_saved_devices(const blu2usb_ux_model_t *ux,
                    ux->saved_device_count);
     home_title(saved_name, name);
     (void)snprintf(profile, sizeof(profile), "PROFILE: %s",
-                   saved_profile_name(ux->active_profile));
+                   saved_profile_name(bond >= 0 &&
+                       (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE
+                           ? ux->saved_profile_kinds[bond]
+                           : BLU2USB_MOUSE_PROFILE_PASSTHROUGH));
     (void)snprintf(dpi, sizeof(dpi), "DPI: H %s - V %s", h, v);
     (void)snprintf(rot, sizeof(rot), "ROTATION: %u DEGREE",
                    (unsigned)settings.rotation_quadrants * 90u);
