@@ -442,7 +442,7 @@ static void saved_names_remember_bond(int bond_index, const char *name)
     (void)saved_names_store();
 }
 
-static void saved_names_remove_identity(bd_addr_type_t address_type,
+static bool saved_names_remove_identity(bd_addr_type_t address_type,
                                         const bd_addr_t address,
                                         const sm_key_t irk)
 {
