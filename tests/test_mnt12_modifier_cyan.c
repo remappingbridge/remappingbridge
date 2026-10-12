@@ -197,7 +197,9 @@ static void test_combinations_truth_and_focus(void)
     ux.editing_combination = BLU2USB_MOD_COMBO_RIGHT;
     ux.selection = 0u;
     project(&ux, &frame);
-    check_row(&frame, 1u, BLU2USB_UI_TONE_ACTIONABLE); /* unrelated list unchanged */
+    check_row(&frame, 1u, BLU2USB_UI_TONE_EMPHASIZED); /* focused, not saved */
+    check_row(&frame, 2u, BLU2USB_UI_TONE_ACTIONABLE); /* unrelated list unchanged */
+    check_row(&frame, 4u, BLU2USB_UI_TONE_CURRENT); /* PASTE is assigned */
 }
 
 int main(void)
