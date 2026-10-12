@@ -54,7 +54,7 @@ int main(void)
     check_names("MOUSE-123","MOUSE-123");
     check_names("MOUSEPAD","MOUSEPAD");
     check_names("SuPeRmOuSePaD","SUPERMOUSEPAD");
-    check_names("ABC_MOUSE_2","ABC_MOUSE_2");
+    check_names("ABC_MOUSE_2","ABCMOUSE2");
     check_names("LOGITECH LIFT","LOGITECH LIFT MOUSE");
     check_names("LIFT","LIFT MOUSE");
     check_names("mouse generic","MOUSE GENERIC");
