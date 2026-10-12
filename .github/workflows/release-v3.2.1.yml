@@ -1,0 +1,115 @@
+name: Publish RemappingBridge v3.2.1 (MNT-11)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release-v3:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@v4
+
+      - name: Check existing release
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view v3.2.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify v3.2.1 source version
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fx 'project(blu2usb_picow VERSION 3.2.1 LANGUAGES C CXX ASM)' CMakeLists.txt
+          grep -F 'BLU2USB_VERSION_STRING="3.2.1"' CMakeLists.txt
+          grep -F 'strcmp(blu2usb_version(), "3.2.1")' tests/test_bootstrap.c
+          test -s docs/releases/v3.2.1.md
+
+      - name: Configure host test build
+        if: steps.existing.outputs.exists != 'true'
+        run: >-
+          cmake -S . -B build-host
+          -DBLU2USB_BUILD_PICO=OFF
+          -DBLU2USB_BUILD_TESTS=ON
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build host regression tests
+        if: steps.existing.outputs.exists != 'true'
+        run: cmake --build build-host --parallel
+
+      - name: Run all host regression tests
+        if: steps.existing.outputs.exists != 'true'
+        run: ctest --test-dir build-host --output-on-failure
+
+      - name: Install pinned ARM toolchain
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ci/toolchain.env
+          sudo apt-get update
+          sudo apt-get install -y \
+            "gcc-arm-none-eabi=${ARM_GCC_PACKAGE_VERSION}" \
+            libnewlib-arm-none-eabi \
+            libstdc++-arm-none-eabi-newlib
+          test "$(dpkg-query -W -f='${Version}' gcc-arm-none-eabi)" = "${ARM_GCC_PACKAGE_VERSION}"
+          arm-none-eabi-gcc --version | head -n 1
+
+      - name: Fetch pinned Pico SDK
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ci/toolchain.env
+          git clone --depth 1 --branch "${PICO_SDK_VERSION}" \
+            https://github.com/raspberrypi/pico-sdk.git "${RUNNER_TEMP}/pico-sdk"
+          git -C "${RUNNER_TEMP}/pico-sdk" submodule update --init --depth 1
+          test "$(git -C "${RUNNER_TEMP}/pico-sdk" describe --tags --exact-match)" = "${PICO_SDK_VERSION}"
+
+      - name: Build Pico 2 W production release
+        if: steps.existing.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PICO_SDK_PATH="${RUNNER_TEMP}/pico-sdk"
+          cmake -S . -B build-pico \
+            -DBLU2USB_BUILD_PICO=ON \
+            -DBLU2USB_BUILD_TESTS=OFF \
+            -DPICO_BOARD=pico2_w \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-pico --parallel
+          test -s build-pico/blu2usb_picow.uf2
+          test ! -e build-pico/blu2usb_picow_debug.uf2
+          mkdir -p dist
+          cp build-pico/blu2usb_picow.uf2 dist/remappingbridge-v3.2.1-pico2w.uf2
+          cd dist
+          sha256sum remappingbridge-v3.2.1-pico2w.uf2 | tee SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+
+      - name: Publish immutable GitHub release v3.2.1
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create v3.2.1 \
+            dist/remappingbridge-v3.2.1-pico2w.uf2 \
+            dist/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "RemappingBridge 3.0" \
+            --notes-file docs/releases/v3.2.1.md
