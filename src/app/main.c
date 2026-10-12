@@ -377,7 +377,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
                                  blu2usb_hid_aggregator_t *aggregator,
                                  blu2usb_modifier_shortcuts_t *shortcuts,
                                  blu2usb_movement_pipeline_t *motion,
-                                 const blu2usb_remap_t *remap,
+                                 blu2usb_profiles_t *profiles,
+                                 blu2usb_remap_t *remap,
                                  bool *mouse_valid,
                                  bool *keyboard_valid)
 {
