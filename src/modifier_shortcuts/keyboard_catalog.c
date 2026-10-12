@@ -40,7 +40,7 @@ static const blu2usb_keyboard_shortcut_t k_keyboard[31] = {
     [17] = {KEY_F, MOD_CTRL},        /* FIND */
     [18] = {KEY_S, MOD_CTRL},        /* SAVE */
     /* 19..24: Consumer Media/Volume; intentionally NOT keyboard. */
-    [26] = {KEY_EQUAL, MOD_CTRL | MOD_SHIFT}, /* ZOOM IN (browser/application) */
+    [26] = {KEY_EQUAL, MOD_CTRL},       /* ZOOM IN = Ctrl+Equal (layout/host dependent) */
     [27] = {KEY_MINUS, MOD_CTRL},/* ZOOM OUT */
     [28] = {KEY_0, MOD_CTRL},       /* RESET ZOOM */
     /* 29..30: Consumer Brightness; intentionally NOT keyboard. */
