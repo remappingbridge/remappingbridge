@@ -4,7 +4,7 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 
 ## Versão estável
 
-**RemappingBridge 3.2.0** — MNT-10 aceito fisicamente: remoção por SAVED DEVICES limpa registros ativos do mouse excluído, incluindo perfil, remap, Modifier, atalhos, Movement e vínculo BLE; ao parear novamente, ele inicia nos padrões. Perfis agora são persistidos por identidade de mouse, com migração do formato global anterior.
+**RemappingBridge 3.2.1** — MNT-11 aceito: quando o nome BLE já contém a sequência MOUSE em qualquer posição (sem diferença de maiúsculas), a UI não duplica o sufixo. HOME e Saved Devices compartilham o mesmo normalizador; perfis e limpeza por mouse da v3.2.0 permanecem inalterados.
 
 ### Modifier Shortcuts
 - Dois perfis: **PASSTHROUGH** e **CUSTOM**. As opções antigas STANDARD REMAP e ESCAPE REMAP foram removidas da UI.

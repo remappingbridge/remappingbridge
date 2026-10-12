@@ -570,3 +570,10 @@ add_executable(blu2usb_test_mnt10_saved_profile_labels test_mnt10_saved_profile_
 target_link_libraries(blu2usb_test_mnt10_saved_profile_labels PRIVATE blu2usb_renderer blu2usb_ux_model)
 target_compile_options(blu2usb_test_mnt10_saved_profile_labels PRIVATE -UNDEBUG)
 add_test(NAME mnt10_saved_devices_own_profile_by_bond COMMAND blu2usb_test_mnt10_saved_profile_labels)
+
+# MNT-11: one BLE name normalizer for HOME and SAVED DEVICES,
+# "MOUSE" anywhere in source prevents suffix even before LCD truncation.
+add_executable(blu2usb_test_mnt11_mouse_substring test_mnt11_mouse_substring.c)
+target_link_libraries(blu2usb_test_mnt11_mouse_substring PRIVATE blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt11_mouse_substring PRIVATE -UNDEBUG)
+add_test(NAME mnt11_mouse_substring_home_and_saved COMMAND blu2usb_test_mnt11_mouse_substring)
