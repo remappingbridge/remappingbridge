@@ -14,8 +14,8 @@ static void check(blu2usb_ui_frame_t *f,unsigned row,unsigned col,
 int main(void) {
     blu2usb_ux_model_t ux; blu2usb_ui_frame_t f;
     blu2usb_ux_set_mouse_connected(true); blu2usb_ux_init(&ux);
-    assert(blu2usb_renderer_tone_rgb565(BLU2USB_UI_TONE_CURRENT)==0xd7ffu);
-    assert(blu2usb_renderer_tone_rgb565(BLU2USB_UI_TONE_SELECTED_CURRENT)==0x07ffu);
+    assert(blu2usb_renderer_tone_rgb565(BLU2USB_UI_TONE_CURRENT)==0x07ffu);
+    assert(blu2usb_renderer_tone_rgb565(BLU2USB_UI_TONE_SELECTED_CURRENT)==0xd7ffu);
     assert(blu2usb_ui_tone_on_focus(BLU2USB_UI_TONE_CURRENT)==BLU2USB_UI_TONE_SELECTED_CURRENT);
     assert(blu2usb_ui_tone_on_focus(BLU2USB_UI_TONE_ACTIONABLE)==BLU2USB_UI_TONE_EMPHASIZED);
     ux.screen=BLU2USB_SCREEN_MOVEMENT_OPTIONS;
