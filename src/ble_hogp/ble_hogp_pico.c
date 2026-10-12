@@ -750,6 +750,13 @@ static void complete_remove_target(void)
 {
     if (!g_remove_target_valid) return;
 
+    /* Delete identity-scoped profile first; never ack if flash refused. */
+    if (!profiles_remove_identity(g_remove_target_type,
+                                  g_remove_target_address, g_remove_target_irk)) {
+        g_remove_target_valid = false;
+        (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
+        return;
+    }
     /* Do not delete credentials if clearing the identity's preferences fails.
      * The operator can retry removal without settings leaking to a future bond. */
     if (!movements_remove_identity(g_remove_target_type, g_remove_target_address,
@@ -1681,7 +1688,8 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
         if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING &&
             g_state == BLE_HOGP_STATE_WAITING_FOR_STACK) {
             saved_names_load();
-            reconnect_or_scan();
+            /* Seed the registry before any new pairing can create a bond. */
+            if (profiles_seed_legacy()) reconnect_or_scan();
         }
         break;
 
@@ -2003,6 +2011,10 @@ static void ble_hogp_session_setup(void)
     g_saved_names_loaded = false;
     memset(g_movements, 0, sizeof(g_movements));
     g_movements_loaded = false;
+    memset(g_profiles, 0, sizeof(g_profiles));
+    g_profiles_loaded = false;
+    g_profiles_have_registry = false;
+    g_profiles_corrupt = false;
     memset(g_remote_address, 0, sizeof(g_remote_address));
     g_remote_address_type = BD_ADDR_TYPE_UNKNOWN;
     g_rejected_next = 0u;
@@ -2120,6 +2132,66 @@ void blu2usb_ble_hogp_pico_request_pair_new(void)
 void blu2usb_ble_hogp_pico_cancel_pair_new(void)
 {
     atomic_store_explicit(&g_pair_new_cancel, true, memory_order_release);
+}
+
+void blu2usb_ble_hogp_pico_set_legacy_profiles(
+    const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    g_legacy_profile_valid = false;
+    if (payload == NULL) return;
+    blu2usb_profiles_t decoded;
+    if (!blu2usb_profiles_restore_any(&decoded, payload,
+            BLU2USB_PROFILE_V3_SERIALIZED_SIZE, NULL)) return;
+    memcpy(g_legacy_profile, payload, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+    g_legacy_profile_valid = true;
+}
+
+bool blu2usb_ble_hogp_pico_current_profile(
+    uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    if (payload == NULL || !profiles_load() || !g_profiles_have_registry)
+        return false;
+    const int bond = resolve_current_bond_index();
+    bd_addr_type_t type;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(bond, &type, address, irk)) return false;
+    const int idx = profiles_find(type, address, irk);
+    if (idx < 0) return false; /* Newly paired: app must use defaults. */
+    memcpy(payload, g_profiles[idx].profile, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+    return true;
+}
+
+bool blu2usb_ble_hogp_pico_set_current_profile(
+    const uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE])
+{
+    if (payload == NULL || !profiles_load() || !g_profiles_have_registry)
+        return false;
+    blu2usb_profiles_t check;
+    if (!blu2usb_profiles_restore_any(&check, payload,
+            BLU2USB_PROFILE_V3_SERIALIZED_SIZE, NULL)) return false;
+    const int bond = resolve_current_bond_index();
+    bd_addr_type_t type;
+    bd_addr_t address;
+    sm_key_t irk;
+    if (!saved_identity_for_bond(bond, &type, address, irk)) return false;
+    int idx = profiles_find(type, address, irk);
+    if (idx < 0) {
+        for (unsigned i = 0u; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i)
+            if (!g_profiles[i].used) { idx = (int)i; break; }
+    }
+    if (idx < 0) return false;
+    const ble_hogp_saved_profile_t previous = g_profiles[idx];
+    ble_hogp_saved_profile_t *entry = &g_profiles[idx];
+    memset(entry, 0, sizeof(*entry));
+    entry->used = true;
+    entry->address_type = type;
+    memcpy(entry->address, address, 6u);
+    memcpy(entry->irk, irk, 16u);
+    memcpy(entry->profile, payload, BLU2USB_PROFILE_V3_SERIALIZED_SIZE);
+    if (profiles_store()) return true;
+    g_profiles[idx] = previous;
+    return false;
 }
 
 void blu2usb_ble_hogp_pico_request_remove_saved_mouse(int logical_bond)
