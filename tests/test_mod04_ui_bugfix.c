@@ -85,7 +85,7 @@ static void test_modifier_summary_all_five_sources(void)
         for (const char *p=" IS MODIFIER";*p;++p) expected[n++]=*p;
         expected[n]='\0';
         expected_text(&frame,src+1u,expected);
-        assert(frame.cells[src+1u][0].tone==BLU2USB_UI_TONE_SELECTED_CURRENT);
+        assert(frame.cells[src+1u][0].tone==BLU2USB_UI_TONE_EMPHASIZED); /* Draft is not the currently applied value. */
     }
 }
 
