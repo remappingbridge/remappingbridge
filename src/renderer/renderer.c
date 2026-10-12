@@ -595,6 +595,21 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
          * the normal actionable gray, while both selected rows are white. */
         for (uint8_t row = 1u; row <= 4u; ++row)
             set_row_tone(frame, row, BLU2USB_UI_TONE_ACTIONABLE);
+
+        /* MNT-12: only assigned, available VALUE rows use cyan. Do this
+         * before focus so the selected value becomes pastel cyan, while
+         * label rows stay gray/white and UNAVAILABLE keeps its old tone. */
+        if (blu2usb_ux_modifier_shortcuts_active(ux)) {
+            const unsigned page =
+                (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
+            for (unsigned pair = 0u; pair < BLU2USB_COMBINATIONS_PER_PAGE; ++pair) {
+                const unsigned combo = page * BLU2USB_COMBINATIONS_PER_PAGE + pair;
+                if (ux->shortcut_assignments[combo] != 0u &&
+                    !blu2usb_ux_combination_unavailable(ux, combo))
+                    set_row_tone(frame, (uint8_t)(2u + 2u * pair),
+                                 BLU2USB_UI_TONE_CURRENT);
+            }
+        }
     }
 
     const int selected = selected_row(ux);
