@@ -1,29 +1,30 @@
-# MOD-01 — Remapping Options (candidato de teste físico)
+# MOD-01 — Remapping Options (physical test candidate)
 
-Baseline: tag imutável `v2.0.0`. Branch de gate: `feature/modifier-shortcuts-mod01`.
-Planejamento: https://github.com/remappingbridge/planner/tree/main/modifier-shortcuts
+Baseline: immutable tag `v2.0.0`. Gate branch: `feature/modifier-shortcuts-mod01`. Planning: https://github.com/remappingbridge/planner/tree/main/modifier-shortcuts
 
-## Escopo efetivo
+## Implemented scope
 
-- Menu Remapping Options com **PASSTHROUGH DEFAULT**, **CUSTOM REMAPPING**, **MODIFIER SHORTCUTS**.
-- `JOY UP/DOWN` seleciona uma das três opções, `JOY PRESS` acessa as rotas disponíveis, `KEY B` volta para Home, `KEY X` exibe Help com os nomes novos.
-- A rota Custom está na segunda linha. A terceira linha é reconhecida, mas seu `JOY PRESS` é **intencionalmente no-op até MOD-02**, que criará COMBINATIONS 1 OF 6; nenhuma tela provisória é adicionada.
-- Somente Passthrough e Custom aparecem no resumo da HOME e em PROFILE de Saved Devices. Uma configuração v2 com perfil Standard/Escape ativo é lida, mas **normalizada para PASSTHROUGH somente em RAM** durante a inicialização. Este gate não atualiza o schema v2, não altera bonds e não escreve flash nessa transição. A migração persistente formal pertence ao MOD-03.
-- **As quatro antigas telas** de confirmação Standard/Escape (APPLY + APPLIED) e seus comandos UX foram removidos do código e do inventário de telas neste MOD-01: 38 → **34 telas de runtime**. O destino `ESCAPE` do editor Custom WILL BECOME e os valores serializados de perfil legado são **mantidos temporariamente** para proteger a migração v2→v3, sendo substituídos no MOD-04/MOD-03 respectivamente.
-- USB HID, BLE, Movement, cores Saved Devices e formato persistente da v2 mantidos neste gate.
+- The Remapping Options menu contains **PASSTHROUGH DEFAULT**, **CUSTOM REMAPPING**, and **MODIFIER SHORTCUTS**.
+- `JOY UP/DOWN` moves among these three options, `JOY PRESS` accesses supported routes, `KEY B` returns to Home, and `KEY X` opens Help with the updated names.
+- Custom is in the second row. The third row is recognized, but pressing it is **intentionally a no-op until MOD-02**, which introduces COMBINATIONS 1 OF 6; no provisional screen is added.
+- Only Passthrough and Custom appear in the HOME summary and Saved Devices PROFILE. A v2 setting with an active Standard/Escape profile can still be read, but is **normalized to PASSTHROUGH in RAM only** at startup. This gate neither updates the v2 schema nor changes bonds or writes flash during that transition. Persistent migration belongs to MOD-03.
+- **Four former Standard/Escape confirmation screens** (APPLY and APPLIED) and their UX commands were removed from the source and screen inventory in MOD-01: **38 → 34 runtime screens**. The Custom WILL BECOME `ESCAPE` target and serialized legacy profile IDs remain temporarily available to protect v2→v3 migration; MOD-04 and MOD-03 respectively replace them.
+- USB HID, BLE, Movement, Saved Devices colors, and the v2 persistence format remain unchanged in this gate.
 
-## Teste físico (operador)
-1. Atualize com o `.uf2` gerado pela CI desse commit **sem apagar flash e sem flash_nuke**. Conecte o mouse salvo até entrar em `home-connected`.
-2. Com a primeira linha `NO REMAP PASSTHROUGH` selecionada, pressione e solte `JOY PRESS`. Confira exatamente as três opções, nesta ordem. STANDARD/ESCAPE não podem estar presentes.
-3. No menu, `JOY UP` na primeira opção deve selecionar a terceira; `JOY DOWN` volta à primeira. Confira seleção branca e Passthrough atual em ciano.
-4. `JOY PRESS` em PASSTHROUGH DEFAULT abre a confirmação/estado já aplicado; `KEY B` retorna às três opções.
-5. Selecione CUSTOM REMAPPING, pressione `JOY PRESS`; confira o editor Custom normal. Sem trocar atribuições, `KEY B` deve voltar às três opções. Se Custom já estava ativo, seu nome aparece ciano no menu.
-6. Selecione MODIFIER SHORTCUTS, pressione `JOY PRESS`; neste MOD-01 o menu deve **permanecer na mesma tela/posição**, sem entrar numa tela de Standard/Escape e sem produzir atalhos. O acesso a COMBINATIONS é do MOD-02.
-7. Com a terceira selecionada, `KEY X` abre `REMAPPING OPTIONS HELP`, que menciona Passthrough Default, Custom Remapping e Modifier Shortcuts; qualquer tecla volta à mesma opção.
-8. `KEY Y` bloqueia a tela (backlight desligado); um `JOY PRESS` libera o lock, **sem acionar** a opção. Retorne à Home com `KEY B`.
-9. Navegue a SAVED DEVICES e confirme que PROFILE exibe PASSTHROUGH ou CUSTOM, nunca STANDARD/ESCAPE; apenas o nome do mouse conectado fica ciano. Os valores atuais DPI H/V e ROTATION devem permanecer.
-10. Movimente o ponteiro, role e clique; valide rotação e ganhos H/V já configurados. Desconecte e reconecte o mouse; repita a abertura do menu. O mouse salvo deve manter bond/nome/Movement.
+## Operator physical test procedure
 
-## Não são aceites deste gate
-- Telas COMBINATIONS e SHORTCUTS, atribuição/persistência de shortcut, botão MODIFIER, gestos, mídia e alterações de descriptor HID.
-- `v2.0.0` e `main` não são modificados por esta branch; pull request permanece em draft até aceite.
+1. Update with the `.uf2` built by CI for this commit **without erasing flash or using `flash_nuke`**. Connect a saved mouse until `home-connected` appears.
+2. With `NO REMAP PASSTHROUGH` selected in the first row, press and release `JOY PRESS`. Verify exactly three options in the specified order, without STANDARD/ESCAPE.
+3. In the menu, `JOY UP` at the first option wraps to the third; `JOY DOWN` returns to the first. Verify white selection and cyan for the active Passthrough profile.
+4. `JOY PRESS` on PASSTHROUGH DEFAULT opens its confirmation/already-applied state; `KEY B` returns to the three options.
+5. Select CUSTOM REMAPPING and press `JOY PRESS`; verify the usual Custom editor. Without changing an assignment, `KEY B` returns to the three options. If Custom is active, its name appears cyan.
+6. Select MODIFIER SHORTCUTS and press `JOY PRESS`; in MOD-01 the menu must **remain on the same screen and focused option**, without opening Standard/Escape or triggering shortcuts. COMBINATIONS is introduced in MOD-02.
+7. With the third option focused, `KEY X` opens REMAPPING OPTIONS HELP describing Passthrough Default, Custom Remapping, and Modifier Shortcuts; any key returns to the same menu option in this historical version.
+8. `KEY Y` locks the LCD (backlight off); a `JOY PRESS` unlocks **without activating** the selected option. Return Home with `KEY B`.
+9. Open SAVED DEVICES and confirm PROFILE shows PASSTHROUGH or CUSTOM, never STANDARD/ESCAPE; only the connected mouse name is cyan. Previously configured H/V DPI and ROTATION values remain.
+10. Move the pointer, scroll, and click; validate the configured rotation and H/V gains. Disconnect and reconnect the mouse, then revisit the menu. The saved mouse must retain its bond, name, and Movement.
+
+## Not accepted or implemented in this gate
+
+- COMBINATIONS and SHORTCUTS pages, shortcut assignments/persistence, the MODIFIER button, gestures, media actions, and HID descriptor changes.
+- The `v2.0.0` tag and `main` are not modified by this historical candidate branch; the PR remains draft until acceptance.

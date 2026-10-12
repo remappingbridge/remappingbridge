@@ -1,0 +1,56 @@
+name: Keep published release notes in English
+
+# Documentation-only update: never builds, rewrites, or uploads UF2 assets.
+# Existing release tags, signatures, binaries and SHA256SUMS stay unchanged.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/releases/**"
+      - ".github/workflows/release-notes-english.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-release-descriptions:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out current English release documentation
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check English public documentation
+        run: python3 scripts/check_public_english.py
+
+      - name: Update all existing GitHub Release descriptions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mapfile -t tags < <(gh release list --limit 100 --json tagName --jq '.[].tagName')
+          if [ "${#tags[@]}" -eq 0 ]; then
+            echo "::error::No published releases found; nothing to synchronize."
+            exit 1
+          fi
+          for tag in "${tags[@]}"; do
+            if ! [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Unexpected release tag: ${tag}"
+              exit 1
+            fi
+            file="docs/releases/${tag}.md"
+            if [ ! -s "${file}" ]; then
+              echo "::error::English release notes missing for ${tag}: ${file}"
+              exit 1
+            fi
+            # gh release edit modifies only the title/body. No upload,
+            # delete, tag/target, or asset/checksum operations are performed.
+            gh release edit "${tag}" --title "RemappingBridge ${tag}" --notes-file "${file}"
+            echo "Updated English description: ${tag}"
+          done
+          echo "Updated ${#tags[@]} release descriptions; assets unchanged."
