@@ -394,6 +394,25 @@ static void project_remove_this(const blu2usb_ux_model_t *ux,
         current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC);
 }
 
+blu2usb_ui_tone_t blu2usb_ui_tone_on_focus(blu2usb_ui_tone_t normal)
+{
+    return normal == BLU2USB_UI_TONE_CURRENT
+        ? BLU2USB_UI_TONE_SELECTED_CURRENT
+        : BLU2USB_UI_TONE_EMPHASIZED;
+}
+
+/* Only selection changes the CURRENT role. Informational cyan, pressed-key
+ * hints and connected saved-mouse names retain their ordinary colors. */
+static void focus_row(blu2usb_ui_frame_t *frame, uint8_t row)
+{
+    if (frame == NULL || row >= BLU2USB_RENDERER_TEXT_ROWS) return;
+    for (uint8_t col = 0u; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
+        if (frame->cells[row][col].character == ' ') continue;
+        frame->cells[row][col].tone =
+            blu2usb_ui_tone_on_focus(frame->cells[row][col].tone);
+    }
+}
+
 static void emphasize_row(blu2usb_ui_frame_t *frame, uint8_t row)
 {
     set_row_tone(frame, row, BLU2USB_UI_TONE_EMPHASIZED);
@@ -599,11 +618,11 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
 
     const int selected = selected_row(ux);
     if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && ux->selection == 2u)
-        emphasize_row(frame, 3u);
-    if (selected >= 0 && selected < (int)BLU2USB_RENDERER_TEXT_ROWS) emphasize_row(frame,(uint8_t)selected);
+        focus_row(frame, 3u);
+    if (selected >= 0 && selected < (int)BLU2USB_RENDERER_TEXT_ROWS) focus_row(frame,(uint8_t)selected);
     if (blu2usb_ux_is_combinations_screen(ux->screen) &&
         selected >= 1 && selected <= 3)
-        emphasize_row(frame, (uint8_t)(selected + 1)); /* Pair selection. */
+        focus_row(frame, (uint8_t)(selected + 1)); /* Pair selection. */
     if (blu2usb_ux_is_combinations_screen(ux->screen)) {
         /* UNAVAILABLE is a disabled state: its value is never selected
          * white nor applied cyan, including when the pair has focus. */
@@ -665,6 +684,7 @@ uint16_t blu2usb_renderer_tone_rgb565(blu2usb_ui_tone_t tone)
     case BLU2USB_UI_TONE_ACTIONABLE: return BLU2USB_COLOR_LIGHT_GRAY;
     case BLU2USB_UI_TONE_EMPHASIZED: return BLU2USB_COLOR_WHITE;
     case BLU2USB_UI_TONE_CURRENT: return BLU2USB_COLOR_CYAN;
+    case BLU2USB_UI_TONE_SELECTED_CURRENT: return BLU2USB_COLOR_CYAN_FOCUSED;
     default: return BLU2USB_COLOR_LIGHT_GRAY;
     }
 }
