@@ -20,7 +20,8 @@ assert "home_title(ux->current_mouse_name" in renderer
 assert '" REMAPPED TO STANDARD"' not in renderer
 assert '" REMAPPED TO ESCAPE"' not in renderer
 assert "home_profile_summary" not in renderer
-assert '" REMAPPING OPTIONS"' in renderer
+assert '" REMAPPING OPTIONS"' in ux
+assert "home_summary_text" not in renderer
 
 # HOPE-23 removes the cancelled learn-the-keys user-facing route from HOME.
 home_dest = """static const blu2usb_screen_id_t dest[4] = {
