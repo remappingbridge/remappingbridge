@@ -154,6 +154,9 @@ static void synchronize_ux_profiles(blu2usb_ux_model_t *ux,
 {
     if (ux == NULL || profiles == NULL) return;
     ux->active_profile = profiles->active_kind;
+    if (blu2usb_ux_mouse_connected() && ux->saved_connected_bond >= 0)
+        blu2usb_ux_set_saved_profile(ux, (unsigned)ux->saved_connected_bond,
+                                     profiles->active_kind);
     ux->custom_dirty = profiles->draft_valid;
     const blu2usb_mouse_source_t source =
         blu2usb_profiles_modifier_source(profiles->custom_targets);
@@ -309,9 +312,17 @@ static void synchronize_saved_mice(blu2usb_ux_model_t *ux, bool connected)
 
     const unsigned count = blu2usb_ble_hogp_pico_bonded_mouse_count();
     blu2usb_ux_set_saved_device_count(ux, count);
-    for (unsigned i = 0u; i < count; ++i)
+    for (unsigned i = 0u; i < count; ++i) {
         blu2usb_ux_set_saved_movement(
             ux, i, blu2usb_ble_hogp_pico_saved_movement((int)i));
+        uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
+        blu2usb_profiles_t saved;
+        blu2usb_profiles_init(&saved);
+        if (blu2usb_ble_hogp_pico_saved_profile((int)i, payload))
+            (void)blu2usb_profiles_restore_any(&saved, payload,
+                                                 sizeof(payload), NULL);
+        blu2usb_ux_set_saved_profile(ux, i, saved.active_kind);
+    }
 
     for (unsigned bond = 0u;
          bond < count && bond < BLU2USB_UX_MAX_SAVED_MICE;
