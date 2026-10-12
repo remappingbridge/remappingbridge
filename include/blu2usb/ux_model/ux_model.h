@@ -168,6 +168,8 @@ bool blu2usb_ux_is_shortcuts_screen(blu2usb_screen_id_t screen);
 uint8_t blu2usb_ux_selected_shortcut(const blu2usb_ux_model_t *ux);
 const char *blu2usb_ux_shortcut_name(uint8_t shortcut_id);
 bool blu2usb_ux_combination_unavailable(const blu2usb_ux_model_t *ux, unsigned combination_id);
+/* MNT-12: semantic activity of modifier shortcuts, never a draft/color cache. */
+bool blu2usb_ux_modifier_shortcuts_active(const blu2usb_ux_model_t *ux);
 void blu2usb_ux_set_modifier_source(blu2usb_ux_model_t *ux, int source);
 void blu2usb_ux_custom_target_committed(blu2usb_ux_model_t *ux,
     blu2usb_mouse_source_t source,

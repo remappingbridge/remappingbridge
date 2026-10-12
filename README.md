@@ -4,7 +4,7 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 
 ## Versão estável
 
-**RemappingBridge 3.2.1** — MNT-11 aceito: quando o nome BLE já contém a sequência MOUSE em qualquer posição (sem diferença de maiúsculas), a UI não duplica o sufixo. HOME e Saved Devices compartilham o mesmo normalizador; perfis e limpeza por mouse da v3.2.0 permanecem inalterados.
+**RemappingBridge 3.2.2** — MNT-12 aceito fisicamente: com CUSTOM REMAPPING aplicado e botão Modifier efetivo, MODIFIER SHORTCUTS e valores de atalhos atribuídos/disponíveis nas telas COMBINATIONS recebem ciano (0x07FF) ou ciano claro quando selecionados (0xD7FF). PASSTHROUGH, Custom sem Modifier, rótulos, NOT CUSTOMIZED e UNAVAILABLE preservam a paleta existente.
 
 ### Modifier Shortcuts
 - Dois perfis: **PASSTHROUGH** e **CUSTOM**. As opções antigas STANDARD REMAP e ESCAPE REMAP foram removidas da UI.
@@ -19,7 +19,7 @@ Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetoot
 - Reconexão/pareamento BLE, Saved Devices, Logitech Lift HID++, Help/lock, tela 9×21, wheel/pan e identidade USB estável.
 - Na tela **Saved Devices**, o cabeçalho usa magenta padrão, o nome do mouse ativo é o único texto ciano, os dados do mouse permanecem amarelos, **REMOVE DEVICE** é branco quando acionável e as dicas são cinzas.
 
-Firmware/checksums: [Release v3.2.0](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.0). Detalhes: [docs/releases/v3.2.0.md](docs/releases/v3.2.0.md). Histórico: [v3.0.3](docs/releases/v3.0.3.md), [v3.0.2](docs/releases/v3.0.2.md), [v3.0.1](docs/releases/v3.0.1.md) e [v3.0.0](docs/releases/v3.0.0.md).
+Firmware/checksums: [Release v3.2.2](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.2). Detalhes: [docs/releases/v3.2.2.md](docs/releases/v3.2.2.md). Histórico: [v3.0.3](docs/releases/v3.0.3.md), [v3.0.2](docs/releases/v3.0.2.md), [v3.0.1](docs/releases/v3.0.1.md) e [v3.0.0](docs/releases/v3.0.0.md).
 
 ## Compatibilidade de atualização
 

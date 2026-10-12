@@ -577,3 +577,12 @@ add_executable(blu2usb_test_mnt11_mouse_substring test_mnt11_mouse_substring.c)
 target_link_libraries(blu2usb_test_mnt11_mouse_substring PRIVATE blu2usb_renderer blu2usb_ux_model)
 target_compile_options(blu2usb_test_mnt11_mouse_substring PRIVATE -UNDEBUG)
 add_test(NAME mnt11_mouse_substring_home_and_saved COMMAND blu2usb_test_mnt11_mouse_substring)
+
+# MNT-12: conditional applied Custom+Modifier cyan on REMAPPING OPTIONS and
+# assigned/available value rows across all six COMBINATIONS pages.
+add_executable(blu2usb_test_mnt12_modifier_cyan test_mnt12_modifier_cyan.c)
+target_link_libraries(blu2usb_test_mnt12_modifier_cyan PRIVATE
+    blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt12_modifier_cyan PRIVATE -UNDEBUG)
+add_test(NAME mnt12_applied_modifier_shortcuts_and_combinations_cyan
+    COMMAND blu2usb_test_mnt12_modifier_cyan)

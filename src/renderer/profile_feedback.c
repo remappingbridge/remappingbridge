@@ -136,12 +136,19 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
         if (profile_row != 0u)
             set_row_tone(frame, profile_row, BLU2USB_UI_TONE_CURRENT);
 
+        /* MNT-12: cyan means an APPLIED Custom profile has a modifier.
+         * An inactive Custom setting or uncommitted draft is not enough. */
+        const bool modifier_active = blu2usb_ux_modifier_shortcuts_active(ux);
+        if (modifier_active)
+            set_row_tone(frame, 3u, BLU2USB_UI_TONE_CURRENT);
+
         if (ux->selection < 3u) {
             const uint8_t row = (uint8_t)(1u + ux->selection);
             set_row_tone(frame, row,
                          blu2usb_ui_tone_on_focus(
-                             row == profile_row ? BLU2USB_UI_TONE_CURRENT
-                                                : BLU2USB_UI_TONE_ACTIONABLE));
+                             (row == profile_row || (row == 3u && modifier_active))
+                                 ? BLU2USB_UI_TONE_CURRENT
+                                 : BLU2USB_UI_TONE_ACTIONABLE));
         }
     }
 

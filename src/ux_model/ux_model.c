@@ -98,6 +98,14 @@ void blu2usb_ux_set_modifier_source(blu2usb_ux_model_t *ux, int source)
         source < (int)BLU2USB_MOUSE_SOURCE_COUNT ? (int8_t)source : -1;
 }
 
+bool blu2usb_ux_modifier_shortcuts_active(const blu2usb_ux_model_t *ux)
+{
+    return ux != NULL &&
+           ux->active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP &&
+           ux->modifier_source >= 0 &&
+           ux->modifier_source < (int)BLU2USB_MOUSE_SOURCE_COUNT;
+}
+
 bool blu2usb_ux_combination_unavailable(const blu2usb_ux_model_t *ux,
                                          unsigned combination_id)
 {
