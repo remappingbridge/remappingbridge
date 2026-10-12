@@ -546,3 +546,13 @@ add_test(NAME mnt05_all_help_b_back_y_lock COMMAND blu2usb_test_mnt05_help_lock)
 add_test(NAME mnt06_first_mouse_global_lock_hint COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt06_lock_hint.py)
 
 add_test(NAME mnt07_pale_cyan_palette COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt07_pale_cyan.py)
+
+# MNT-08: CURRENT selection uses normal cyan; ordinary options stay gray/white.
+add_executable(blu2usb_test_mnt08_focus_cyan test_mnt08_focus_cyan.c)
+target_link_libraries(blu2usb_test_mnt08_focus_cyan PRIVATE blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt08_focus_cyan PRIVATE -UNDEBUG)
+add_test(NAME mnt08_focused_current_movement_profile COMMAND blu2usb_test_mnt08_focus_cyan)
+add_executable(blu2usb_test_mnt08_focus_cyan_extended test_mnt08_focus_cyan_extended.c)
+target_link_libraries(blu2usb_test_mnt08_focus_cyan_extended PRIVATE blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt08_focus_cyan_extended PRIVATE -UNDEBUG)
+add_test(NAME mnt08_focused_current_remap_shortcuts_saved COMMAND blu2usb_test_mnt08_focus_cyan_extended)
