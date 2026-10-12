@@ -174,7 +174,7 @@ static void service_vendor_output(void);
 static bool publish_status(blu2usb_ble_hogp_message_type_t type);
 static void saved_names_load(void);
 static void saved_names_remember_bond(int bond_index, const char *name);
-static void saved_names_remove_identity(bd_addr_type_t address_type,
+static bool saved_names_remove_identity(bd_addr_type_t address_type,
                                         const bd_addr_t address,
                                         const sm_key_t irk);
 static void dedupe_current_bond(void);
@@ -447,17 +447,20 @@ static void saved_names_remove_identity(bd_addr_type_t address_type,
                                         const sm_key_t irk)
 {
     saved_names_load();
+    ble_hogp_saved_name_t old[BLE_HOGP_SAVED_REGISTRY_CAPACITY];
+    memcpy(old, g_saved_names, sizeof(old));
     bool changed = false;
     for (unsigned index = 0u; index < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++index) {
         ble_hogp_saved_name_t *entry = &g_saved_names[index];
         if (!entry->used) continue;
         if (!bond_identity_equal(entry->address_type, entry->address, entry->irk,
-                                 address_type, address, irk))
-            continue;
+                                 address_type, address, irk)) continue;
         memset(entry, 0, sizeof(*entry));
         changed = true;
     }
-    if (changed) (void)saved_names_store();
+    if (!changed || saved_names_store()) return true;
+    memcpy(g_saved_names, old, sizeof(old));
+    return false;
 }
 
 static void remove_bonds_for_identity(bd_addr_type_t address_type,
@@ -765,9 +768,13 @@ static void complete_remove_target(void)
         (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
         return;
     }
-    saved_names_remove_identity(g_remove_target_type,
-                                g_remove_target_address,
-                                g_remove_target_irk);
+    if (!saved_names_remove_identity(g_remove_target_type,
+                                      g_remove_target_address,
+                                      g_remove_target_irk)) {
+        g_remove_target_valid = false;
+        (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
+        return;
+    }
     remove_bonds_for_identity(g_remove_target_type,
                               g_remove_target_address,
                               g_remove_target_irk);
