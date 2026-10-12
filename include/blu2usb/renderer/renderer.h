@@ -69,6 +69,8 @@ bool blu2usb_ui_frame_set_text(blu2usb_ui_frame_t *frame, uint8_t row, uint8_t c
 bool blu2usb_ui_frame_set_tone_span(blu2usb_ui_frame_t *frame, uint8_t row, uint8_t column, uint8_t length, blu2usb_ui_tone_t tone);
 void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame);
 void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame);
+/* Final visual-only overlay; call after enforce_applied_visual_contract. */
+void blu2usb_ui_apply_selection_marker(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame);
 /* Focus lightens a selectable CURRENT item to pastel cyan; all other
  * selectable items follow the established gray-to-white behavior. */
 blu2usb_ui_tone_t blu2usb_ui_tone_on_focus(blu2usb_ui_tone_t normal);
