@@ -539,7 +539,7 @@ static bool profiles_load(void)
     uint8_t bytes[BLE_HOGP_PROFILE_PAYLOAD_SIZE] = {0};
     const int n = tlv->get_tag(context, BLE_HOGP_PROFILE_TAG,
                                bytes, sizeof(bytes));
-    if (n == 0) {
+    if (n <= 0) {
         g_profiles_loaded = true;
         return true; /* Migration required, even when there are no bonds. */
     }
