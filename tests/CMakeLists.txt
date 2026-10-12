@@ -598,3 +598,16 @@ add_test(NAME mnt13_all_menus_first_column_focus_only
 
 add_test(NAME mnt13_production_frame_overlay_source
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt13_source.py)
+
+# MNT-15: generic Zoom In HID Equal + Left Ctrl (no Shift) while preserving
+# Zoom Out/Reset, Redo/Screenshot Shift chords, USB busy/release semantics.
+add_executable(blu2usb_test_mnt15_zoom_ctrl_equal
+    test_mnt15_zoom_ctrl_equal.c)
+target_link_libraries(blu2usb_test_mnt15_zoom_ctrl_equal PRIVATE
+    blu2usb_modifier_shortcuts blu2usb_hid_aggregator)
+target_compile_options(blu2usb_test_mnt15_zoom_ctrl_equal PRIVATE -UNDEBUG)
+add_test(NAME mnt15_zoom_ctrl_equal_no_shift_and_usb_release
+    COMMAND blu2usb_test_mnt15_zoom_ctrl_equal)
+
+add_test(NAME mnt15_zoom_source_only_action_26_changes
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt15_zoom_source.py)
