@@ -128,7 +128,7 @@ static bool persist_profiles(const blu2usb_profiles_t *profiles)
 {
     uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
     return g_profile_writes_allowed && blu2usb_profiles_serialize_v3(profiles, payload) &&
-           blu2usb_storage_store(payload, sizeof(payload));
+           blu2usb_ble_hogp_pico_set_current_profile(payload);
 }
 
 static bool restore_profiles(blu2usb_profiles_t *profiles)
@@ -142,10 +142,9 @@ static bool restore_profiles(blu2usb_profiles_t *profiles)
         g_profile_writes_allowed = false;
         return false; /* Unknown/corrupt payload is never overwritten. */
     }
-    if (migrate && !persist_profiles(&candidate)) {
-        /* A failed migration leaves existing flash intact and a safe
-         * in-RAM interpretation of v2. Retrying may occur on next boot. */
-    }
+    /* MNT-10: do not re-write global profile flash. Seed only bonds present
+     * when the new bond-scoped registry is first created by the BLE stack. */
+    (void)migrate;
     *profiles = candidate;
     return true;
 }
@@ -345,6 +344,35 @@ static void synchronize_saved_mice(blu2usb_ux_model_t *ux, bool connected)
     }
 }
 
+/* Activate only the current bonded mouse's durable profile. An absent entry
+ * means a genuinely new pairing: defaults, never the retired global value. */
+static void reload_session_profiles(blu2usb_ux_model_t *ux,
+                                    blu2usb_profiles_t *profiles,
+                                    blu2usb_modifier_shortcuts_t *shortcuts,
+                                    blu2usb_remap_t *remap,
+                                    blu2usb_hid_aggregator_t *aggregator,
+                                    bool connected)
+{
+    if (profiles == NULL) return;
+    blu2usb_profiles_t next;
+    blu2usb_profiles_init(&next);
+    uint8_t payload[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
+    if (connected && blu2usb_ble_hogp_pico_current_profile(payload)) {
+        if (!blu2usb_profiles_restore_any(&next, payload, sizeof(payload), NULL))
+            blu2usb_profiles_init(&next);
+    }
+    *profiles = next;
+    blu2usb_mouse_profile_config_t cfg;
+    blu2usb_profiles_configure_active(profiles, &cfg);
+    blu2usb_modifier_shortcuts_cancel(shortcuts, aggregator);
+    blu2usb_modifier_shortcuts_configure(shortcuts, &cfg,
+                                         profiles->shortcuts, aggregator);
+    blu2usb_remap_set_profile(remap, &cfg);
+    blu2usb_logitech_hidpp_pico_set_forward_fix(
+        blu2usb_profiles_requires_forward_held_fix(&cfg));
+    synchronize_ux_profiles(ux, profiles);
+}
+
 static bool service_ble_messages(blu2usb_ux_model_t *ux,
                                  blu2usb_hid_aggregator_t *aggregator,
                                  blu2usb_modifier_shortcuts_t *shortcuts,
@@ -373,6 +401,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             if (ux != NULL)
                 synchronize_saved_mice(ux, true);
+            reload_session_profiles(ux, profiles, shortcuts, remap,
+                                    aggregator, true);
             if (ux != NULL && ux->screen == BLU2USB_SCREEN_SEARCHING_FIRST) {
                 /* First-ever pairing still goes through accepted HOPE-02. */
                 ux->screen = BLU2USB_SCREEN_MOUSE_SAVED;
@@ -414,6 +444,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             }
             if (ux != NULL) {
                 synchronize_saved_mice(ux, false);
+                reload_session_profiles(ux, profiles, shortcuts, remap,
+                                        aggregator, false);
                 if (ux->screen == BLU2USB_SCREEN_HOME &&
                     ux->saved_device_count > 0u) {
                     ux->screen = BLU2USB_SCREEN_HOME_SEARCHING;
@@ -477,6 +509,8 @@ static bool service_ble_messages(blu2usb_ux_model_t *ux,
             blu2usb_ux_set_mouse_connected(true);
             if (ux != NULL) {
                 synchronize_saved_mice(ux, true);
+                reload_session_profiles(ux, profiles, shortcuts, remap,
+                                        aggregator, true);
                 ux->screen = BLU2USB_SCREEN_HOME;
                 ux->selection = 0u;
                 ui_changed = true;
@@ -574,6 +608,10 @@ int main(void)
     blu2usb_modifier_shortcuts_init(&shortcuts);
     blu2usb_profiles_init(&profiles);
     (void)restore_profiles(&profiles);
+    uint8_t legacy[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
+    if (g_profile_writes_allowed &&
+        blu2usb_profiles_serialize_v3(&profiles, legacy))
+        blu2usb_ble_hogp_pico_set_legacy_profiles(legacy);
     /* MOD-03: v2 decoder migrated retired presets and custom ESCAPE to safe
      * values, including verified v3 flash write when available. No BLE or
      * Movement sectors are touched. */
@@ -624,7 +662,8 @@ int main(void)
         blu2usb_modifier_shortcuts_tick(&shortcuts,
                                        to_ms_since_boot(get_absolute_time()));
         const bool ble_ui_changed =
-            service_ble_messages(&ux, &aggregator, &shortcuts, &motion, &remap,
+            service_ble_messages(&ux, &aggregator, &shortcuts, &motion,
+                                 &profiles, &remap,
                                  &last_mouse_valid, &last_keyboard_valid);
         if (ble_ui_changed && !blu2usb_interaction_is_locked(&ux.interaction))
             (void)render_state(&display, &ux);
