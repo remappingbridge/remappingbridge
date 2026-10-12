@@ -46,7 +46,7 @@ assert "service_usb_mouse(&aggregator, &motion, ux.movement_current," in loop
 assert "service_usb_keyboard(&aggregator, &last_keyboard, &last_keyboard_valid)" in loop
 assert "if (ble_ui_changed && !blu2usb_interaction_is_locked(&ux.interaction))" in loop
 
-assert 'BLU2USB_SCREEN_HOME] = {{"UNKNOWN MOUSE"," NO REMAP PASSTHROUGH"," MOVEMENT OPTIONS"," SAVED DEVICES"," PAIR NEW MOUSE"' in ux
+assert 'BLU2USB_SCREEN_HOME] = {{"UNKNOWN MOUSE"," REMAPPING OPTIONS"," MOVEMENT OPTIONS"," SAVED DEVICES"," PAIR NEW MOUSE"' in ux
 assert "case BLU2USB_SCREEN_HOME: return 4;" in ux
 assert "case BLU2USB_SCREEN_HOME_SEARCHING:" in ux
 assert "case BLU2USB_SCREEN_HOME_RETRY: return 2;" in ux
