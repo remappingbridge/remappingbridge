@@ -146,8 +146,9 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
             const uint8_t row = (uint8_t)(1u + ux->selection);
             set_row_tone(frame, row,
                          blu2usb_ui_tone_on_focus(
-                             row == profile_row ? BLU2USB_UI_TONE_CURRENT
-                                                : BLU2USB_UI_TONE_ACTIONABLE));
+                             (row == profile_row || (row == 3u && modifier_active))
+                                 ? BLU2USB_UI_TONE_CURRENT
+                                 : BLU2USB_UI_TONE_ACTIONABLE));
         }
     }
 
