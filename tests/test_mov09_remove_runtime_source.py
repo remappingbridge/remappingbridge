@@ -41,9 +41,10 @@ assert complete.index("saved_names_remove_identity(") < complete.index("remove_b
 assert complete.index("remove_bonds_for_identity(") < complete.index("BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVED")
 
 preferences = between(ble, "static bool movements_remove_identity(", "static void complete_remove_target(")
-assert "memset(&g_movements[idx], 0, sizeof(g_movements[idx]))" in preferences
-assert "if (movements_store()) return true;" in preferences
-assert "g_movements[idx] = prior;" in preferences
+assert "memset(&g_movements[i], 0, sizeof(g_movements[i]))" in preferences
+assert "bond_identity_equal(" in preferences
+assert "if (!changed || movements_store()) return true;" in preferences
+assert "memcpy(g_movements, snapshot, sizeof(snapshot));" in preferences
 assert "return false;" in preferences
 
 dispatch = between(app, "case BLU2USB_UX_COMMAND_REMOVE_MOUSE:", "default:")
@@ -71,4 +72,4 @@ assert "if (ux->remove_pending) return cmd;" in command
 assert "cmd.kind = BLU2USB_UX_COMMAND_REMOVE_MOUSE" in command
 assert "cmd.saved_bond = ux->remove_target_bond" in command
 
-print("MOV-09 scoped BLE remove + movement TLV rollback + stale-bond failure: PASS")
+print("MOV-09 scoped BLE remove + all-identity movement rollback + stale-bond failure: PASS")
