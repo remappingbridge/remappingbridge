@@ -100,13 +100,13 @@ static void project_custom_rows(const blu2usb_ux_model_t *ux,
 
         clear_row(frame, row);
 
-        const blu2usb_ui_tone_t tone = applied_feedback
-            ? BLU2USB_UI_TONE_CURRENT
-            : ux->selection == source
-                ? BLU2USB_UI_TONE_EMPHASIZED
-                : clean_applied
-                    ? BLU2USB_UI_TONE_CURRENT
-                    : BLU2USB_UI_TONE_ACTIONABLE;
+        const blu2usb_ui_tone_t normal =
+            clean_applied || applied_feedback ? BLU2USB_UI_TONE_CURRENT
+                                              : BLU2USB_UI_TONE_ACTIONABLE;
+        const blu2usb_ui_tone_t tone =
+            applied_feedback ? BLU2USB_UI_TONE_CURRENT
+            : ux->selection == source ? blu2usb_ui_tone_on_focus(normal)
+            : normal;
         (void)blu2usb_ui_frame_set_text(frame, row, 0u, text, tone);
     }
 
@@ -136,10 +136,13 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
         if (profile_row != 0u)
             set_row_tone(frame, profile_row, BLU2USB_UI_TONE_CURRENT);
 
-        if (ux->selection < 3u)
-            set_row_tone(
-                frame, (uint8_t)(1u + ux->selection),
-                BLU2USB_UI_TONE_EMPHASIZED);
+        if (ux->selection < 3u) {
+            const uint8_t row = (uint8_t)(1u + ux->selection);
+            set_row_tone(frame, row,
+                         blu2usb_ui_tone_on_focus(
+                             row == profile_row ? BLU2USB_UI_TONE_CURRENT
+                                                : BLU2USB_UI_TONE_ACTIONABLE));
+        }
     }
 
     if (ux->screen == BLU2USB_SCREEN_EDIT_CUSTOM)
@@ -156,8 +159,12 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
             custom_target_row(ux->custom_targets[ux->custom_source]);
         if (current_row != 0u)
             set_row_tone(frame, current_row, BLU2USB_UI_TONE_CURRENT);
-        if (ux->selection < 6u)
-            set_row_tone(frame, (uint8_t)(1u + ux->selection),
-                         BLU2USB_UI_TONE_EMPHASIZED);
+        if (ux->selection < 6u) {
+            const uint8_t row = (uint8_t)(1u + ux->selection);
+            set_row_tone(frame, row,
+                         blu2usb_ui_tone_on_focus(
+                             row == current_row ? BLU2USB_UI_TONE_CURRENT
+                                                : BLU2USB_UI_TONE_ACTIONABLE));
+        }
     }
 }
