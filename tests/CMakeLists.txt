@@ -586,3 +586,12 @@ target_link_libraries(blu2usb_test_mnt12_modifier_cyan PRIVATE
 target_compile_options(blu2usb_test_mnt12_modifier_cyan PRIVATE -UNDEBUG)
 add_test(NAME mnt12_applied_modifier_shortcuts_and_combinations_cyan
     COMMAND blu2usb_test_mnt12_modifier_cyan)
+
+# MNT-13: final overlay of one first-column focus marker, all list pages,
+# implicit Saved Devices choice, unavailable states and no-menu screens.
+add_executable(blu2usb_test_mnt13_selection_marker test_mnt13_selection_marker.c)
+target_link_libraries(blu2usb_test_mnt13_selection_marker PRIVATE
+    blu2usb_renderer blu2usb_ux_model)
+target_compile_options(blu2usb_test_mnt13_selection_marker PRIVATE -UNDEBUG)
+add_test(NAME mnt13_all_menus_first_column_focus_only
+    COMMAND blu2usb_test_mnt13_selection_marker)
