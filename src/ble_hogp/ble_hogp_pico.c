@@ -463,7 +463,7 @@ static void saved_names_remove_identity(bd_addr_type_t address_type,
     return false;
 }
 
-static void remove_bonds_for_identity(bd_addr_type_t address_type,
+static bool remove_bonds_for_identity(bd_addr_type_t address_type,
                                       const bd_addr_t address,
                                       const sm_key_t irk)
 {
@@ -476,8 +476,18 @@ static void remove_bonds_for_identity(bd_addr_type_t address_type,
                                 address_type, address, irk))
             le_device_db_remove(slot);
     }
+    /* Acknowledge only after every matching BLE bond is gone. */
+    for (int slot = 0; slot < le_device_db_max_count(); ++slot) {
+        bd_addr_type_t type = BD_ADDR_TYPE_UNKNOWN;
+        bd_addr_t saved_address;
+        sm_key_t saved_irk;
+        if (bond_slot_info(slot, &type, saved_address, saved_irk) &&
+            bond_identity_equal(type, saved_address, saved_irk,
+                                address_type, address, irk))
+            return false;
+    }
+    return true;
 }
-
 static bool capture_logical_identity(int logical_bond,
                                      bd_addr_type_t *address_type,
                                      bd_addr_t address,
@@ -782,9 +792,13 @@ static void complete_remove_target(void)
         (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
         return;
     }
-    remove_bonds_for_identity(g_remove_target_type,
-                              g_remove_target_address,
-                              g_remove_target_irk);
+    if (!remove_bonds_for_identity(g_remove_target_type,
+                                   g_remove_target_address,
+                                   g_remove_target_irk)) {
+        g_remove_target_valid = false;
+        (void)publish_status(BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVE_FAILED);
+        return;
+    }
     (void)gap_load_resolving_list_from_le_device_db();
 
     g_remove_target_valid = false;
