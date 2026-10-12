@@ -1,41 +1,53 @@
 # RemappingBridge
 
-Firmware plug-and-play para **Raspberry Pi Pico 2 W**: recebe mouse HID Bluetooth e expõe dispositivos USB HID de Mouse e Keyboard/Consumer a hosts, sem instalar software específico.
+Plug-and-play firmware for the **Raspberry Pi Pico 2 W**. It receives input from a Bluetooth HID mouse and exposes USB HID Mouse, Keyboard, and Consumer Control functionality to a host, without installing project-specific software on that computer.
 
-## Versão estável
+**Language policy:** All public documentation, UI messages, accessibility text, test-facing messages, and GitHub Release descriptions in this repository and [the web simulator repository](https://github.com/remappingbridge/remappingbridge.github.io) must be written in **English**. This includes historical release notes and all new releases. Technical identifiers, release tags, literal firmware screen text, and checksums must not be translated.
 
-**RemappingBridge 3.2.3** — MNT-13 aceito fisicamente: pipe `|` marca exclusivamente a opção focada no LCD, na primeira coluna e sempre na segunda linha quando a opção ocupa duas linhas (COMBINATIONS: linhas 2/4). Preservam-se as cores de MNT-12, incluindo UNAVAILABLE, e as funções Bluetooth, USB HID, perfis, atalhos e Movement.
+## Latest stable firmware
+
+**RemappingBridge 3.2.3** — MNT-13 was physically accepted. A pipe (`|`) now marks the currently focused option in the first LCD column; for a two-line option, the pipe appears on the **second line** (COMBINATIONS rows 2/4). The MNT-12 color rules and `UNAVAILABLE` feedback are preserved, as are Bluetooth, USB HID, device-specific profiles, shortcuts, and Movement.
 
 ### Modifier Shortcuts
-- Dois perfis: **PASSTHROUGH** e **CUSTOM**. As opções antigas STANDARD REMAP e ESCAPE REMAP foram removidas da UI.
-- Um dos cinco botões físicos (Left/Right/Middle/Forward/Backward) pode ser configurado como **MODIFIER**, sem gerar seu clique físico durante a combinação.
-- **12 combinações**: MODIFIER RELEASED, cinco botões, WHEEL UP/DOWN e MOVE LEFT/RIGHT/UP/DOWN.
-- **30 ações** de teclado e mídia, com fluxos HOME CONNECTED → REMAPPING OPTIONS → MODIFIER SHORTCUTS → COMBINATIONS 1..6 → SHORTCUTS 1..5 → KEY A: APPLY AND BACK; reset por seleção.
-- Persistência de profile e assignments **por identidade de mouse** (registros Bluetooth e payload v3), com migração do antigo registro global; `UNAVAILABLE` quando uma combinação usa o próprio Modifier, sem apagar a atribuição.
-- Proteção contra stuck-key, interrupção BLE/USB, filas sob backpressure e cancelamento em lock/reconfiguração.
 
-### Funcionalidades preservadas da v2
-- **Movement Options**: ganho horizontal e vertical independentes, rotação 0°/90°/180°/270° e Movement per Mouse Bluetooth.
-- Reconexão/pareamento BLE, Saved Devices, Logitech Lift HID++, Help/lock, tela 9×21, wheel/pan e identidade USB estável.
-- Na tela **Saved Devices**, o cabeçalho usa magenta padrão, o nome do mouse ativo é o único texto ciano, os dados do mouse permanecem amarelos, **REMOVE DEVICE** é branco quando acionável e as dicas são cinzas.
+- Two visible profiles: **PASSTHROUGH** and **CUSTOM**. The former STANDARD REMAP and ESCAPE REMAP options were removed from the user interface.
+- One of five physical mouse buttons (Left, Right, Middle, Forward, or Backward) can be configured as a **MODIFIER**; it no longer produces its normal click while used for a combination.
+- **12 combinations**: MODIFIER RELEASED; the five buttons; WHEEL UP/DOWN; and MOVE LEFT/RIGHT/UP/DOWN.
+- **30 Keyboard/Consumer actions**, configured with `HOME CONNECTED → REMAPPING OPTIONS → MODIFIER SHORTCUTS → COMBINATIONS 1..6 → SHORTCUTS 1..5 → KEY A: APPLY AND BACK`. A selected combination can be reset.
+- Persisted profiles and shortcut assignments are associated **with individual Bluetooth mouse identities** (v3 records), including migration from the former global profile. `UNAVAILABLE` masks combinations that require the Modifier's own button without erasing their stored assignments.
+- Protection against stuck keys, BLE/USB interruption, backpressure, Lock, and remapping transitions.
 
-Firmware/checksums: [Release v3.2.3](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.3). Detalhes: [docs/releases/v3.2.3.md](docs/releases/v3.2.3.md). Histórico: [v3.2.2](docs/releases/v3.2.2.md), [v3.0.3](docs/releases/v3.0.3.md), [v3.0.2](docs/releases/v3.0.2.md), [v3.0.1](docs/releases/v3.0.1.md) e [v3.0.0](docs/releases/v3.0.0.md).
+### Movement features retained from v2
 
-## Compatibilidade de atualização
+- **Movement Options:** independent horizontal and vertical gains, 0°/90°/180°/270° rotation, and settings saved per paired Bluetooth mouse.
+- BLE pairing and reconnection, Saved Devices, Logitech Lift HID++, Help/Lock, a 9×21-character LCD, wheel/pan, and stable USB identity.
+- On **Saved Devices**, the title uses the standard magenta, only the connected mouse name appears cyan, movement/profile details remain yellow, `REMOVE DEVICE` is white when actionable, and hints are gray.
 
-A atualização normal é **UF2 em modo BOOTSEL, sem apagar toda a flash**. O firmware converte perfil global legado v2 para v3; bonds BLE e Movement por Mouse pertencem a outros registros e não devem ser apagados na atualização. O downgrade de v3 para firmware v2.0.0 **não é totalmente compatível**: o v2 não lê o schema v3 e pode restaurar o perfil global aos valores padrão. Anote os 12 slots e o perfil antes de qualquer downgrade; não faça `flash_nuke` para atualizar.
+**Download and checksums:** [latest release](https://github.com/remappingbridge/remappingbridge/releases/latest) · [v3.2.3 release](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.3) · [production UF2 for v3.2.3](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.3/remappingbridge-v3.2.3-pico2w.uf2) · [SHA256SUMS.txt](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.3/SHA256SUMS.txt). The direct filename is version-specific and must be updated for new releases.
 
-Os efeitos de alguns atalhos são dependentes do host. Em particular, **zoom no Obsidian/KDE**, atalhos Android HOME e controle real de brilho devem ser verificados no sistema alvo. Um código HID válido não garante comportamento do aplicativo.
+Release documentation: [v3.2.3](docs/releases/v3.2.3.md), [v3.2.2](docs/releases/v3.2.2.md), [v3.0.3](docs/releases/v3.0.3.md), [v3.0.2](docs/releases/v3.0.2.md), [v3.0.1](docs/releases/v3.0.1.md), and [v3.0.0](docs/releases/v3.0.0.md).
 
-## Fontes normativas
+## Browser simulator
 
-1. [Modifier Shortcuts — planner, gates MOD-00..MOD-10](https://github.com/remappingbridge/planner/tree/main/modifier-shortcuts), contrato aprovado da v3.
-2. [Manutenção v3.x / MNT-01](https://github.com/remappingbridge/planner/tree/main/v3-maintenance) e [notas v3.0.2](docs/releases/v3.0.2.md); [contrato v3.0.0](docs/releases/v3.0.0.md) como baseline.
-3. [Movement Options — planner](https://github.com/remappingbridge/planner/tree/main/movement-options), funcionalidades herdadas da v2.
-4. [Release v2.0.0](docs/releases/v2.0.0.md) e documentação de telas anteriores, quando não revogadas pela v3.
+The [interactive web simulator](https://remappingbridge.github.io/) is being developed as a static, single-page application based on the accepted firmware and [mouse-ui](https://github.com/remappingbridge/mouse-ui). The current WEB-01 baseline is a virtual LCD/HAT **preview**, not complete firmware emulation. It does not connect to physical Bluetooth/USB hardware. The GitHub README cannot execute embedded JavaScript; open the linked web app in your browser.
 
-Em conflito de UI não alterar textos/telas congeladas unilateralmente; usar a grade 9×21 e as cores do design system.
+## Safe firmware updates
 
-## Regra de depuração
+Use the normal **UF2 update in BOOTSEL mode**, without erasing the entire flash. The firmware migrates the legacy global v2 profile into v3 records. BLE bonds and per-mouse Movement data occupy other records and should not be erased during normal updates.
 
-Sem ferramentas de debug embarcadas: não fornecer USB CDC/UART de diagnóstico, tela de debug nem um firmware debug paralelo. Diagnóstico via testes host/CI, estado observável na interface e comportamento do SO.
+Downgrading from v3 to v2.0.0 is **not fully compatible**: v2 cannot read the v3 shortcut schema and may restore global-profile defaults. Record your 12 assignments and profile before downgrading. Never use `flash_nuke` for a routine update.
+
+Some shortcut effects depend on the host OS and application. **Obsidian/KDE zoom**, Android HOME shortcuts, and actual host-screen brightness must be tested on the intended host. A valid HID usage does not guarantee the receiving application will implement it.
+
+## Normative references
+
+1. [Modifier Shortcuts — gates MOD-00..MOD-10](https://github.com/remappingbridge/planner/tree/main/modifier-shortcuts): accepted v3 contract.
+2. [v3.x maintenance gates](https://github.com/remappingbridge/planner/tree/main/v3-maintenance) and [v3.0.0 contract](docs/releases/v3.0.0.md): accepted MNT changes, navigation and colors.
+3. [Movement Options](https://github.com/remappingbridge/planner/tree/main/movement-options): v2 functionality preserved in v3.
+4. [v2.0.0 release notes](docs/releases/v2.0.0.md) and historical screen references, unless superseded.
+
+In any UI conflict, **do not change frozen screen text or behavior unilaterally**. Preserve the 9×21 layout and the design-system colors.
+
+## Debugging policy
+
+No embedded debug tooling: do not add USB CDC/UART diagnostic interfaces, a debug screen, or a separate debug firmware build. Diagnostics use host/CI tests, the observable device UI, and host OS behavior.
