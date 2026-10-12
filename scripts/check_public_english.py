@@ -26,7 +26,7 @@ PORTUGUESE = re.compile(
     r"removido|substitui|anteriormente|atualizada|"
     r"físico|física|físicos|fisicamente|revisão|"
     r"opção|opções|mudança|ajuda|corrigir|corrige|"
-    r"roteiro|clique|concluído|recompila|"
+    r"roteiro|clique|concluído|recompila"
     r")\b"
 )
 HTML_LOCALE = re.compile(r'(?i)<html\s[^>]*\blang\s*=\s*["\']pt(?:-BR)?["\']')
