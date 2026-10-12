@@ -174,17 +174,6 @@ static void home_title(const char *input,
     }
 }
 
-static const char *home_profile_summary(blu2usb_mouse_profile_kind_t profile)
-{
-    switch (profile) {
-    case BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP:
-        return " REMAPPED TO CUSTOM";
-    case BLU2USB_MOUSE_PROFILE_PASSTHROUGH:
-    default:
-        return " NO REMAP PASSTHROUGH";
-    }
-}
-
 static int selected_row(const blu2usb_ux_model_t *ux)
 {
     switch (ux->screen) {
@@ -523,10 +512,8 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         ux->active_profile == BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP && !ux->custom_dirty;
     char home_title_text[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char combo_value_text[BLU2USB_RENDERER_TEXT_COLS + 1u];
-    const char *home_summary_text = NULL;
     if (ux->screen == BLU2USB_SCREEN_HOME) {
         home_title(ux->current_mouse_name, home_title_text);
-        home_summary_text = home_profile_summary(ux->active_profile);
     }
     const uint8_t hint = searching_first
         ? BLU2USB_RENDERER_TEXT_ROWS
@@ -542,8 +529,6 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
         const char *text = screen->rows[row] != NULL ? screen->rows[row] : "";
         if (ux->screen == BLU2USB_SCREEN_HOME && row == 0u)
             text = home_title_text;
-        else if (ux->screen == BLU2USB_SCREEN_HOME && row == 1u)
-            text = home_summary_text;
         else if (blu2usb_ux_is_combinations_screen(ux->screen) &&
                  (row == 2u || row == 4u)) {
             const unsigned page = (unsigned)(ux->screen - BLU2USB_SCREEN_COMBINATIONS_1);
