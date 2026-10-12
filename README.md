@@ -6,7 +6,7 @@ Plug-and-play firmware for the **Raspberry Pi Pico 2 W**. It receives input from
 
 ## Latest stable firmware
 
-**RemappingBridge 3.2.3** — MNT-13 was physically accepted. A pipe (`|`) now marks the currently focused option in the first LCD column; for a two-line option, the pipe appears on the **second line** (COMBINATIONS rows 2/4). The MNT-12 color rules and `UNAVAILABLE` feedback are preserved, as are Bluetooth, USB HID, device-specific profiles, shortcuts, and Movement.
+**RemappingBridge 3.2.4** — MNT-15 was physically accepted. **ZOOM IN now sends Ctrl + Equal without Shift** for better compatibility with Obsidian and browsers on Linux. ZOOM OUT (Ctrl + Minus) and RESET ZOOM (Ctrl + 0) are unchanged. Some terminals require Ctrl + Shift + Equal for zoom and may not respond to this generic shortcut; terminal bindings vary. All MNT-13 menu focus markers, MNT-12 color rules, Bluetooth, USB HID, device-specific profiles, other shortcuts, and Movement are retained. [Release v3.2.4](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.4).
 
 ### Modifier Shortcuts
 
