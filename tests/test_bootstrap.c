@@ -4,5 +4,5 @@
 
 int main(void)
 {
-    return strcmp(blu2usb_version(), "3.1.1") == 0 ? 0 : 1;
+    return strcmp(blu2usb_version(), "3.1.2") == 0 ? 0 : 1;
 }
