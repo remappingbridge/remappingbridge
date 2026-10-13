@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+<title id="title">Static preview of the RemappingBridge virtual simulator</title><desc id="desc">An original static illustration based on the published WEB-10 application: dark rounded sticky HAT housing; REMAPPINGBRIDGE top-left and yellow VIRTUAL DEVICE bottom-left; cross-shaped joystick left; square dark magenta firmware HOME display; vertically aligned A B X Y buttons; Pico 2 W LCD 240 by 240 and 9 HAT CONTROLS at right; Choose a demo state and Virtual Mouse Lab panels below. This is a clickable README illustration linking to the live website, not an actual screenshot or an interactive embedded widget.</desc>
+<defs><linearGradient id="outer" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#252438"/><stop offset="1" stop-color="#101218"/></linearGradient><linearGradient id="device" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#363948"/><stop offset="1" stop-color="#222531"/></linearGradient><filter id="shadow" x="-15%" y="-15%" width="130%" height="140%"><feDropShadow dx="0" dy="9" stdDeviation="15" flood-color="#05050c" flood-opacity="0.65"/></filter></defs>
+<g font-family="Arial, Helvetica, sans-serif">
+<rect x="0" y="0" width="1280" height="720" rx="22" fill="url(#outer)"/>
+<text x="64" y="46" fill="#f9f7ff" font-size="21" font-weight="800" >REMAPPINGBRIDGE · VIRTUAL SIMULATOR</text>
+<rect x="1014" y="20" width="198" height="36" rx="13" fill="#312638" stroke="#74577b" stroke-width="1"/>
+<text x="1113" y="45" fill="#f3c0e9" font-size="15" font-weight="800" text-anchor="middle">STATIC PREVIEW</text>
+<g filter="url(#shadow)">
+<rect x="60" y="76" width="1160" height="352" rx="29" fill="url(#device)" stroke="#61657a" stroke-width="2"/>
+</g>
+<text x="89" y="105" fill="#faf9ff" font-size="18" font-weight="850" >REMAPPING</text>
+<text x="215" y="105" fill="#ff55c5" font-size="18" font-weight="850" >BRIDGE</text>
+<rect x="178" y="162" width="44" height="41" rx="13" fill="#373c4c" stroke="#73788a" stroke-width="1.8"/>
+<text x="200" y="190" fill="#f9faff" font-size="24" font-weight="800" text-anchor="middle">▲</text>
+<rect x="129" y="212" width="44" height="41" rx="13" fill="#373c4c" stroke="#73788a" stroke-width="1.8"/>
+<text x="151" y="240" fill="#f9faff" font-size="24" font-weight="800" text-anchor="middle">◀</text>
+<rect x="178" y="212" width="44" height="41" rx="13" fill="#373c4c" stroke="#73788a" stroke-width="1.8"/>
+<text x="200" y="240" fill="#f9faff" font-size="24" font-weight="800" text-anchor="middle">●</text>
+<rect x="227" y="212" width="44" height="41" rx="13" fill="#373c4c" stroke="#73788a" stroke-width="1.8"/>
+<text x="249" y="240" fill="#f9faff" font-size="24" font-weight="800" text-anchor="middle">▶</text>
+<rect x="178" y="262" width="44" height="41" rx="13" fill="#373c4c" stroke="#73788a" stroke-width="1.8"/>
+<text x="200" y="290" fill="#f9faff" font-size="24" font-weight="800" text-anchor="middle">▼</text>
+<rect x="386" y="121" width="286" height="286" rx="18" fill="#080b15" stroke="#5e6172" stroke-width="4"/>
+<rect x="400" y="135" width="258" height="258" rx="8" fill="#300c39" stroke="#75427d" stroke-width="2"/>
+<text x="411" y="169" fill="#ff55c5" font-size="14" font-weight="700" font-family="DejaVu Sans Mono, Consolas, monospace">DEMO MOUSE</text>
+<text x="411" y="194.2" fill="#71f6f5" font-size="14" font-weight="800" font-family="DejaVu Sans Mono, Consolas, monospace">|REMAPPING OPTIONS</text>
+<text x="411" y="219.4" fill="#e3e3ea" font-size="14" font-weight="600" font-family="DejaVu Sans Mono, Consolas, monospace"> MOVEMENT OPTIONS</text>
+<text x="411" y="244.6" fill="#e3e3ea" font-size="14" font-weight="600" font-family="DejaVu Sans Mono, Consolas, monospace"> SAVED DEVICES</text>
+<text x="411" y="269.8" fill="#e3e3ea" font-size="14" font-weight="600" font-family="DejaVu Sans Mono, Consolas, monospace"> PAIR NEW MOUSE</text>
+<text x="411" y="320.2" fill="#f8e27f" font-size="14" font-weight="600" font-family="DejaVu Sans Mono, Consolas, monospace">JOY UP / DOWN: SELECT</text>
+<text x="411" y="345.4" fill="#f8e27f" font-size="14" font-weight="600" font-family="DejaVu Sans Mono, Consolas, monospace">JOY PRESS: ACCESS</text>
+<text x="411" y="370.6" fill="#abb4c9" font-size="14" font-weight="600" font-family="DejaVu Sans Mono, Consolas, monospace">KEY X: HELP TO REMOVE</text>
+<rect x="713" y="136" width="70" height="55" rx="15" fill="#3b3d50" stroke="#9b92aa" stroke-width="1.7"/>
+<text x="748" y="174" fill="#f4effc" font-size="27" font-weight="800" text-anchor="middle">A</text>
+<rect x="713" y="202" width="70" height="55" rx="15" fill="#3b3d50" stroke="#9b92aa" stroke-width="1.7"/>
+<text x="748" y="240" fill="#f4effc" font-size="27" font-weight="800" text-anchor="middle">B</text>
+<rect x="713" y="268" width="70" height="55" rx="15" fill="#3b3d50" stroke="#9b92aa" stroke-width="1.7"/>
+<text x="748" y="306" fill="#f4effc" font-size="27" font-weight="800" text-anchor="middle">X</text>
+<rect x="713" y="334" width="70" height="55" rx="15" fill="#3b3d50" stroke="#9b92aa" stroke-width="1.7"/>
+<text x="748" y="372" fill="#f4effc" font-size="27" font-weight="800" text-anchor="middle">Y</text>
+<text x="825" y="314" fill="#d9d8e7" font-size="22" font-weight="800" >PICO 2 W</text>
+<text x="825" y="348" fill="#aab1c3" font-size="20" font-weight="700" >LCD 240 × 240</text>
+<text x="825" y="382" fill="#aab1c3" font-size="20" font-weight="700" >9 HAT CONTROLS</text>
+<circle cx="103" cy="402" r="6" fill="#e6ac6b"/>
+<text x="118" y="407" fill="#d6d8e5" font-size="16" font-weight="750" >VIRTUAL DEVICE</text>
+<rect x="60" y="449" width="1160" height="120" rx="22" fill="#242332" stroke="#4f465d" stroke-width="2"/>
+<text x="87" y="478" fill="#aab1c3" font-size="13" font-weight="800" >VIRTUAL LCD CONTEXT</text>
+<text x="87" y="508" fill="#fafafa" font-size="25" font-weight="800" >Choose a demo state</text>
+<rect x="85" y="520" width="250" height="39" rx="11" fill="#303443" stroke="#666b7b" stroke-width="2"/>
+<text x="210" y="546" fill="#f7f4fe" font-size="16" font-weight="700" text-anchor="middle">Searching First Mouse</text>
+<rect x="355" y="520" width="259" height="39" rx="11" fill="#303443" stroke="#666b7b" stroke-width="2"/>
+<text x="484.5" y="546" fill="#f7f4fe" font-size="16" font-weight="700" text-anchor="middle">First Mouse Connected</text>
+<rect x="633" y="520" width="219" height="39" rx="11" fill="#42284d" stroke="#ed8ae5" stroke-width="2"/>
+<text x="742.5" y="546" fill="#f7f4fe" font-size="16" font-weight="700" text-anchor="middle">Home Connected</text>
+<rect x="60" y="584" width="1160" height="105" rx="22" fill="#22232e" stroke="#464253" stroke-width="2"/>
+<text x="88" y="608" fill="#aab1c3" font-size="12" font-weight="800" >LOCAL SIMULATION</text>
+<text x="88" y="644" fill="#fafafa" font-size="26" font-weight="800" >Virtual Mouse Lab</text>
+<rect x="350" y="612" width="185" height="47" rx="13" fill="#292c3b" stroke="#656879" stroke-width="2"/>
+<text x="443" y="641" fill="#dce0ea" font-size="15" font-weight="700" text-anchor="middle">Saved virtual mouse</text>
+<rect x="549" y="612" width="190" height="47" rx="13" fill="#323042" stroke="#7a6c8d" stroke-width="2"/>
+<text x="644" y="641" fill="#e8e1f6" font-size="15" font-weight="700" text-anchor="middle">New virtual mouse</text>
+<rect x="930" y="607" width="253" height="48" rx="14" fill="#502b5b" stroke="#db8bce" stroke-width="2"/>
+<text x="1056" y="639" fill="#faf5ff" font-size="17" font-weight="800" text-anchor="middle">OPEN LIVE SIMULATOR ↗</text>
+<text x="64" y="710" fill="#aeb4ca" font-size="13" font-weight="600" >Illustrative preview based on published site v3.2.4 / WEB-10. Click image in README to open the actual application.</text>
+</g></svg>
