@@ -23,7 +23,7 @@ No special RemappingBridge software to install on a compatible computer. Pair a 
   <strong><a href="https://www.waveshare.com/Pico-LCD-1.3.htm">Waveshare Pico-LCD-1.3 (SKU 19650)</a></strong>
 </p>
 
-<sub>Hardware photos are displayed from the Raspberry Pi and Welectron websites and linked to the corresponding manufacturer product information; they are not photographs of a finished RemappingBridge assembly. The RP2350 is the chip inside the Pico 2 W board. The Pico-LCD-1.3 is the Pico accessory with joystick and four buttons, **not** the 40-pin Raspberry Pi LCD HAT.</sub>
+<sub>Hardware photos are displayed from the Raspberry Pi and Welectron websites and linked to the corresponding manufacturer product information; they are not photographs of a finished RemappingBridge assembly. The RP2350 is the chip inside the Pico 2 W board. The Pico-LCD-1.3 is the Pico accessory with joystick and four buttons, <strong>not</strong> the 40-pin Raspberry Pi LCD HAT.</sub>
 
 ### What can you do?
 
