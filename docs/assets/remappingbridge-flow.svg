@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="diagramTitle diagramDesc">
+  <title id="diagramTitle">RemappingBridge: Bluetooth mouse to USB HID host</title>
+  <desc id="diagramDesc">A compatible BLE HID mouse sends input wirelessly to the Raspberry Pi Pico 2 W. RemappingBridge processes mouse profiles, movement and shortcuts with a small LCD and HAT for configuration. The Pico sends USB HID mouse, keyboard and consumer control signals to a compatible host computer. The host does not need special RemappingBridge software.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="11" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#8df1ed"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1200" height="340" rx="24" fill="#131725"/>
+  <text x="44" y="47" fill="#f5edf9" font-size="23" font-weight="700" font-family="system-ui, sans-serif">Mouse input, configurable on the Pico</text>
+  <g font-family="system-ui, sans-serif">
+    <rect x="36" y="87" width="259" height="192" rx="20" fill="#232e43" stroke="#96c7f5" stroke-width="2"/>
+    <text x="165" y="141" font-size="26" font-weight="700" text-anchor="middle" fill="#fff">BLE HID mouse</text>
+    <text x="165" y="179" font-size="19" text-anchor="middle" fill="#e5f1ff">HID-over-GATT</text>
+    <text x="165" y="215" font-size="16" text-anchor="middle" fill="#c1d7ef">Wireless input</text>
+    <path d="M306 180 H412" fill="none" stroke="#8df1ed" stroke-width="4" marker-end="url(#arrow)"/>
+    <text x="360" y="165" font-size="19" text-anchor="middle" fill="#e6f8fa">BLE</text>
+
+    <rect x="427" y="80" width="370" height="210" rx="20" fill="#35263f" stroke="#eaa0e6" stroke-width="2"/>
+    <text x="612" y="125" font-size="26" font-weight="700" text-anchor="middle" fill="#fff">Pico 2 W</text>
+    <text x="612" y="163" font-size="18" text-anchor="middle" fill="#f5d9f3">RemappingBridge firmware</text>
+    <text x="612" y="202" font-size="18" text-anchor="middle" fill="#fff">Profiles · Movement · Shortcuts</text>
+    <rect x="484" y="220" width="256" height="45" rx="12" fill="#1a1b2b" stroke="#b7a6bf"/>
+    <text x="612" y="249" font-size="17" text-anchor="middle" fill="#f1e8ff">LCD + HAT controls</text>
+    <path d="M810 180 H898" fill="none" stroke="#8df1ed" stroke-width="4" marker-end="url(#arrow)"/>
+    <text x="855" y="165" font-size="19" text-anchor="middle" fill="#e6f8fa">USB</text>
+
+    <rect x="913" y="87" width="251" height="192" rx="20" fill="#233b39" stroke="#8df1ed" stroke-width="2"/>
+    <text x="1038" y="141" font-size="26" font-weight="700" text-anchor="middle" fill="#fff">Host computer</text>
+    <text x="1038" y="179" font-size="18" text-anchor="middle" fill="#d7fff8">USB HID interfaces</text>
+    <text x="1038" y="211" font-size="17" text-anchor="middle" fill="#e8f5f4">Mouse · Keyboard</text>
+    <text x="1038" y="238" font-size="17" text-anchor="middle" fill="#e8f5f4">Consumer Control</text>
+  </g>
+  <text x="600" y="319" font-size="16" text-anchor="middle" fill="#bdc7d8" font-family="system-ui, sans-serif">Settings remain on the external device · Host support for each shortcut may vary</text>
+</svg>
