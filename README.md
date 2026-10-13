@@ -33,6 +33,10 @@ No special RemappingBridge software to install on a compatible computer. Pair a 
 
 **Curious?** [Explore the virtual HAT and LCD now — no hardware needed.](https://remappingbridge.github.io/) The website is a simulator, not a real Bluetooth pairing or firmware installer.
 
+[![Static illustrated preview of the published RemappingBridge virtual simulator with left joystick, a 240-by-240 connected HOME LCD, vertical A/B/X/Y buttons, right-side Pico 2 W information, three demo state buttons, and Virtual Mouse Lab below; selecting the image opens the live website.](docs/assets/simulator-preview-v3.2.4.svg)](https://remappingbridge.github.io/)
+
+[**Open the interactive simulator — click the preview or this text link.**](https://remappingbridge.github.io/) The image is a **static illustration of the published WEB-10 interface**, not a live screenshot, physical-device photo, working control or embedded application.
+
 ---
 
 ## Why use it?
@@ -77,7 +81,17 @@ These are descriptions of current firmware capabilities; they are not claims tha
 
 ## Try it in your browser
 
-Open the **[RemappingBridge interactive simulator](https://remappingbridge.github.io/)** to explore the LCD and nine HAT controls before assembling hardware.
+Open the **[RemappingBridge interactive simulator](https://remappingbridge.github.io/)** to explore the LCD and nine HAT controls before assembling hardware. The [clickable static preview above](https://remappingbridge.github.io/) is an illustration derived from the site's published HTML/CSS and canonical v3.2.4 HOME text; it **does not execute inside GitHub**.
+
+### Five-minute guided demo: HOME → Movement → Modifier
+
+1. **Explore HOME without saving a mouse.** Select **Home Connected** under **Choose a demo state**. The LCD shows the connected HOME structure. This is an isolated visual preview and does not pair anything.
+2. **Create a virtual mouse to edit its settings.** In **Virtual Mouse Lab**, enter a name in **New virtual mouse name**, click **Start Pair New**, then **Complete Successfully** in the pairing card. Select **Home Connected** again if needed. These virtual records belong to this browser only.
+3. **Try Movement.** On the virtual LCD, focus **MOVEMENT OPTIONS** using the HAT joystick **UP/DOWN** (or keyboard arrows); press the joystick inward (**JOY PRESS**, or Enter). Explore the horizontal/vertical movement gains and rotation; select a value and use **KEY A** to apply it. **KEY B** normally goes back. If a real connected virtual mouse is not selected, the app will not persist changes.
+4. **Set a Modifier.** From HOME choose **REMAPPING OPTIONS → CUSTOM REMAPPING**, then the Custom editor and a physical mouse-button source. In its **WILL BECOME** selector, choose **MODIFIER** and apply the target; then **APPLY CUSTOM** to commit the whole Custom profile. A Modifier becomes active only when the **applied** profile is Custom.
+5. **Assign a shortcut.** Return to **REMAPPING OPTIONS → MODIFIER SHORTCUTS**, choose a **COMBINATIONS** slot and one of the **30 SHORTCUTS**, then press **KEY A: APPLY AND BACK**. Try returning to HOME. In the browser, this only saves a simulated shortcut; it does **not** send Ctrl/C/V, media keys or any other HID signal to your host.
+
+**Navigation cheatsheet:** joystick directions move the selection, **JOY PRESS** opens, **KEY A** applies where offered, **KEY B** returns/cancels on most pages, **KEY X** displays Help where available and **KEY Y** controls LCD Lock. Some screens deliberately have different hints; follow the text shown on the virtual LCD.
 
 The single-page simulator includes **45 canonical firmware screens**, the three visual demo states (*Searching First Mouse*, *First Mouse Connected*, *Home Connected*), a **Virtual Mouse Lab** for local simulated pairing, saved-device profiles and failures, and an optional diagnostic Inspector. Its [browser test page](https://remappingbridge.github.io/tests/) uses separate temporary test data.
 
