@@ -122,7 +122,7 @@ The project uses two separate boards: the **Raspberry Pi Pico 2 W**, which runs 
 4. **Seat the board without force.** Check for bent pins or accidental contact with exposed metal. Gently and evenly connect the boards only when **all pin positions** align. Stop if they resist.
 5. **Connect the Pico's Micro-USB data port** to a compatible computer. Keep the wireless antenna area free from metal obstructions. The Pico presents USB HID; the BLE mouse connects wirelessly **to the Pico**, not to the computer's Bluetooth adapter.
 
-These are **mechanical assembly precautions only**. Firmware installation via BOOTSEL/UF2, exact release checksums and first-use firmware procedures are documented in their dedicated installation guide; do not erase flash or Bluetooth bonds merely to attach a display.
+These are **mechanical assembly precautions only**. For BOOTSEL, UF2 installation and release checksums, see [Download and install on a Raspberry Pi Pico 2 W](#download-and-install-on-a-raspberry-pi-pico-2-w) below. Do not erase flash or Bluetooth bonds merely to attach a display.
 
 ### The nine physical HAT controls
 
@@ -159,13 +159,67 @@ The current LCD driver [`src/renderer/st7789_pico.c`](src/renderer/st7789_pico.c
 
 For the correct components, GPIO controls, connector alignment and mechanical precautions, see [Hardware and safe assembly](#hardware-and-safe-assembly) above. The Pico display accessory is not the 40-pin Raspberry Pi Linux LCD HAT.
 
-## Current release and updates
+## Download and install on a Raspberry Pi Pico 2 W
 
-**Current stable release: [v3.2.4](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.4)** (published October 12, 2026). This release adjusts generic Zoom In for better compatibility with the tested Obsidian/browser setup; see the [v3.2.4 release notes](docs/releases/v3.2.4.md) for precise behavior and exceptions.
+**Stable release checked October 13, 2026: [v3.2.4](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.4)** (published October 12, 2026). The [release notes](docs/releases/v3.2.4.md) describe the generic Zoom In change and application-dependent limitations.
 
-Use the **[latest GitHub release page](https://github.com/remappingbridge/remappingbridge/releases/latest)** for the current downloadable firmware and its checksum file. Direct UF2 filenames contain version numbers and must be checked against the current release; complete installation instructions will be maintained in the dedicated installation guide.
+| Download | Verified release asset |
+| --- | --- |
+| **[Download RemappingBridge v3.2.4 (.UF2)](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.4/remappingbridge-v3.2.4-pico2w.uf2)** | `remappingbridge-v3.2.4-pico2w.uf2` — **953,344 bytes** |
+| [Download SHA-256 checksums](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.4/SHA256SUMS.txt) | `SHA256SUMS.txt` for this same release |
+| **[Find the latest release](https://github.com/remappingbridge/remappingbridge/releases/latest)** | Stable URL that keeps pointing to the newest published release |
 
-**Update precautions:** normal firmware updates use the UF2/BOOTSEL route without erasing the full flash. Supported migration from earlier global v2 profiles to v3 records is documented in the release history; saved BLE bonds and per-mouse Movement data are stored separately and should not be erased during normal supported upgrades. **Do not use `flash_nuke` as a routine update step.** Downgrading from v3 to v2 can lose or reset newer shortcut/profile preferences because v2 does not understand the v3 schema; record your mappings and consult the release documentation first.
+**Board requirement:** this UF2 targets the **Raspberry Pi Pico 2 W** (RP2350 + BLE), **not** the original Pico/Pico W or a wireless-free Pico 2. Use a **Micro-USB cable that carries data**, not a charge-only cable.
+
+### 1. Verify the downloaded file (recommended)
+
+Download the **UF2 and `SHA256SUMS.txt` from the same v3.2.4 release** into one folder. The official GitHub release asset metadata reports this expected **SHA-256 for the UF2**:
+
+```text
+56d2eeaf96b2579e34b85333274a4bf1652b6bf33384d1b275eee36aa06f88f2
+```
+
+On **Linux**, open a terminal in the download folder and run:
+
+```sh
+sha256sum -c SHA256SUMS.txt
+```
+
+On **macOS**, run this instead:
+
+```sh
+shasum -a 256 -c SHA256SUMS.txt
+```
+
+On **Windows PowerShell**, calculate the file's hash and compare the result with the 64-character SHA-256 above (or the checksum file):
+
+```powershell
+Get-FileHash -Algorithm SHA256 .\remappingbridge-v3.2.4-pico2w.uf2
+```
+
+**Only proceed if the hash matches.** The official release's `SHA256SUMS.txt` is the authoritative checksum file for the downloaded version; a previous test build's hash is **not** the final release's hash.
+
+### 2. Enter BOOTSEL mode
+
+1. Disconnect the Pico 2 W from USB power. Keep the [Pico-LCD-1.3](#hardware-and-safe-assembly) aligned and seated correctly; never move headers while powered.
+2. Press and **hold the BOOTSEL button on the Pico 2 W** while connecting its Micro-USB **data** cable to your computer.
+3. Release BOOTSEL after the removable USB drive appears. On an **RP2350-based Pico 2 W**, the drive may be called **`RP2350`**; some Raspberry Pi Pico instructions and systems show **`RPI-RP2`**. Both names refer to the bootloader's temporary USB storage interface, **not** a disk to format.
+
+### 3. Copy the UF2 and let the board restart
+
+4. Open the newly mounted **`RP2350`** or **`RPI-RP2`** drive with your file manager.
+5. Copy **`remappingbridge-v3.2.4-pico2w.uf2`** onto that drive. Do **not** copy `SHA256SUMS.txt` instead, unzip it, format the drive, or run an erasure utility.
+6. Allow the copy to finish. The bootloader writes the firmware, **automatically disconnects the temporary drive and reboots the Pico 2 W**. The disappearing bootloader drive is **normal**, not proof that the cable failed.
+7. Let RemappingBridge start. With a correctly attached LCD and supported mouse, continue from the device's on-screen instructions; if the mouse is not connected yet, use its BLE pairing procedure. The Pico bridges BLE input to USB HID only after a supported mouse connects.
+
+The BOOTSEL + UF2 steps and the **`RP2350` / `RPI-RP2`** volume names follow the [official Raspberry Pi Pico-series documentation](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html). No command-line flasher, Pico SDK, special desktop RemappingBridge driver or web-browser firmware writer is required.
+
+### Updating safely and avoiding common mistakes
+
+- **Normal updates:** use the same BOOTSEL/UF2 procedure. **Do not run `flash_nuke` or mass-erase the flash for an ordinary firmware update**; erasure can destroy stored BLE bonds and preferences. Note your custom mappings before updating in case of an unexpected problem.
+- **Downgrades:** older v2 firmware does not understand all v3 profile and shortcut records; returning to v2 may reset or lose newer preferences. Consult the [release history](docs/releases/v3.0.0.md) and record settings before changing major versions. Never promise universal bond/profile preservation across incompatible firmware.
+- **Missing BOOTSEL drive:** first verify that the correct **Pico 2 W** is connected, the USB cable is **data-capable**, BOOTSEL was held while plugging in, and your computer can read USB mass-storage devices. Do not fix a cable or enumeration issue by formatting or erasing the board.
+- **Future releases:** a direct download URL containing `v3.2.4` is **version-specific, not permanently latest**. For new releases, always start at [`/releases/latest`](https://github.com/remappingbridge/remappingbridge/releases/latest), check its actual UF2 filename and matching `SHA256SUMS.txt`, and update the versioned links, filename, expected hash and release notes in this README when publishing the next version. Do not invent a `latest/download` URL with a changing versioned filename.
 
 ## Documentation, support and license
 
