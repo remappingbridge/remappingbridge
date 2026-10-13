@@ -33,6 +33,17 @@ No special RemappingBridge software to install on a compatible computer. Pair a 
 
 ---
 
+## Table of contents
+
+- [Why use it?](#why-use-it)
+- [How it works](#how-it-works)
+- [Features in current firmware](#features-in-current-firmware)
+- [Try it in your browser](#try-it-in-your-browser)
+- [Hardware and safe assembly](#hardware-and-safe-assembly)
+- [What you need to know about compatibility](#what-you-need-to-know-about-compatibility)
+- [Download and install on a Raspberry Pi Pico 2 W](#download-and-install-on-a-raspberry-pi-pico-2-w)
+- [Documentation, support and license](#documentation-support-and-license)
+
 ## Why use it?
 
 Mouse customization is often tied to a particular computer or installed utility. RemappingBridge lets you configure supported mouse behavior on a small external device and use it with another USB HID-capable host without installing a dedicated RemappingBridge application there.
