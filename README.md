@@ -31,12 +31,6 @@ No special RemappingBridge software to install on a compatible computer. Pair a 
 - **Make movement feel right.** Adjust horizontal and vertical speed separately, or rotate pointer movement by 90°, 180° or 270°.
 - **Keep settings with your mouse.** Save individual profiles on the device, then use them with a compatible USB host without installing this project's desktop app.
 
-**Curious?** [Explore the virtual HAT and LCD now — no hardware needed.](https://remappingbridge.github.io/) The website is a simulator, not a real Bluetooth pairing or firmware installer.
-
-[![Static illustrated preview of the published RemappingBridge virtual simulator with left joystick, a 240-by-240 connected HOME LCD, vertical A/B/X/Y buttons, right-side Pico 2 W information, three demo state buttons, and Virtual Mouse Lab below; selecting the image opens the live website.](docs/assets/simulator-preview-v3.2.4.svg)](https://remappingbridge.github.io/)
-
-[**Open the interactive simulator — click the preview or this text link.**](https://remappingbridge.github.io/) The image is a **static illustration of the published WEB-10 interface**, not a live screenshot, physical-device photo, working control or embedded application.
-
 ---
 
 ## Why use it?
@@ -81,7 +75,7 @@ These are descriptions of current firmware capabilities; they are not claims tha
 
 ## Try it in your browser
 
-Open the **[RemappingBridge interactive simulator](https://remappingbridge.github.io/)** to explore the LCD and nine HAT controls before assembling hardware. The [clickable static preview above](https://remappingbridge.github.io/) is an illustration derived from the site's published HTML/CSS and canonical v3.2.4 HOME text; it **does not execute inside GitHub**.
+Open the **[RemappingBridge interactive simulator](https://remappingbridge.github.io/)** to explore the LCD and nine HAT controls before assembling hardware. The live application opens on GitHub Pages; it does **not** run inside the README.
 
 ### Five-minute guided demo: HOME → Movement → Modifier
 
