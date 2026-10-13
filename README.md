@@ -68,7 +68,7 @@ Hardware identification, component illustrations and safe physical assembly are 
 
 Use the **[latest GitHub release page](https://github.com/remappingbridge/remappingbridge/releases/latest)** for the current downloadable firmware and its checksum file. Direct UF2 filenames contain version numbers and must be checked against the current release; complete installation instructions will be maintained in the dedicated installation guide.
 
-**Update precautions:** normal firmware updates use the UF2/BOOTSEL route without erasing the full flash. Saved BLE bonds and per-mouse settings should be preserved during normal supported upgrades. **Do not use `flash_nuke` as a routine update step.** Downgrading from v3 to v2 can lose or reset newer shortcut/profile preferences because v2 does not understand the v3 schema; record your mappings and consult the release documentation first.
+**Update precautions:** normal firmware updates use the UF2/BOOTSEL route without erasing the full flash. Supported migration from earlier global v2 profiles to v3 records is documented in the release history; saved BLE bonds and per-mouse Movement data are stored separately and should not be erased during normal supported upgrades. **Do not use `flash_nuke` as a routine update step.** Downgrading from v3 to v2 can lose or reset newer shortcut/profile preferences because v2 does not understand the v3 schema; record your mappings and consult the release documentation first.
 
 ## Documentation, support and license
 
@@ -78,3 +78,7 @@ Use the **[latest GitHub release page](https://github.com/remappingbridge/remapp
 - [Source code](src/), [tests](tests/) and [license](LICENSE).
 
 **Public documentation language:** English. The firmware's source-controlled 9 × 21 screen text and semantic colors remain authoritative; documentation does not change those firmware strings. There is **no firmware change, new release or UF2 build** associated with this README revision.
+
+### Development and diagnostics boundary
+
+The production firmware intentionally does not add a debug USB CDC/UART interface, a debug screen or a separate diagnostic firmware identity. Troubleshooting uses source/host tests and the physical device UI. The web-only Inspector is not part of the Pico firmware.
