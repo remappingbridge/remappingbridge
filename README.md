@@ -37,7 +37,7 @@ No special RemappingBridge software to install on a compatible computer. Pair a 
 
 - [Why use it?](#why-use-it)
 - [How it works](#how-it-works)
-- [Features in current firmware](#features-in-current-firmware)
+- [Features](#features)
 - [Try it in your browser](#try-it-in-your-browser)
 - [Hardware and safe assembly](#hardware-and-safe-assembly)
 - [What you need to know about compatibility](#what-you-need-to-know-about-compatibility)
@@ -66,7 +66,7 @@ Mouse customization is often tied to a particular computer or installed utility.
 
 The USB cable carries HID input **to** the host. The firmware does not browse the host's files, read application state or automatically know which application is focused.
 
-## Features in current firmware
+## Features
 
 - **Two mapping profiles — Passthrough and Custom.** Passthrough keeps ordinary mouse button behavior. Custom maps the five mouse buttons (Left, Right, Middle, Forward and Backward), including the option to designate **one** as a Modifier.
 - **Modifier Shortcuts:** up to **12 combinations** involving Modifier release, other buttons, wheel scrolling and pointer movement; select among **30 keyboard/media actions**. The Modifier's own button combination is unavailable rather than treated as another ordinary click.
@@ -98,7 +98,7 @@ Open the **[RemappingBridge interactive simulator](https://remappingbridge.githu
 
 **Navigation cheatsheet:** joystick directions move the selection, **JOY PRESS** opens, **KEY A** applies where offered, **KEY B** returns/cancels on most pages, **KEY X** displays Help where available and **KEY Y** controls LCD Lock. Some screens deliberately have different hints; follow the text shown on the virtual LCD.
 
-The single-page simulator includes **45 canonical firmware screens**, the three visual demo states (*Searching First Mouse*, *First Mouse Connected*, *Home Connected*), a **Virtual Mouse Lab** for local simulated pairing, saved-device profiles and failures, and an optional diagnostic Inspector. Its [browser test page](https://remappingbridge.github.io/tests/) uses separate temporary test data.
+The simulator includes **45 LCD screens**, three demo states (*Searching First Mouse*, *First Mouse Connected*, *Home Connected*) and a **Virtual Mouse Lab** for pairing experiments and saved mouse profiles. An optional Inspector is also available.
 
 **Important:** the website is a simulation. It does **not** connect to a real Bluetooth mouse, control a physical Pico, send HID shortcuts to your computer or install firmware. Mouse names and profiles created in the main Virtual Mouse Lab are local browser data, not physical Pico records. GitHub README pages cannot embed the live JavaScript application; use the link above.
 
@@ -139,26 +139,10 @@ These are **mechanical assembly precautions only**. For BOOTSEL, UF2 installatio
 
 ![Original front-view diagram of the blue Waveshare Pico-LCD-1.3: joystick UP, DOWN, LEFT, RIGHT and PRESS at the left, 240 by 240 LCD in the middle, four right-side buttons A, B, X and Y, and the exact RemappingBridge firmware GPIO assignments for all nine input actions.](docs/assets/pico-lcd-controls-map.svg)
 
-[Open the enlarged nine-control diagram](docs/assets/pico-lcd-controls-map.svg). **JOY PRESS** means **press the joystick inward**; it is separate from moving it in four directions. Physical A/B/X/Y buttons are on the **right** of the display when viewed from the front.
+[Open the nine-control diagram at full size](docs/assets/pico-lcd-controls-map.svg). **JOY PRESS** means pressing the joystick inward. The A/B/X/Y buttons are on the right of the display. The supported LCD module already connects these controls through its headers; no additional wiring is needed.
 
-<details>
-<summary><strong>Source-verified GPIO mapping (for technical readers)</strong></summary>
 
-The map below is taken from the actual firmware [`include/blu2usb/hat/hat.h`](include/blu2usb/hat/hat.h), not inferred from the browser simulator:
-
-| Control | Pico GPIO | Control | Pico GPIO |
-| --- | --- | --- | --- |
-| JOY UP | GP2 | KEY A | GP15 |
-| JOY PRESS | GP3 | KEY B | GP17 |
-| JOY LEFT | GP16 | KEY X | GP19 |
-| JOY DOWN | GP18 | KEY Y | GP21 |
-| JOY RIGHT | GP20 | — | — |
-
-The current LCD driver [`src/renderer/st7789_pico.c`](src/renderer/st7789_pico.c) uses **SPI1: SCK GP10, MOSI GP11**, plus **D/C GP8, CS GP9, RESET GP12, backlight GP13**. These are the GPIO **signals inside the Pico/HAT connector**, not instructions to wire an unrelated LCD manually.
-
-</details>
-
-**Documentation and image provenance:** The two assembly/control drawings are **original SVGs created for this repository** and distributed under the repository's [license](LICENSE); they do not embed third-party imagery. The two product photographs near the top are externally hosted and attributed to their source sites. Hardware specifications and mechanical compatibility are grounded in the [Raspberry Pi Pico 2 W documentation](https://www.raspberrypi.com/products/raspberry-pi-pico-2/), the [Waveshare Pico-LCD-1.3 / SKU 19650 page](https://www.waveshare.com/Pico-LCD-1.3.htm), and the firmware source links above.
+The assembly and control diagrams are original illustrations. Product photos come from the linked sources. For hardware details, see [Raspberry Pi](https://www.raspberrypi.com/products/raspberry-pi-pico-2/) and [Waveshare](https://www.waveshare.com/Pico-LCD-1.3.htm).
 
 ## What you need to know about compatibility
 
@@ -172,7 +156,7 @@ For the correct components, GPIO controls, connector alignment and mechanical pr
 
 ## Download and install on a Raspberry Pi Pico 2 W
 
-**Stable release checked October 13, 2026: [v3.2.4](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.4)** (published October 12, 2026). The [release notes](docs/releases/v3.2.4.md) describe the generic Zoom In change and application-dependent limitations.
+**Firmware: [v3.2.4](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.4).** See the [release notes](docs/releases/v3.2.4.md) for changes and compatibility notes, or [check for a newer release](https://github.com/remappingbridge/remappingbridge/releases/latest).
 
 | Download | Verified release asset |
 | --- | --- |
@@ -230,17 +214,10 @@ The BOOTSEL + UF2 steps and the **`RP2350` / `RPI-RP2`** volume names follow the
 - **Normal updates:** use the same BOOTSEL/UF2 procedure. **Do not run `flash_nuke` or mass-erase the flash for an ordinary firmware update**; erasure can destroy stored BLE bonds and preferences. Note your custom mappings before updating in case of an unexpected problem.
 - **Downgrades:** older v2 firmware does not understand all v3 profile and shortcut records; returning to v2 may reset or lose newer preferences. Consult the [release history](docs/releases/v3.0.0.md) and record settings before changing major versions. Never promise universal bond/profile preservation across incompatible firmware.
 - **Missing BOOTSEL drive:** first verify that the correct **Pico 2 W** is connected, the USB cable is **data-capable**, BOOTSEL was held while plugging in, and your computer can read USB mass-storage devices. Do not fix a cable or enumeration issue by formatting or erasing the board.
-- **Future releases:** a direct download URL containing `v3.2.4` is **version-specific, not permanently latest**. For new releases, always start at [`/releases/latest`](https://github.com/remappingbridge/remappingbridge/releases/latest), check its actual UF2 filename and matching `SHA256SUMS.txt`, and update the versioned links, filename, expected hash and release notes in this README when publishing the next version. Do not invent a `latest/download` URL with a changing versioned filename.
+- **Newer versions:** the direct UF2 link above downloads **v3.2.4**. For the newest available firmware and its matching checksum, use the [latest release page](https://github.com/remappingbridge/remappingbridge/releases/latest).
 
 ## Documentation, support and license
 
-- [Current v3.2.4 release notes](docs/releases/v3.2.4.md) and [v3.0.0 behavior/contract](docs/releases/v3.0.0.md).
-- [Movement Options history](https://github.com/remappingbridge/planner/tree/main/movement-options), [Modifier Shortcuts planning](https://github.com/remappingbridge/planner/tree/main/modifier-shortcuts) and [v3 maintenance decisions](https://github.com/remappingbridge/planner/tree/main/v3-maintenance).
-- [Browser simulator source](https://github.com/remappingbridge/remappingbridge.github.io) and [firmware issues](https://github.com/remappingbridge/remappingbridge/issues).
-- [Source code](src/), [tests](tests/) and [license](LICENSE).
-
-**Public documentation language:** English. The firmware's source-controlled 9 × 21 screen text and semantic colors remain authoritative; documentation does not change those firmware strings. There is **no firmware change, new release or UF2 build** associated with this README revision.
-
-### Development and diagnostics boundary
-
-The production firmware intentionally does not add a debug USB CDC/UART interface, a debug screen or a separate diagnostic firmware identity. Troubleshooting uses source/host tests and the physical device UI. The web-only Inspector is not part of the Pico firmware.
+- [Release notes](docs/releases/v3.2.4.md) and [older releases](https://github.com/remappingbridge/remappingbridge/releases).
+- [Interactive simulator](https://remappingbridge.github.io/) and [simulator source](https://github.com/remappingbridge/remappingbridge.github.io).
+- [Report an issue](https://github.com/remappingbridge/remappingbridge/issues) · [License](LICENSE).
