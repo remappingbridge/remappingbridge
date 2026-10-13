@@ -83,6 +83,64 @@ The single-page simulator includes **45 canonical firmware screens**, the three 
 
 **Important:** the website is a simulation. It does **not** connect to a real Bluetooth mouse, control a physical Pico, send HID shortcuts to your computer or install firmware. Mouse names and profiles created in the main Virtual Mouse Lab are local browser data, not physical Pico records. GitHub README pages cannot embed the live JavaScript application; use the link above.
 
+## Hardware and safe assembly
+
+The project uses two separate boards: the **Raspberry Pi Pico 2 W**, which runs the firmware and receives Bluetooth mouse input, and the **Waveshare Pico-LCD-1.3**, which provides the screen and nine physical controls. The RP2350 is the **microcontroller chip on the Pico 2 W**, not a standalone replacement board.
+
+### What to get
+
+| Item | Needed? | What to check |
+| --- | --- | --- |
+| [Raspberry Pi Pico **2 W**](https://www.raspberrypi.com/products/raspberry-pi-pico-2/) | **Required** | RP2350 board with on-board Bluetooth LE; the non-wireless Pico 2 does **not** replace it. |
+| [Waveshare **Pico-LCD-1.3**](https://www.waveshare.com/Pico-LCD-1.3.htm) | **Required** | **SKU 19650**, 1.3-inch IPS, **240 × 240** pixels, **ST7789 over SPI**, joystick and **four A/B/X/Y buttons**, with its Pico-style female headers. The Pico is not included with the LCD. |
+| Compatible BLE HID mouse | **Required** | Bluetooth Low Energy **HID-over-GATT (HOGP)**; USB receiver-only and Bluetooth Classic-only mice are not interchangeable. |
+| **Micro-USB data cable** | **Required** | Fits the Pico 2 W's Micro-USB port and reaches a USB HID-capable computer; a charge-only cable is insufficient. |
+| **Two 20-pin male header strips**, if not already fitted | **Conditional** | Needed for an unpopulated Pico 2 W to mate with the LCD module's female sockets; choose a correctly assembled/pre-soldered Pico if you do not solder. |
+| Insulating base, case or spacers | Optional | Protect exposed contacts and avoid shorts; leave the Pico wireless antenna clear of metal. |
+
+**Important:** buy the **Pico-LCD-1.3 for Pico**, not the similarly named **1.3inch LCD HAT for a full-size Raspberry Pi with a 40-pin GPIO connector**. Both the physical layout and software target are different.
+
+### What the two boards look like together
+
+![Original schematic illustration showing a green Raspberry Pi Pico 2 W board with its RP2350 chip, wireless section, Micro-USB socket and two rows of header pins next to the blue Waveshare Pico-LCD-1.3 module with a 240 by 240 LCD, left joystick and A/B/X/Y buttons, with a note to align the connectors while USB is disconnected.](docs/assets/pico-2w-lcd-assembly.svg)
+
+[Open the assembly illustration at full size](docs/assets/pico-2w-lcd-assembly.svg). This is an **original explanatory drawing**, not a scale drawing, hardware photograph, PCB electrical schematic or substitute for the manufacturers' pin-1 markings. The real hardware photographs remain at the top of this README.
+
+### Connect the boards safely
+
+1. **Disconnect power** from the Pico 2 W and remove the USB cable before touching the headers. Put both boards on a clean, nonconductive surface.
+2. **Check the Pico's pins.** The LCD has female sockets; the Pico needs two **straight, correctly fitted 20-pin male headers**. If your Pico has bare plated holes, use a pre-soldered board or have the headers fitted correctly; **do not press bare holes onto the LCD sockets**.
+3. **Verify orientation before inserting.** Identify the Pico 2 W and Pico-LCD-1.3 markings, connector rows, pin-1/silkscreen orientation and USB clearance using the [official Pico pinout/documentation](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html) and [Waveshare product resources](https://www.waveshare.com/Pico-LCD-1.3.htm). Align both complete **20-pin rows** with the corresponding sockets; never shift a row by one pin or rotate the board because it happens to fit mechanically.
+4. **Seat the board without force.** Check for bent pins or accidental contact with exposed metal. Gently and evenly connect the boards only when **all pin positions** align. Stop if they resist.
+5. **Connect the Pico's Micro-USB data port** to a compatible computer. Keep the wireless antenna area free from metal obstructions. The Pico presents USB HID; the BLE mouse connects wirelessly **to the Pico**, not to the computer's Bluetooth adapter.
+
+These are **mechanical assembly precautions only**. Firmware installation via BOOTSEL/UF2, exact release checksums and first-use firmware procedures are documented in their dedicated installation guide; do not erase flash or Bluetooth bonds merely to attach a display.
+
+### The nine physical HAT controls
+
+![Original front-view diagram of the blue Waveshare Pico-LCD-1.3: joystick UP, DOWN, LEFT, RIGHT and PRESS at the left, 240 by 240 LCD in the middle, four right-side buttons A, B, X and Y, and the exact RemappingBridge firmware GPIO assignments for all nine input actions.](docs/assets/pico-lcd-controls-map.svg)
+
+[Open the enlarged nine-control diagram](docs/assets/pico-lcd-controls-map.svg). **JOY PRESS** means **press the joystick inward**; it is separate from moving it in four directions. Physical A/B/X/Y buttons are on the **right** of the display when viewed from the front.
+
+<details>
+<summary><strong>Source-verified GPIO mapping (for technical readers)</strong></summary>
+
+The map below is taken from the actual firmware [`include/blu2usb/hat/hat.h`](include/blu2usb/hat/hat.h), not inferred from the browser simulator:
+
+| Control | Pico GPIO | Control | Pico GPIO |
+| --- | --- | --- | --- |
+| JOY UP | GP2 | KEY A | GP15 |
+| JOY PRESS | GP3 | KEY B | GP17 |
+| JOY LEFT | GP16 | KEY X | GP19 |
+| JOY DOWN | GP18 | KEY Y | GP21 |
+| JOY RIGHT | GP20 | — | — |
+
+The current LCD driver [`src/renderer/st7789_pico.c`](src/renderer/st7789_pico.c) uses **SPI1: SCK GP10, MOSI GP11**, plus **D/C GP8, CS GP9, RESET GP12, backlight GP13**. These are the GPIO **signals inside the Pico/HAT connector**, not instructions to wire an unrelated LCD manually.
+
+</details>
+
+**Documentation and image provenance:** The two assembly/control drawings are **original SVGs created for this repository** and distributed under the repository's [license](LICENSE); they do not embed third-party imagery. The two product photographs near the top are externally hosted and attributed to their source sites. Hardware specifications and mechanical compatibility are grounded in the [Raspberry Pi Pico 2 W documentation](https://www.raspberrypi.com/products/raspberry-pi-pico-2/), the [Waveshare Pico-LCD-1.3 / SKU 19650 page](https://www.waveshare.com/Pico-LCD-1.3.htm), and the firmware source links above.
+
 ## What you need to know about compatibility
 
 - **Input:** the firmware targets compatible **BLE HID-over-GATT mice**. A mouse that works only through a proprietary USB receiver or Bluetooth Classic is not automatically supported. Model-specific behavior may differ; Logitech Lift has targeted handling, not a general compatibility guarantee.
@@ -91,7 +149,7 @@ The single-page simulator includes **45 canonical firmware screens**, the three 
 - **Shortcuts:** a valid HID keyboard/media signal does not guarantee an action in every OS, browser, terminal or application. For example, **Zoom In** in v3.2.4 uses **Ctrl + Equal without Shift**, which works in the tested Obsidian/browser setup but may not trigger zoom in terminals expecting Ctrl + Shift + Equal. Brightness, Home and media-control behavior also depend on the host.
 - **Boundaries:** this is a mouse-input bridge and remapper, **not a general Bluetooth keyboard pairing utility, USB gamepad emulator or universal accessibility solution**. **LCD Lock only locks the device's on-screen interface**; it does not stop ordinary BLE/USB mouse input.
 
-Hardware identification, component illustrations and safe physical assembly are documented separately as that guide is finalized. Do not confuse the Pico display accessory with a 40-pin Raspberry Pi Linux LCD HAT.
+For the correct components, GPIO controls, connector alignment and mechanical precautions, see [Hardware and safe assembly](#hardware-and-safe-assembly) above. The Pico display accessory is not the 40-pin Raspberry Pi Linux LCD HAT.
 
 ## Current release and updates
 
