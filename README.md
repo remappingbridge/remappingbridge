@@ -1,14 +1,39 @@
 # RemappingBridge
 
-**Use a Bluetooth mouse as a configurable USB mouse, with on-device button mapping, pointer movement and keyboard shortcuts.**
+**Make your Bluetooth mouse work your way — on a pocket-sized device.**
 
-RemappingBridge is open-source firmware for the **Raspberry Pi Pico 2 W**. It connects to a compatible Bluetooth Low Energy (BLE) HID mouse, processes its input and presents **USB HID Mouse, Keyboard and Consumer Control** functions to a computer. The Pico handles the Bluetooth connection and settings; the computer does not need RemappingBridge-specific software.
+No special RemappingBridge software to install on a compatible computer. Pair a BLE mouse with the **Raspberry Pi Pico 2 W (RP2350)**, choose button actions and pointer behavior using the little LCD, and send standard USB HID input to the host.
 
-[**Try the interactive browser simulator**](https://remappingbridge.github.io/) · [Latest firmware release](https://github.com/remappingbridge/remappingbridge/releases/latest) · [Technical documentation](docs/releases/v3.2.4.md)
+### Try it. Get it.
 
-![Data flow: a Bluetooth LE HID mouse connects wirelessly to RemappingBridge on the Pico 2 W, with an LCD and joystick for settings; the Pico sends USB HID mouse, keyboard and media-control signals to the host computer.](docs/assets/remappingbridge-flow.svg)
+[**▶ OPEN THE LIVE SIMULATOR**](https://remappingbridge.github.io/) &nbsp; | &nbsp; [**⬇ DOWNLOAD FIRMWARE v3.2.4 (.UF2)**](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.4/remappingbridge-v3.2.4-pico2w.uf2)
 
-**In one line:** BLE HID mouse → Pico 2 W + LCD controls → USB HID → computer.
+[All releases / latest version](https://github.com/remappingbridge/remappingbridge/releases/latest) · [SHA-256 checksums for v3.2.4](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.4/SHA256SUMS.txt) · [Quick compatibility notes](#what-you-need-to-know-about-compatibility)
+
+### Two small boards. Lots of possibilities.
+
+<p align="center">
+  <a href="https://www.raspberrypi.com/news/raspberry-pi-pico-2-w-on-sale-now/"><img src="https://www.raspberrypi.com/app/uploads/2024/11/Pico-2-W-1-1024x684.jpg" width="46%" alt="Official photo of the green Raspberry Pi Pico 2 W wireless microcontroller board, with the RP2350 chip and Micro-USB port." /></a>
+  &nbsp;
+  <a href="https://www.waveshare.com/Pico-LCD-1.3.htm"><img src="https://www.welectron.com/mediafiles/productimg/waveshare/devkit/LCD/Pico-LCD-1.3/Pico-LCD-1.3-details-1.jpg" width="42%" alt="Product photo of the blue Waveshare Pico-LCD-1.3 module, showing the square color LCD and five-way joystick." /></a>
+</p>
+
+<p align="center">
+  <strong><a href="https://www.raspberrypi.com/news/raspberry-pi-pico-2-w-on-sale-now/">Raspberry Pi Pico 2 W (RP2350)</a></strong> &nbsp; · &nbsp;
+  <strong><a href="https://www.waveshare.com/Pico-LCD-1.3.htm">Waveshare Pico-LCD-1.3 (SKU 19650)</a></strong>
+</p>
+
+<sub>Hardware photos are displayed from the Raspberry Pi and Welectron websites and linked to the corresponding manufacturer product information; they are not photographs of a finished RemappingBridge assembly. The RP2350 is the chip inside the Pico 2 W board. The Pico-LCD-1.3 is the Pico accessory with joystick and four buttons, <strong>not</strong> the 40-pin Raspberry Pi LCD HAT.</sub>
+
+### What can you do?
+
+- **Make a mouse button your shortcut key.** Use one Modifier button for **12 combinations** and choose from **30 keyboard and media actions**.
+- **Make movement feel right.** Adjust horizontal and vertical speed separately, or rotate pointer movement by 90°, 180° or 270°.
+- **Keep settings with your mouse.** Save individual profiles on the device, then use them with a compatible USB host without installing this project's desktop app.
+
+**Curious?** [Explore the virtual HAT and LCD now — no hardware needed.](https://remappingbridge.github.io/) The website is a simulator, not a real Bluetooth pairing or firmware installer.
+
+---
 
 ## Why use it?
 
@@ -19,6 +44,12 @@ Mouse customization is often tied to a particular computer or installed utility.
 - **Different workstations:** carry saved mouse-specific settings on the Pico rather than relying on this project's utility being installed on each computer. The host still has to support the USB HID usages and any keyboard shortcuts selected.
 
 ## How it works
+
+### The signal path
+
+![Data flow: a Bluetooth LE HID mouse connects wirelessly to RemappingBridge on the Pico 2 W, with an LCD and joystick for settings; the Pico sends USB HID mouse, keyboard and media-control signals to the host computer.](docs/assets/remappingbridge-flow.svg)
+
+**BLE HID mouse → Pico 2 W + LCD controls → USB HID → computer.**
 
 1. **Bluetooth input:** a compatible BLE HID-over-GATT (HOGP) mouse pairs with the **Pico 2 W**, not with the computer's Bluetooth adapter.
 2. **On-device configuration:** the firmware applies the connected mouse's saved profile, custom button behavior, movement scaling/rotation and optional Modifier Shortcuts. The attached LCD and joystick/buttons provide the user interface.
