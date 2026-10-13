@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="660" viewBox="0 0 1220 660" role="img" aria-labelledby="hatmaptitle hatmapdesc">
+<title id="hatmaptitle">Nine physical Waveshare Pico-LCD-1.3 controls and firmware GPIO map</title>
+<desc id="hatmapdesc">Front-view conceptual diagram of the Waveshare Pico-LCD-1.3 module with joystick on the left and 240 by 240 display in the center, four buttons labeled A, B, X, Y on the right. JOY UP is GP2, JOY PRESS GP3, JOY LEFT GP16, JOY DOWN GP18, JOY RIGHT GP20; KEY A GP15, KEY B GP17, KEY X GP19, KEY Y GP21. Pin IDs are taken directly from the RemappingBridge firmware hat.h source, not a new hardware wiring requirement.</desc>
+<rect width="1220" height="660" fill="#101626" rx="25"/>
+
+<g font-family="Arial, Helvetica, sans-serif">
+  <text x="42" y="58" font-size="31" font-weight="bold" fill="#f5f8ff">Pico-LCD-1.3 · 9 physical HAT controls</text>
+  <text x="42" y="88" font-size="18" fill="#bed3eb">Front view · firmware GPIO numbers from include/blu2usb/hat/hat.h · not to scale</text>
+  <rect x="42" y="118" width="768" height="414" rx="23" fill="#175195" stroke="#94cfff" stroke-width="4"/>
+  <rect x="293" y="144" width="329" height="332" rx="11" fill="#070c16" stroke="#fa97ec" stroke-width="7"/>
+  <text x="458" y="283" font-size="23" fill="#cf91cf" text-anchor="middle">DISPLAY</text>
+  <text x="458" y="327" font-size="34" font-weight="bold" fill="#f5f6ff" text-anchor="middle">240 × 240</text>
+  <text x="458" y="368" font-size="20" fill="#bad7f1" text-anchor="middle">ST7789 · SPI</text>
+  <circle cx="173" cy="327" r="69" fill="#202d48" stroke="#d6ecff" stroke-width="5"/>
+  <circle cx="173" cy="327" r="29" fill="#a7bdd7"/>
+  <path d="M173 273 v-25 M173 381 v25 M119 327 h-25 M227 327 h25" stroke="#94f7e9" stroke-width="6" stroke-linecap="round"/>
+  <path d="M163 263 l10 -12 10 12 M163 391 l10 12 10 -12 M106 317 l-12 10 12 10 M240 317 l12 10 -12 10" fill="none" stroke="#94f7e9" stroke-width="4" stroke-linejoin="round"/>
+  <text x="173" y="220" font-size="19" fill="#ffffff" text-anchor="middle">JOY UP</text>
+  <text x="173" y="448" font-size="19" fill="#ffffff" text-anchor="middle">JOY DOWN</text>
+  <text x="173" y="480" font-size="17" fill="#f7e4ff" text-anchor="middle">Press inward = JOY PRESS</text>
+  <text x="56" y="335" font-size="17" fill="#f3faff" text-anchor="middle">LEFT</text>
+  <text x="271" y="335" font-size="17" fill="#f3faff" text-anchor="middle">RIGHT</text>
+  <rect x="660" y="166" width="84" height="54" rx="13" fill="#f1f7ff" stroke="#cad5e8" stroke-width="3"/><text x="702" y="202" font-size="28" font-weight="bold" text-anchor="middle" fill="#1c2945">A</text>
+<rect x="660" y="241" width="84" height="54" rx="13" fill="#f1f7ff" stroke="#cad5e8" stroke-width="3"/><text x="702" y="277" font-size="28" font-weight="bold" text-anchor="middle" fill="#1c2945">B</text>
+<rect x="660" y="316" width="84" height="54" rx="13" fill="#f1f7ff" stroke="#cad5e8" stroke-width="3"/><text x="702" y="352" font-size="28" font-weight="bold" text-anchor="middle" fill="#1c2945">X</text>
+<rect x="660" y="391" width="84" height="54" rx="13" fill="#f1f7ff" stroke="#cad5e8" stroke-width="3"/><text x="702" y="427" font-size="28" font-weight="bold" text-anchor="middle" fill="#1c2945">Y</text>
+  <text x="696" y="492" font-size="17" fill="#f5ffff" text-anchor="middle">KEYS A/B/X/Y</text>
+
+  <rect x="831" y="119" width="347" height="413" rx="19" fill="#1d2b43" stroke="#657d9e" stroke-width="2"/>
+  <text x="850" y="158" fill="#fff" font-size="24" font-weight="bold">Firmware GPIO map</text>
+  <text x="850" y="192" fill="#96f5ef" font-size="18" font-weight="bold">JOYSTICK</text>
+  <text x="854" y="225" fill="#e7edf8" font-size="19">JOY UP</text><text x="1155" y="225" fill="#fce39d" text-anchor="end" font-size="19">GP2</text>
+<text x="854" y="256" fill="#e7edf8" font-size="19">JOY PRESS</text><text x="1155" y="256" fill="#fce39d" text-anchor="end" font-size="19">GP3</text>
+<text x="854" y="287" fill="#e7edf8" font-size="19">JOY LEFT</text><text x="1155" y="287" fill="#fce39d" text-anchor="end" font-size="19">GP16</text>
+<text x="854" y="318" fill="#e7edf8" font-size="19">JOY DOWN</text><text x="1155" y="318" fill="#fce39d" text-anchor="end" font-size="19">GP18</text>
+<text x="854" y="349" fill="#e7edf8" font-size="19">JOY RIGHT</text><text x="1155" y="349" fill="#fce39d" text-anchor="end" font-size="19">GP20</text>
+  <text x="850" y="398" fill="#96f5ef" font-size="18" font-weight="bold">BUTTONS</text>
+  <text x="854" y="427" fill="#e7edf8" font-size="19">KEY A</text><text x="1155" y="427" text-anchor="end" fill="#fce39d" font-size="19">GP15</text>
+<text x="854" y="456" fill="#e7edf8" font-size="19">KEY B</text><text x="1155" y="456" text-anchor="end" fill="#fce39d" font-size="19">GP17</text>
+<text x="854" y="485" fill="#e7edf8" font-size="19">KEY X</text><text x="1155" y="485" text-anchor="end" fill="#fce39d" font-size="19">GP19</text>
+<text x="854" y="514" fill="#e7edf8" font-size="19">KEY Y</text><text x="1155" y="514" text-anchor="end" fill="#fce39d" font-size="19">GP21</text>
+  <rect x="42" y="547" width="1136" height="84" rx="15" fill="#26364b"/>
+  <text x="610" y="579" text-anchor="middle" fill="#f4f5ff" font-size="19" font-weight="bold">The left joystick moves 4 ways AND clicks inward (5 controls).</text>
+  <text x="610" y="607" text-anchor="middle" fill="#c8d9ee" font-size="18">Four right buttons (A, B, X, Y) complete the total of nine HAT controls.</text>
+</g>
+</svg>
