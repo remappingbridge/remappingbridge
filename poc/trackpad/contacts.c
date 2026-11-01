@@ -1,4 +1,5 @@
 #include "contacts.h"
+#include <string.h>
 
 static int signed13(unsigned value) {
     return (int)((value & 8191u) ^ 4096u) - 4096;
@@ -27,6 +28,9 @@ bool tp_decode(const uint8_t *data, size_t len, tp_frame *out) {
             axis(2478 - signed13((p[1] >> 5) | (p[2] << 3) | (p[3] << 11)), 5065)
         };
     }
+    next.record_count = (len - 4) / 9;
+    if (next.record_count > TP_SLOTS) next.record_count = TP_SLOTS;
+    memcpy(next.records, data + 4, next.record_count * 9);
     *out = next;
     return true;
 }
@@ -53,4 +57,18 @@ void tp_encode(const tp_frame *frame, const tp_report *previous,
             report.slot[report.count++] = pressed(id, frame->finger[id]);
     }
     *out = report;
+}
+
+size_t tp_apple_packet(const tp_frame *frame, uint16_t timestamp, uint8_t out[64]) {
+    memset(out, 0, 12);
+    out[0] = 2;
+    out[1] = frame->click;
+    out[7] = frame->record_count != 0;
+    out[8] = 0x31;
+    out[9] = (uint8_t)timestamp;
+    out[10] = (uint8_t)(timestamp >> 8);
+    out[11] = 0x88;
+    size_t bytes = frame->record_count * 9;
+    memcpy(out + 12, frame->records, bytes);
+    return 12 + bytes;
 }

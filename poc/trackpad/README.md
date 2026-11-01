@@ -1,8 +1,28 @@
 # Magic Trackpad 2 on Pico 2 W
 
-This experimental image connects one external Apple trackpad over Classic Bluetooth HID and presents a five-contact USB touchpad. The desktop interprets motion, taps, scrolling, pinching and swipes according to its gesture settings. Application-specific gestures depend on the application and desktop. The image forwards contact positions, identity, tip state and physical click. Pressure, Force Touch actions and host-controlled haptics are outside this implementation.
+The POC builds two USB profiles for the same Classic Bluetooth receiver. Select the UF2 for the test host.
 
-## Try the POC
+| Firmware | USB interface | Physical validation |
+| --- | --- | --- |
+| `magic_trackpad2_macos.uf2` | Experimental wired Magic Trackpad 2 emulation for macOS | Pending |
+| `magic_trackpad2.uf2` | Precision Touchpad for Windows/Linux | Pending |
+
+The macOS profile uses the wired MT2 identity, feature selection and activation handshake. It forwards the original contact records, including pressure and geometry, at a four-millisecond cadence. Its actuator interface accepts configuration, but does not forward haptic commands to the physical device. iPhone and Android behavior has not been validated.
+
+## Test on a Mac
+
+Hold BOOTSEL while connecting the Pico, then copy `magic_trackpad2_macos.uf2` to its boot volume. Disconnect the trackpad from the previous Bluetooth host, unplug its charging cable and turn it off and on. Keep the Pico on a USB data cable to the Mac. Move one finger, scroll a long Safari page with two fingers, then pinch a photo in Preview. Verify the relevant gestures are enabled in macOS Trackpad settings.
+
+| Pico LED after touching the pad | Stage |
+| --- | --- |
+| Off | No active Bluetooth connection attempt or contact stream |
+| Slow blink | Bluetooth HID connection in progress or waiting for Apple input |
+| Fast blink | Valid Apple Bluetooth input received, waiting for a completed USB contact transfer |
+| Solid | Mac enabled multitouch and the Pico completed a USB contact transfer |
+
+To inspect USB enumeration even if Bluetooth pairing fails, run `system_profiler SPUSBDataType | grep -i -A 12 'Magic Trackpad'`. To inspect HID transport, run `hidutil list | grep -i trackpad` and look for the USB device with vendor/product 0x05ac/0x0265. Record the final LED state and both outputs if gestures fail.
+
+## Test the Precision Touchpad profile
 
 1. Download the `magic-trackpad2-pico2w` artifact from a successful branch CI run. Unzip it. Hold BOOTSEL while plugging the Pico 2 W into USB, then copy `magic_trackpad2.uf2` to the mounted boot volume.
 2. Disconnect the trackpad from its previous host, unplug its charging cable, then turn it off and on near the Pico. The image automatically scans for a matching inquiry name or Apple product ID. For a renamed device without advertised identity, configure its Bluetooth address at build time. Only put the intended trackpad in pairing mode during discovery.
@@ -16,7 +36,7 @@ Use the project's pinned Pico SDK 2.2.0 and ARM toolchain, with PICO_SDK_PATH se
 ```sh
 cmake -S . -B build-trackpad -DPICO_BOARD=pico2_w \
   -DBLU2USB_BUILD_PICO=ON -DBLU2USB_BUILD_TESTS=OFF -DBLU2USB_BUILD_TRACKPAD=ON
-cmake --build build-trackpad --target magic_trackpad2 --parallel
+cmake --build build-trackpad --target magic_trackpad2 magic_trackpad2_macos --parallel
 ```
 
 The image is `build-trackpad/poc/trackpad/magic_trackpad2.uf2`. Add `-DTRACKPAD_ADDRESS=AA:BB:CC:DD:EE:FF` to the configure command to select a particular Classic Bluetooth address. The normal mouse/keyboard image is a separate target.
@@ -29,3 +49,5 @@ The image is `build-trackpad/poc/trackpad/magic_trackpad2.uf2`. Add `-DTRACKPAD_
 - [BTstack HID host example](https://github.com/bluekitchen/btstack/blob/master/example/hid_host_demo.c) demonstrates Classic HID report mode.
 
 Host tests exercise synthetic contact data. Physical pairing, desktop recognition and the gesture matrix require a Pico 2 W and trackpad.
+
+The Apple HID descriptor and feature data are device-capture values documented in [bt2usb](https://github.com/timothyb89/bt2usb/tree/53ecc1f728a44fdf20b7c950bd37c1855937b749/notes/mt2-translation). Its macOS tests informed the separate Apple profile, initialization sequence and regular USB frame timing.

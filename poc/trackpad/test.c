@@ -1,5 +1,6 @@
 #include "contacts.h"
 #include <assert.h>
+#include <string.h>
 int main(void) {
     uint8_t raw[4 + 5 * 9] = {0x31, 1};
     for (unsigned i = 0; i < 5; i++) {
@@ -9,6 +10,11 @@ int main(void) {
     tp_frame f = {0};
     tp_report prev = {0}, out;
     assert(tp_decode(raw, sizeof raw, &f));
+    uint8_t apple[64];
+    assert(tp_apple_packet(&f, 0xabcd, apple) == 57);
+    assert(apple[0] == 2 && apple[1] == 1 && apple[7] == 1 && apple[8] == 0x31);
+    assert(apple[9] == 0xcd && apple[10] == 0xab && apple[11] == 0x88);
+    assert(!memcmp(apple+12, raw+4, 45));
     tp_encode(&f, &prev, 0xabcd, &out);
     assert(out.count == 5 && out.click && out.time_hi == 0xab);
     assert(out.slot[4].id == 13 && out.slot[4].flags == 3);
@@ -30,4 +36,5 @@ int main(void) {
     prev = out;
     tp_encode(&f, &prev, 1, &out);
     assert(out.count == 0);
+    assert(tp_apple_packet(&f, 0, apple) == 12 && !apple[1] && !apple[7]);
 }

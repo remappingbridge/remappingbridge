@@ -15,7 +15,7 @@ static btstack_packet_callback_registration_t registration;
 static bd_addr_t target, saved;
 static const btstack_tlv_t *tlv;
 static void *tlv_context;
-static bool descriptor_ready;
+static bool descriptor_ready, battery_probe_pending;
 static const uint8_t enable_multitouch[] = {2, 1};
 static bool target_known, scanning, connecting, working, dirty, streaming;
 static uint16_t cid;
@@ -41,7 +41,10 @@ static bool matches_trackpad(const uint8_t *event) {
 
 static void reset_session(void) {
     cid = 0;
-    connecting = streaming = descriptor_ready = false;
+    connecting = streaming = descriptor_ready = battery_probe_pending = false;
+#ifdef TRACKPAD_MACOS
+    trackpad_usb_reset_delivery();
+#endif
     latest = (tp_frame){0};
     dirty = true;
     next_attempt = btstack_run_loop_get_time_ms() + 2500;
@@ -113,6 +116,8 @@ static void packet(uint8_t type, uint16_t channel, uint8_t *p, uint16_t size) {
             break;
         }
         case HID_SUBEVENT_SET_REPORT_RESPONSE:
+            if (cid && !hid_subevent_set_report_response_get_handshake_status(p))
+                battery_probe_pending=true;
             if (hid_subevent_set_report_response_get_handshake_status(p))
                 printf("Multitouch feature handshake: %u\n",hid_subevent_set_report_response_get_handshake_status(p));
             break;
@@ -124,6 +129,9 @@ static void packet(uint8_t type, uint16_t channel, uint8_t *p, uint16_t size) {
 
 static void bluetooth_task(void) {
     uint32_t now = btstack_run_loop_get_time_ms();
+    /* BTstack restores the established state after the SET_REPORT callback. */
+    if (cid && battery_probe_pending &&
+        !hid_host_send_get_report(cid,HID_REPORT_TYPE_INPUT,0x90)) battery_probe_pending=false;
     if (cid && descriptor_ready && !streaming && (int32_t)(now-enable_deadline) >= 0) {
         uint8_t status = hid_host_send_set_report(cid,HID_REPORT_TYPE_FEATURE,0xf1,
                                                    enable_multitouch,sizeof(enable_multitouch));
@@ -162,6 +170,10 @@ int main(void) {
         cyw43_arch_poll();
         bluetooth_task();
         bool light = streaming || (cid && ((btstack_run_loop_get_time_ms() / 350) & 1));
+#ifdef TRACKPAD_MACOS
+        if (streaming && !trackpad_usb_delivered())
+            light = (btstack_run_loop_get_time_ms() / 100) & 1;
+#endif
         if (light != led) {
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN,light);
             led = light;

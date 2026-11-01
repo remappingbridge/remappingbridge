@@ -19,7 +19,11 @@
 #define CFG_TUD_ENDPOINT0_SIZE 64
 #endif
 
+#ifdef TRACKPAD_MACOS
+#define CFG_TUD_HID 3
+#else
 #define CFG_TUD_HID 1
+#endif
 #define CFG_TUD_CDC 0
 #define CFG_TUD_MSC 0
 #define CFG_TUD_MIDI 0
