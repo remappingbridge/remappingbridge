@@ -1,20 +1,27 @@
 #include "btstack.h"
+#include "btstack_tlv.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
-#include "tusb.h"
+#include "usb.h"
 #include "contacts.h"
 #include <stdio.h>
 #include <string.h>
 
-extern uint8_t tp_mode, tp_switches;
+
 static uint8_t descriptor_storage[4096];
 static btstack_packet_callback_registration_t registration;
-static bd_addr_t target;
+/* Restore only devices that have actually produced a valid Apple frame. */
+#define TRACKPAD_TLV_TAG 0x54504144u
+static bd_addr_t target, saved;
+static const btstack_tlv_t *tlv;
+static void *tlv_context;
+static bool descriptor_ready;
+static const uint8_t enable_multitouch[] = {2, 1};
 static bool target_known, scanning, connecting, working, dirty, streaming;
 static uint16_t cid;
 static uint32_t next_attempt, enable_deadline;
 static tp_frame latest;
-static tp_report delivered;
+
 
 static bool matches_trackpad(const uint8_t *event) {
     if (gap_event_inquiry_result_get_device_id_available(event)) {
@@ -34,7 +41,7 @@ static bool matches_trackpad(const uint8_t *event) {
 
 static void reset_session(void) {
     cid = 0;
-    connecting = streaming = false;
+    connecting = streaming = descriptor_ready = false;
     latest = (tp_frame){0};
     dirty = true;
     next_attempt = btstack_run_loop_get_time_ms() + 2500;
@@ -66,9 +73,15 @@ static void packet(uint8_t type, uint16_t channel, uint8_t *p, uint16_t size) {
     }
     case HCI_EVENT_HID_META:
         switch (hci_event_hid_meta_get_subevent_code(p)) {
-        case HID_SUBEVENT_INCOMING_CONNECTION:
-            hid_host_decline_connection(hid_subevent_incoming_connection_get_hid_cid(p));
+        case HID_SUBEVENT_INCOMING_CONNECTION: {
+            bd_addr_t peer;
+            hid_subevent_incoming_connection_get_address(p,peer);
+            uint16_t incoming = hid_subevent_incoming_connection_get_hid_cid(p);
+            if (!cid && !connecting && target_known && !memcmp(peer,target,sizeof(peer))) {
+                connecting = hid_host_accept_connection(incoming,HID_PROTOCOL_MODE_REPORT) == ERROR_CODE_SUCCESS;
+            } else hid_host_decline_connection(incoming);
             break;
+        }
         case HID_SUBEVENT_CONNECTION_OPENED:
             connecting = false;
             if (hid_subevent_connection_opened_get_status(p)) {
@@ -80,18 +93,21 @@ static void packet(uint8_t type, uint16_t channel, uint8_t *p, uint16_t size) {
             enable_deadline = btstack_run_loop_get_time_ms() + 5000;
             printf("Classic HID connected\n");
             break;
-        case HID_SUBEVENT_DESCRIPTOR_AVAILABLE: {
-            static const uint8_t enable[] = {2,1};
-            if (cid && (hid_subevent_descriptor_available_get_status(p) ||
-                hid_host_send_set_report(cid,HID_REPORT_TYPE_FEATURE,0xf1,enable,sizeof(enable))))
-                hid_host_disconnect(cid);
+        case HID_SUBEVENT_DESCRIPTOR_AVAILABLE:
+            descriptor_ready = hid_subevent_descriptor_available_get_status(p) == 0;
+            if (!descriptor_ready && cid) hid_host_disconnect(cid);
+            enable_deadline = btstack_run_loop_get_time_ms();
             break;
-        }
         case HID_SUBEVENT_REPORT: {
             const uint8_t *r = hid_subevent_report_get_report(p);
             unsigned n = hid_subevent_report_get_report_len(p);
             if (cid && n && r[0] == 0xa1 && tp_decode(r+1,n-1,&latest)) {
-                if (!streaming) printf("Apple multitouch active\n");
+                if (!streaming) {
+                    printf("Apple multitouch active\n");
+                    if (tlv && memcmp(saved,target,sizeof(saved)) &&
+                        !tlv->store_tag(tlv_context,TRACKPAD_TLV_TAG,target,sizeof(target)))
+                        memcpy(saved,target,sizeof(saved));
+                }
                 streaming = dirty = true;
             }
             break;
@@ -108,8 +124,10 @@ static void packet(uint8_t type, uint16_t channel, uint8_t *p, uint16_t size) {
 
 static void bluetooth_task(void) {
     uint32_t now = btstack_run_loop_get_time_ms();
-    if (cid && !streaming && (int32_t)(now-enable_deadline) >= 0) {
-        printf("Waiting for first touch report\n");
+    if (cid && descriptor_ready && !streaming && (int32_t)(now-enable_deadline) >= 0) {
+        uint8_t status = hid_host_send_set_report(cid,HID_REPORT_TYPE_FEATURE,0xf1,
+                                                   enable_multitouch,sizeof(enable_multitouch));
+        printf("Enable multitouch: %u (touch the surface)\n",status);
         enable_deadline = now + 10000;
     }
     if (!working || scanning || connecting || cid || (int32_t)(now-next_attempt)<0) return;
@@ -120,54 +138,15 @@ static void bluetooth_task(void) {
     } else scanning = gap_inquiry_start(4) == ERROR_CODE_SUCCESS;
 }
 
-static void usb_task(void) {
-    static uint8_t last_mode = 255, last_switches;
-    if (!tud_mounted()) {
-        delivered = (tp_report){0};
-        dirty = true;
-        last_mode = 255;
-        return;
-    }
-    if (tp_mode != last_mode || tp_switches != last_switches) dirty = true;
-    if (!dirty || !tud_hid_ready()) return;
-    tp_frame f = latest;
-    if (!(tp_switches & 1)) memset(f.finger,0,sizeof(f.finger));
-    if (!(tp_switches & 2)) f.click = false;
-    if (tp_mode == 0) {
-        /* Relative pointer compatibility when the host selects mouse mode. */
-        static int prior_id = -1;
-        static tp_contact prior;
-        if (last_mode != 0) prior_id = -1;
-        int id = 0;
-        while (id < 16 && !f.finger[id].down) id++;
-        int dx=0, dy=0;
-        if (id < 16 && id == prior_id) {
-            dx=((int)f.finger[id].x-prior.x)/8;
-            dy=((int)f.finger[id].y-prior.y)/8;
-        }
-        if (dx > 127) dx=127;
-        if (dx < -127) dx=-127;
-        if (dy > 127) dy=127;
-        if (dy < -127) dy=-127;
-        if (!tud_hid_mouse_report(6,f.click,dx,dy,0,0)) return;
-        prior_id=id;
-        if (id < 16) prior=f.finger[id];
-        delivered=(tp_report){0};
-    } else {
-        tp_report r;
-        tp_encode(&f,&delivered,(uint16_t)(time_us_64()/100),&r);
-        if (!tud_hid_report(1,&r,sizeof(r))) return;
-        delivered=r;
-    }
-    last_switches=tp_switches;
-    last_mode=tp_mode;
-    dirty=false;
-}
-
 int main(void) {
     stdio_init_all();
     if (cyw43_arch_init()) return 1;
-    tusb_init();
+    trackpad_usb_init();
+    btstack_tlv_get_instance(&tlv,&tlv_context);
+    if (tlv && tlv->get_tag(tlv_context,TRACKPAD_TLV_TAG,saved,sizeof(saved)) == sizeof(saved)) {
+        memcpy(target,saved,sizeof(target));
+        target_known = true;
+    }
     if (TRACKPAD_ADDRESS[0]) target_known = sscanf_bd_addr(TRACKPAD_ADDRESS,target);
     l2cap_init();
     hid_host_init(descriptor_storage,sizeof(descriptor_storage));
@@ -175,12 +154,18 @@ int main(void) {
     registration.callback=packet;
     hci_add_event_handler(&registration);
     hci_set_inquiry_mode(INQUIRY_MODE_RSSI_AND_EIR);
+    gap_connectable_control(1);
     gap_ssp_set_io_capability(SSP_IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
     hci_power_control(HCI_POWER_ON);
+    bool led = false;
     while (true) {
         cyw43_arch_poll();
         bluetooth_task();
-        tud_task();
-        usb_task();
+        bool light = streaming || (cid && ((btstack_run_loop_get_time_ms() / 350) & 1));
+        if (light != led) {
+            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN,light);
+            led = light;
+        }
+        trackpad_usb_task(&latest,&dirty);
     }
 }

@@ -6,7 +6,7 @@ This experimental image connects one external Apple trackpad over Classic Blueto
 
 1. Download the `magic-trackpad2-pico2w` artifact from a successful branch CI run. Unzip it. Hold BOOTSEL while plugging the Pico 2 W into USB, then copy `magic_trackpad2.uf2` to the mounted boot volume.
 2. Disconnect the trackpad from its previous host, unplug its charging cable, then turn it off and on near the Pico. The image automatically scans for a matching inquiry name or Apple product ID. For a renamed device without advertised identity, configure its Bluetooth address at build time. Only put the intended trackpad in pairing mode during discovery.
-3. Connect the Pico by a USB data cable to the test computer. Optional UART diagnostics (115200 baud, TX on GP0) distinguish discovery, HID connection, and the first Apple multitouch report. Touch the surface to trigger the latter.
+3. Connect the Pico by a USB data cable to the test computer. The onboard LED blinks while opening HID and turns solid after the first valid multitouch frame. A verified trackpad address is remembered across power cycles. Optional UART diagnostics (115200 baud, TX on GP0) distinguish discovery, HID connection, and the first Apple multitouch report. Touch the surface to trigger the latter.
 4. On Windows 10/11 check the Touchpad settings and configure three- and four-finger actions. On Linux use `libinput list-devices` and `sudo libinput debug-events`. Check click and drag, two-finger scrolling (both axes), pinch and three-/four-finger swipes. Lift one finger mid-gesture, disconnect mid-drag, then reconnect and repeat. On ChromeOS Flex test overview and desk switching with its own touchpad settings. Record OS, trackpad model and connection diagnostics with each result.
 
 ## Build locally

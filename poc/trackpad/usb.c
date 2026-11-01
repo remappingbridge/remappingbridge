@@ -1,5 +1,6 @@
 #include "tusb.h"
-#include "contacts.h"
+#include "usb.h"
+#include "pico/time.h"
 #include <string.h>
 
 /* Each logical Finger collection occupies one tp_slot. Coordinates are
@@ -70,3 +71,51 @@ void tud_hid_set_report_cb(uint8_t i,uint8_t id,hid_report_type_t type,const uin
     if (id == 4 && (buf[0] == 0 || buf[0] == 3)) tp_mode=buf[0];
     if (id == 5) tp_switches=buf[0] & 3;
 }
+
+static tp_report delivered;
+void trackpad_usb_init(void) { tud_init(0); }
+void trackpad_usb_task(const tp_frame *latest, bool *pending) {
+    tud_task();
+    static uint8_t last_mode = 255, last_switches;
+    if (!tud_mounted()) {
+        delivered = (tp_report){0};
+        *pending = true;
+        last_mode = 255;
+        return;
+    }
+    if (tp_mode != last_mode || tp_switches != last_switches) *pending = true;
+    if (!*pending || !tud_hid_ready()) return;
+    tp_frame f = *latest;
+    if (!(tp_switches & 1)) memset(f.finger,0,sizeof(f.finger));
+    if (!(tp_switches & 2)) f.click = false;
+    if (tp_mode == 0) {
+        /* Relative pointer compatibility when the host selects mouse mode. */
+        static int prior_id = -1;
+        static tp_contact prior;
+        if (last_mode != 0) prior_id = -1;
+        int id = 0;
+        while (id < 16 && !f.finger[id].down) id++;
+        int dx=0, dy=0;
+        if (id < 16 && id == prior_id) {
+            dx=((int)f.finger[id].x-prior.x)/8;
+            dy=((int)f.finger[id].y-prior.y)/8;
+        }
+        if (dx > 127) dx=127;
+        if (dx < -127) dx=-127;
+        if (dy > 127) dy=127;
+        if (dy < -127) dy=-127;
+        if (!tud_hid_mouse_report(6,f.click,dx,dy,0,0)) return;
+        prior_id=id;
+        if (id < 16) prior=f.finger[id];
+        delivered=(tp_report){0};
+    } else {
+        tp_report r;
+        tp_encode(&f,&delivered,(uint16_t)(time_us_64()/100),&r);
+        if (!tud_hid_report(1,&r,sizeof(r))) return;
+        delivered=r;
+    }
+    last_switches=tp_switches;
+    last_mode=tp_mode;
+    *pending=false;
+}
+

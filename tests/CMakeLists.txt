@@ -611,3 +611,7 @@ add_test(NAME mnt15_zoom_ctrl_equal_no_shift_and_usb_release
 
 add_test(NAME mnt15_zoom_source_only_action_26_changes
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_mnt15_zoom_source.py)
+
+add_executable(blu2usb_test_trackpad_contacts ${PROJECT_SOURCE_DIR}/poc/trackpad/test.c ${PROJECT_SOURCE_DIR}/poc/trackpad/contacts.c)
+target_compile_options(blu2usb_test_trackpad_contacts PRIVATE -UNDEBUG)
+add_test(NAME magic_trackpad2_contacts COMMAND blu2usb_test_trackpad_contacts)

@@ -164,9 +164,6 @@ if(BLU2USB_BUILD_TESTS)
     target_link_libraries(blu2usb_test_bootstrap PRIVATE blu2usb_contract)
     add_test(NAME bootstrap_contract COMMAND blu2usb_test_bootstrap)
 
-    add_executable(trackpad_contacts_test poc/trackpad/test.c poc/trackpad/contacts.c)
-    target_compile_options(trackpad_contacts_test PRIVATE -UNDEBUG)
-    add_test(NAME magic_trackpad2_contacts COMMAND trackpad_contacts_test)
     add_subdirectory(tests)
 
     add_test(

@@ -16,6 +16,12 @@ int main(void) {
     assert(!tp_decode(raw, sizeof raw - 1, &f));
     raw[12] = 10;
     assert(!tp_decode(raw, sizeof raw, &f));
+    /* Signed edge coordinates from the packed Apple format. */
+    uint8_t edge[13] = {0x31,0,0,0, 0x00,0xf0,0xff,0x80,0,0,0,0,15};
+    assert(tp_decode(edge,sizeof edge,&f));
+    assert(f.finger[15].x == 0 && f.finger[15].y == 431);
+    edge[0] = 2; /* A USB report must never enter the Bluetooth decoder. */
+    assert(!tp_decode(edge,sizeof edge,&f));
     prev = out;
     raw[1] = 0;
     assert(tp_decode(raw, 4, &f));
