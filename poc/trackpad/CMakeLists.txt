@@ -1,0 +1,12 @@
+set(TRACKPAD_ADDRESS "" CACHE STRING "Optional Classic Bluetooth address of the trackpad")
+if(TRACKPAD_ADDRESS AND NOT TRACKPAD_ADDRESS MATCHES "^([0-9a-fA-F][0-9a-fA-F]:)([0-9a-fA-F][0-9a-fA-F]:)([0-9a-fA-F][0-9a-fA-F]:)([0-9a-fA-F][0-9a-fA-F]:)([0-9a-fA-F][0-9a-fA-F]:)[0-9a-fA-F][0-9a-fA-F]$")
+    message(FATAL_ERROR "TRACKPAD_ADDRESS must use AA:BB:CC:DD:EE:FF format")
+endif()
+add_executable(magic_trackpad2 main.c usb.c contacts.c)
+target_include_directories(magic_trackpad2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(magic_trackpad2 PRIVATE CYW43_LWIP=0 TRACKPAD_ADDRESS="${TRACKPAD_ADDRESS}")
+target_link_libraries(magic_trackpad2 PRIVATE pico_stdlib pico_btstack_classic
+    pico_btstack_cyw43 pico_cyw43_arch_poll tinyusb_device)
+pico_enable_stdio_uart(magic_trackpad2 1)
+pico_enable_stdio_usb(magic_trackpad2 0)
+pico_add_extra_outputs(magic_trackpad2)

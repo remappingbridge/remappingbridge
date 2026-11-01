@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 option(BLU2USB_BUILD_PICO "Build the Raspberry Pi Pico 2 W production firmware" OFF)
+option(BLU2USB_BUILD_TRACKPAD "Build experimental Magic Trackpad 2 firmware" OFF)
 option(BLU2USB_BUILD_TESTS "Build host tests" ON)
 
 if(BLU2USB_BUILD_PICO)
@@ -163,6 +164,9 @@ if(BLU2USB_BUILD_TESTS)
     target_link_libraries(blu2usb_test_bootstrap PRIVATE blu2usb_contract)
     add_test(NAME bootstrap_contract COMMAND blu2usb_test_bootstrap)
 
+    add_executable(trackpad_contacts_test poc/trackpad/test.c poc/trackpad/contacts.c)
+    target_compile_options(trackpad_contacts_test PRIVATE -UNDEBUG)
+    add_test(NAME magic_trackpad2_contacts COMMAND trackpad_contacts_test)
     add_subdirectory(tests)
 
     add_test(
@@ -186,4 +190,9 @@ if(BLU2USB_BUILD_PICO)
     pico_enable_stdio_usb(blu2usb_picow 0)
     pico_enable_stdio_uart(blu2usb_picow 0)
     pico_add_extra_outputs(blu2usb_picow)
+endif()
+
+# Optional, independent firmware image for the Classic HID multitouch experiment.
+if(BLU2USB_BUILD_PICO AND BLU2USB_BUILD_TRACKPAD)
+    add_subdirectory(poc/trackpad)
 endif()

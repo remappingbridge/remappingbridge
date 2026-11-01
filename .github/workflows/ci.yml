@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - "poc/magic-trackpad-gestures"
       - "gate/**"
       - "planning/**"
       - "feature/modifier-shortcuts-**"
@@ -89,4 +90,18 @@ jobs:
         with:
           name: blu2usb-picow-production-pico2w
           path: build-pico/blu2usb_picow.uf2
+          if-no-files-found: error
+
+      - name: Build experimental Magic Trackpad 2 firmware
+        if: github.ref_name == 'poc/magic-trackpad-gestures' || github.head_ref == 'poc/magic-trackpad-gestures'
+        run: |
+          cmake -S . -B build-pico -DBLU2USB_BUILD_TRACKPAD=ON
+          cmake --build build-pico --target magic_trackpad2 --parallel
+
+      - name: Upload trackpad POC
+        if: github.ref_name == 'poc/magic-trackpad-gestures' || github.head_ref == 'poc/magic-trackpad-gestures'
+        uses: actions/upload-artifact@v4
+        with:
+          name: magic-trackpad2-pico2w
+          path: build-pico/poc/trackpad/magic_trackpad2.uf2
           if-no-files-found: error
