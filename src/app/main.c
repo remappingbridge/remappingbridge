@@ -31,7 +31,7 @@ static bool render_state(const blu2usb_display_hal_t *display,
     return blu2usb_renderer_render(display, &frame);
 }
 
-static int8_t clamp_i8(int32_t value)
+static int8_t clamp_i8(int64_t value)
 {
     if (value > INT8_MAX) return INT8_MAX;
     if (value < INT8_MIN) return INT8_MIN;
@@ -55,7 +55,8 @@ static void service_usb_mouse(blu2usb_hid_aggregator_t *aggregator,
     }
     int8_t dx = 0, dy = 0;
     blu2usb_movement_pipeline_next(motion, &dx, &dy);
-    const int8_t wheel = clamp_i8(output.wheel_vertical);
+    const int8_t wheel = settings.scroll_inverse
+        ? clamp_i8(-(int64_t)output.wheel_vertical) : clamp_i8(output.wheel_vertical);
     const int8_t pan = clamp_i8(output.wheel_horizontal);
     const bool relative = dx || dy || wheel || pan;
     const bool buttons_changed = !*last_valid || output.mouse_buttons != *last_buttons;
@@ -64,7 +65,8 @@ static void service_usb_mouse(blu2usb_hid_aggregator_t *aggregator,
     blu2usb_usb_hid_build_mouse_report(&report, output.mouse_buttons, dx, dy, wheel, pan);
     if (!blu2usb_usb_hid_pico_send_mouse(&report)) return;
     blu2usb_movement_pipeline_ack(motion, dx, dy);
-    (void)blu2usb_hid_aggregator_consume_relative(aggregator, 0, 0, wheel, pan);
+    (void)blu2usb_hid_aggregator_consume_relative(aggregator, 0, 0,
+        settings.scroll_inverse ? -(int32_t)wheel : wheel, pan);
     *last_buttons = output.mouse_buttons;
     *last_valid = true;
 }
@@ -279,8 +281,9 @@ static void handle_ux_command(blu2usb_ux_model_t *ux,
             blu2usb_ble_hogp_pico_set_current_movement(command.movement)) {
             blu2usb_ux_set_movement(ux, command.movement);
             if (ux->screen != BLU2USB_SCREEN_MOVEMENT_OPTIONS) {
+                ux->selection = (ux->screen == BLU2USB_SCREEN_SCROLL_INVERSE_ON ||
+                                 ux->screen == BLU2USB_SCREEN_SCROLL_INVERSE_OFF) ? 2u : 0u;
                 ux->screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
-                ux->selection = 0u;
             }
         }
         break;

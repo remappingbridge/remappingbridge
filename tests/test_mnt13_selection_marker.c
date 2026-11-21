@@ -24,7 +24,7 @@ static const menu_case_t menus[] = {
     {BLU2USB_SCREEN_MIDDLE_WILL_BECOME, 6u},
     {BLU2USB_SCREEN_FORWARD_WILL_BECOME, 6u},
     {BLU2USB_SCREEN_BACKWARD_WILL_BECOME, 6u},
-    {BLU2USB_SCREEN_MOVEMENT_OPTIONS, 3u},
+    {BLU2USB_SCREEN_MOVEMENT_OPTIONS, 4u},
     {BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI, 4u},
     {BLU2USB_SCREEN_HORIZONTAL_FAST_DPI, 4u},
     {BLU2USB_SCREEN_VERTICAL_SLOW_DPI, 4u},
@@ -45,8 +45,6 @@ static const menu_case_t menus[] = {
 
 static unsigned expected_row(blu2usb_screen_id_t screen, unsigned selection)
 {
-    if (screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && selection == 2u)
-        return 4u; /* Not the informational COUNTERCLOCKWISE row 3. */
     if (screen >= BLU2USB_SCREEN_COMBINATIONS_1 &&
         screen <= BLU2USB_SCREEN_COMBINATIONS_6)
         return 2u + 2u * selection; /* Second line: value/status, never label. */
@@ -159,7 +157,7 @@ static void test_no_menu_and_transition_cleanup(void)
     project_with_marker(&ux, &frame, -1);
     ux.screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
     ux.selection = 2u;
-    project_with_marker(&ux, &frame, 4);
+    project_with_marker(&ux, &frame, 3);
     ux.selection = 1u;
     project_with_marker(&ux, &frame, 2);
 }

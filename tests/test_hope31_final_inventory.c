@@ -39,6 +39,9 @@ static const screen_expectation_t expected[] = {
     {BLU2USB_SCREEN_HORIZONTAL_FAST_DPI, "HORIZONTAL FAST DPI"},
     {BLU2USB_SCREEN_VERTICAL_SLOW_DPI, "VERTICAL SLOW DPI"},
     {BLU2USB_SCREEN_VERTICAL_FAST_DPI, "VERTICAL FAST DPI"},
+    {BLU2USB_SCREEN_SCROLL_INVERSE_OFF, "SCROLL INVERSE OFF"},
+    {BLU2USB_SCREEN_SCROLL_INVERSE_ON, "SCROLL INVERSE ON"},
+    {BLU2USB_SCREEN_SCROLL_HELP, "SCROLL HELP"},
     {BLU2USB_SCREEN_ROTATION, "ROTATION"},
     {BLU2USB_SCREEN_HELP_SLOW_DPI, "SLOW DPI HELP"},
     {BLU2USB_SCREEN_HELP_FAST_DPI, "FAST DPI HELP"},
@@ -56,10 +59,10 @@ static const screen_expectation_t expected[] = {
     {BLU2USB_SCREEN_SHORTCUTS_5, "SHORTCUTS 25-30 OF 30"},
 };
 
-_Static_assert(BLU2USB_SCREEN_COUNT == 45,
-               "HOPE-31 final inventory MOD-01 must contain 45 screens after retiring four presets");
-_Static_assert(sizeof(expected) / sizeof(expected[0]) == 45,
-               "HOPE-31 expected-title inventory must contain 45 screens");
+_Static_assert(BLU2USB_SCREEN_COUNT == 48,
+               "HOPE-31 final inventory MOD-01 must contain 48 screens after retiring four presets");
+_Static_assert(sizeof(expected) / sizeof(expected[0]) == 48,
+               "HOPE-31 expected-title inventory must contain 48 screens");
 
 static void test_exact_inventory(void)
 {

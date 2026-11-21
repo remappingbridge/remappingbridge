@@ -254,7 +254,7 @@ static void test_saved_shortcut_focus_and_lock(void)
 }
 int main(void)
 {
-    assert(BLU2USB_SCREEN_COUNT==45);
+    assert(BLU2USB_SCREEN_COUNT==48);
     for(unsigned i=1;i<=30;++i)assert(strcmp(blu2usb_ux_shortcut_name(i),names[i-1])==0);
     test_pages_and_commit();
     test_reset_and_restored_combo();

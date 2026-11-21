@@ -195,7 +195,6 @@ static int selected_row(const blu2usb_ux_model_t *ux)
     case BLU2USB_SCREEN_COMBINATIONS_6:
         return (int)(1u + 2u * (ux->selection % BLU2USB_COMBINATIONS_PER_PAGE));
     case BLU2USB_SCREEN_MOVEMENT_OPTIONS:
-        return (int)(ux->selection == 2u ? 4u : 1u + ux->selection);
     case BLU2USB_SCREEN_HORIZONTAL_SLOW_DPI:
     case BLU2USB_SCREEN_HORIZONTAL_FAST_DPI:
     case BLU2USB_SCREEN_VERTICAL_SLOW_DPI:
@@ -324,6 +323,12 @@ static void project_movement_options(const blu2usb_ux_model_t *ux,
     (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
     (void)blu2usb_ui_frame_set_tone_span(frame, 2u, 14u,
                 (uint8_t)strlen(vertical), BLU2USB_UI_TONE_CURRENT);
+    clear_row(frame, 3u);
+    const char *scroll = ux->movement_current.scroll_inverse ? "ON" : "OFF";
+    (void)snprintf(line, sizeof(line), " SCROLL INVERSE %s", scroll);
+    (void)blu2usb_ui_frame_set_text(frame, 3u, 0u, line, BLU2USB_UI_TONE_ACTIONABLE);
+    (void)blu2usb_ui_frame_set_tone_span(frame, 3u, 16u,
+                (uint8_t)strlen(scroll), BLU2USB_UI_TONE_CURRENT);
     clear_row(frame, 4u);
     (void)snprintf(line, sizeof(line), " ROTATION %u-DEGREE",
                    (unsigned)ux->movement_current.rotation_quadrants * 90u);
@@ -614,8 +619,6 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     }
 
     const int selected = selected_row(ux);
-    if (ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS && ux->selection == 2u)
-        focus_row(frame, 3u);
     if (selected >= 0 && selected < (int)BLU2USB_RENDERER_TEXT_ROWS) focus_row(frame,(uint8_t)selected);
     if (blu2usb_ux_is_combinations_screen(ux->screen) &&
         selected >= 1 && selected <= 3)

@@ -50,7 +50,8 @@ static void open_rotation(blu2usb_ux_model_t *ux)
     assert(ux->screen == BLU2USB_SCREEN_MOVEMENT_OPTIONS);
     tap(ux, BLU2USB_CONTROL_JOY_DOWN);
     tap(ux, BLU2USB_CONTROL_JOY_DOWN);
-    assert(ux->selection == 2u);
+    tap(ux, BLU2USB_CONTROL_JOY_DOWN);
+    assert(ux->selection == 3u);
     tap(ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux->screen == BLU2USB_SCREEN_ROTATION);
 }
@@ -132,7 +133,7 @@ static void test_four_angles_apply_only_after_storage_and_reset(void)
         /* main.c acknowledges movement write before replacing the screen. */
         blu2usb_ux_set_movement(&ux, cmd.movement);
         ux.screen = BLU2USB_SCREEN_MOVEMENT_OPTIONS;
-        ux.selection = 2u;
+        ux.selection = 3u;
         draw(&ux, &frame);
         expect_row(&frame, 1u, " HORIZONTAL DPI 2");
         expect_row(&frame, 2u, " VERTICAL DPI 0.75");

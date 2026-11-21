@@ -25,8 +25,8 @@
 #define BLE_HOGP_PROFILE_VERSION 1u
 #define BLE_HOGP_PROFILE_ENTRY_SIZE (1u + 1u + 6u + 16u + BLU2USB_PROFILE_V3_SERIALIZED_SIZE)
 #define BLE_HOGP_PROFILE_PAYLOAD_SIZE (1u + BLE_HOGP_SAVED_REGISTRY_CAPACITY * BLE_HOGP_PROFILE_ENTRY_SIZE)
-#define BLE_HOGP_MOVEMENT_VERSION 1u
-#define BLE_HOGP_MOVEMENT_ENTRY_SIZE (1u + 1u + 6u + 16u + 3u)
+#define BLE_HOGP_MOVEMENT_VERSION 2u
+#define BLE_HOGP_MOVEMENT_ENTRY_SIZE (1u + 1u + 6u + 16u + 4u)
 #define BLE_HOGP_MOVEMENT_PAYLOAD_SIZE (1u + 8u * BLE_HOGP_MOVEMENT_ENTRY_SIZE)
 #define BLE_HOGP_SAVED_REGISTRY_V1_ENTRY_SIZE \
     (1u + 1u + 6u + BLE_HOGP_SAVED_NAME_CAPACITY)
@@ -657,7 +657,9 @@ static void movements_load(void)
     if (tlv == NULL || context == NULL) return;
     uint8_t bytes[BLE_HOGP_MOVEMENT_PAYLOAD_SIZE] = {0};
     const int n = tlv->get_tag(context, BLE_HOGP_MOVEMENT_TAG, bytes, sizeof(bytes));
-    if (n != (int)sizeof(bytes) || bytes[0] != BLE_HOGP_MOVEMENT_VERSION) return;
+    const bool legacy = bytes[0] == 1u &&
+        n == (int)(sizeof(bytes) - BLE_HOGP_SAVED_REGISTRY_CAPACITY);
+    if (!legacy && (n != (int)sizeof(bytes) || bytes[0] != BLE_HOGP_MOVEMENT_VERSION)) return;
     size_t p = 1u;
     for (unsigned i = 0; i < BLE_HOGP_SAVED_REGISTRY_CAPACITY; ++i) {
         ble_hogp_saved_movement_t *item = &g_movements[i];
@@ -668,6 +670,7 @@ static void movements_load(void)
         item->settings.horizontal_quarters = bytes[p++];
         item->settings.vertical_quarters = bytes[p++];
         item->settings.rotation_quadrants = bytes[p++];
+        item->settings.scroll_inverse = !legacy && bytes[p++] != 0u;
         if (!item->used || !blu2usb_movement_valid(item->settings))
             memset(item, 0, sizeof(*item));
     }
@@ -691,6 +694,7 @@ static bool movements_store(void)
         bytes[p++] = item->settings.horizontal_quarters;
         bytes[p++] = item->settings.vertical_quarters;
         bytes[p++] = item->settings.rotation_quadrants;
+        bytes[p++] = item->settings.scroll_inverse ? 1u : 0u;
     }
     return tlv->store_tag(context, BLE_HOGP_MOVEMENT_TAG, bytes, sizeof(bytes)) == 0;
 }
