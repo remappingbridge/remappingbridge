@@ -160,7 +160,7 @@ For the correct components, GPIO controls, connector alignment and mechanical pr
 
 | Download | Verified release asset |
 | --- | --- |
-| **[Download RemappingBridge v3.3.0 (.UF2)](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/remappingbridge-v3.3.0-pico2w.uf2)** | `remappingbridge-v3.3.0-pico2w.uf2` |
+| **[Download RemappingBridge v3.3.0 (.UF2)](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/remappingbridge-v3.3.0-pico2w.uf2)** | `remappingbridge-v3.3.0-pico2w.uf2` — **955,392 bytes** |
 | [Download SHA-256 checksums](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/SHA256SUMS.txt) | `SHA256SUMS.txt` for this same release |
 | **[Find the latest release](https://github.com/remappingbridge/remappingbridge/releases/latest)** | Stable URL that keeps pointing to the newest published release |
 
@@ -168,7 +168,7 @@ For the correct components, GPIO controls, connector alignment and mechanical pr
 
 ### 1. Verify the downloaded file (recommended)
 
-Download the **UF2 and `SHA256SUMS.txt` from the same v3.3.0 release** into one folder.
+Download the **UF2 and `SHA256SUMS.txt` from the same v3.3.0 release** into one folder. The published UF2 has SHA-256 `463298b41fab33f5f07f68a3aa4a2d4b43d0fc44cd3661aa38f5d98f3c4d4cd0`.
 
 On **Linux**, open a terminal in the download folder and run:
 
