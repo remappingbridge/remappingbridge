@@ -48,6 +48,6 @@ assert "last_consumer_sent != 0u" in app
 assert "blu2usb_usb_hid_pico_send_consumer(0u)" in app
 assert "movements_remove_identity" in ble  # identity-scoped removal
 assert "gap_load_resolving_list_from_le_device_db" in ble
-assert "row == 1u && connected_name" in renderer
+assert "row <= 4u && connected_status" in renderer
 assert "BLU2USB_UI_TONE_STATIC" in renderer
 print("MOD-10 release security and ABI invariants: PASS")
