@@ -12,7 +12,7 @@ static void check_profile(blu2usb_ux_model_t *ux, unsigned page,
     blu2usb_ui_enforce_applied_visual_contract(ux, &frame);
     char row[BLU2USB_RENDERER_TEXT_COLS + 1u];
     for (unsigned i=0u; i<BLU2USB_RENDERER_TEXT_COLS; ++i)
-        row[i]=frame.cells[2][i].character;
+        row[i]=frame.cells[1][i].character;
     row[BLU2USB_RENDERER_TEXT_COLS] = '\0';
     unsigned end=BLU2USB_RENDERER_TEXT_COLS;
     while(end>0u && row[end-1u]==' ') row[--end]='\0';

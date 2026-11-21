@@ -33,19 +33,23 @@ static void check_names(const char *ble_name, const char *want)
     assert(strcmp(rendered,want)==0);
     assert(strlen(rendered)<=BLU2USB_RENDERER_TEXT_COLS);
     assert(f.cells[0][0].tone==BLU2USB_UI_TONE_TITLE);
+    char saved_title[22];
+    snprintf(saved_title,sizeof(saved_title),"1 %.19s",want);
+    if (strcmp(want,"ABCDEFGHIJKLMNO MOUSE")==0)
+        strcpy(saved_title,"1 ABCDEFGHIJKLM MOUSE");
     ux.screen=BLU2USB_SCREEN_SAVED_DEVICES;
     ux.saved_page=0u;
     blu2usb_ui_project(&ux,&f);
     blu2usb_ui_enforce_applied_visual_contract(&ux,&f);
-    row_text(&f,1u,rendered);
-    assert(strcmp(rendered,want)==0);
+    row_text(&f,0u,rendered);
+    assert(strcmp(rendered,saved_title)==0);
     assert(strlen(rendered)<=BLU2USB_RENDERER_TEXT_COLS);
     /* Reconnection/page navigation cannot append a second suffix. */
     blu2usb_ux_set_mouse_connected(false);
     blu2usb_ux_set_saved_connected_bond(&ux,-1);
     blu2usb_ui_project(&ux,&f);
-    row_text(&f,1u,rendered);
-    assert(strcmp(rendered,want)==0);
+    row_text(&f,0u,rendered);
+    assert(strcmp(rendered,saved_title)==0);
 }
 int main(void)
 {

@@ -106,7 +106,7 @@ static bool home_renderer_supported(unsigned char value)
     return strchr(" -:.=/\\><?!,()", (int)value) != NULL;
 }
 
-static void home_title(const char *input,
+static void home_title(const char *input, size_t max_width,
                        char out[BLU2USB_RENDERER_TEXT_COLS + 1u])
 {
     char upper[BLU2USB_UX_MOUSE_NAME_CAPACITY];
@@ -149,8 +149,9 @@ static void home_title(const char *input,
         return;
     }
 
-    if (length > 15u) {
-        length = 15u;
+    const size_t base_limit = contains_mouse ? 15u : max_width - 6u;
+    if (length > base_limit) {
+        length = base_limit;
         out[length] = '\0';
     }
 
@@ -241,41 +242,36 @@ static void project_saved_devices(const blu2usb_ux_model_t *ux,
     char dpi[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char rot[BLU2USB_RENDERER_TEXT_COLS + 1u];
     const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
+    if (bond < 0) return; /* Empty-state template already has disabled removal. */
     const bool current = blu2usb_ux_mouse_connected() &&
-                         bond >= 0 && bond == ux->saved_connected_bond;
+                         bond == ux->saved_connected_bond;
     const char *saved_name =
-        bond >= 0 && (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE &&
         ux->saved_mouse_names[bond][0] != '\0'
             ? ux->saved_mouse_names[bond]
             : (current ? ux->current_mouse_name : NULL);
     const blu2usb_movement_settings_t settings =
-        bond >= 0 && (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE ?
-        ux->saved_movements[bond] : blu2usb_movement_defaults();
+        ux->saved_movements[bond];
     char h[7], v[7];
     (void)snprintf(h, sizeof(h), "%s", movement_gain_name(settings.horizontal_quarters));
     (void)snprintf(v, sizeof(v), "%s", movement_gain_name(settings.vertical_quarters));
     h[strlen(h)-1u] = '\0';
     v[strlen(v)-1u] = '\0';
-    (void)snprintf(title, sizeof(title), "%u OF %u",
-                   ux->saved_device_count ? ux->saved_page + 1u : 0u,
-                   ux->saved_device_count);
-    home_title(saved_name, name);
+    home_title(saved_name, BLU2USB_RENDERER_TEXT_COLS - 2u, name);
+    (void)snprintf(title, sizeof(title), "%c %.19s", (int)('1' + ux->saved_page), name);
     (void)snprintf(profile, sizeof(profile), "PROFILE: %s",
-                   saved_profile_name(bond >= 0 &&
-                       (unsigned)bond < BLU2USB_UX_MAX_SAVED_MICE
-                           ? ux->saved_profile_kinds[bond]
-                           : BLU2USB_MOUSE_PROFILE_PASSTHROUGH));
+                   saved_profile_name(ux->saved_profile_kinds[bond]));
     (void)snprintf(dpi, sizeof(dpi), "DPI: H %s - V %s", h, v);
     (void)snprintf(rot, sizeof(rot), "ROTATION: %u DEGREE",
                    (unsigned)settings.rotation_quadrants * 90u);
 
     for (uint8_t row = 0u; row <= 5u; ++row) clear_row(frame, row);
     (void)blu2usb_ui_frame_set_text(frame, 0u, 0u, title, BLU2USB_UI_TONE_TITLE);
-    (void)blu2usb_ui_frame_set_text(frame, 1u, 0u, name,
-                                   current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC);
-    (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, profile, BLU2USB_UI_TONE_STATIC);
-    (void)blu2usb_ui_frame_set_text(frame, 3u, 0u, dpi, BLU2USB_UI_TONE_CURRENT);
-    (void)blu2usb_ui_frame_set_text(frame, 4u, 0u, rot, BLU2USB_UI_TONE_CURRENT);
+    const blu2usb_ui_tone_t status = current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC;
+    (void)blu2usb_ui_frame_set_text(frame, 1u, 0u, profile, status);
+    (void)blu2usb_ui_frame_set_text(frame, 2u, 0u, dpi, status);
+    (void)blu2usb_ui_frame_set_text(frame, 3u, 0u,
+        settings.scroll_inverse ? "SCROLL INVERSE: ON" : "SCROLL INVERSE: OFF", status);
+    (void)blu2usb_ui_frame_set_text(frame, 4u, 0u, rot, status);
     (void)blu2usb_ui_frame_set_text(frame, 5u, 0u, " REMOVE DEVICE",
                                    BLU2USB_UI_TONE_EMPHASIZED);
 }
@@ -378,7 +374,7 @@ static void project_remove_this(const blu2usb_ux_model_t *ux,
             ? ux->saved_mouse_names[bond]
             : (current ? ux->current_mouse_name : NULL);
 
-    home_title(saved_name, name);
+    home_title(saved_name, BLU2USB_RENDERER_TEXT_COLS, name);
     clear_row(frame, 1u);
     (void)blu2usb_ui_frame_set_text(
         frame, 1u, 0u, name,
@@ -515,7 +511,7 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
     char home_title_text[BLU2USB_RENDERER_TEXT_COLS + 1u];
     char combo_value_text[BLU2USB_RENDERER_TEXT_COLS + 1u];
     if (ux->screen == BLU2USB_SCREEN_HOME) {
-        home_title(ux->current_mouse_name, home_title_text);
+        home_title(ux->current_mouse_name, BLU2USB_RENDERER_TEXT_COLS, home_title_text);
     }
     const uint8_t hint = searching_first
         ? BLU2USB_RENDERER_TEXT_ROWS
@@ -645,16 +641,15 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
      * Keep navigation/selection state untouched: JOY LEFT/RIGHT still pages,
      * JOY PRESS still opens Remove This for the displayed logical bond.
      *
-     * - The CONNECTED mouse name alone keeps the current/cyan identity.
+     * - All four status rows use the displayed bond’s connection state.
      * - Hints are normal system gray, even while a HAT key is held.
      * - REMOVE DEVICE is the implicitly focused single action: white.
      * - With zero saved bonds the action cannot be activated, so it is gray.
      * - The first row keeps the system TITLE magenta, like all screens.
-     * - Informational body rows stay in the established static/yellow tone.
      * Apply after generic highlighting to prevent transient color leakage. */
     if (ux->screen == BLU2USB_SCREEN_SAVED_DEVICES) {
         const int bond = blu2usb_ux_saved_bond_for_page(ux, ux->saved_page);
-        const bool connected_name = blu2usb_ux_mouse_connected() &&
+        const bool connected_status = blu2usb_ux_mouse_connected() &&
             bond >= 0 && bond == ux->saved_connected_bond;
         for (uint8_t row = 0u; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
             for (uint8_t col = 0u; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
@@ -662,7 +657,7 @@ void blu2usb_ui_project(const blu2usb_ux_model_t *ux, blu2usb_ui_frame_t *frame)
                 blu2usb_ui_tone_t tone = BLU2USB_UI_TONE_STATIC;
                 if (row == 0u)
                     tone = BLU2USB_UI_TONE_TITLE;
-                else if (row == 1u && connected_name)
+                else if (row <= 4u && connected_status)
                     tone = BLU2USB_UI_TONE_CURRENT;
                 else if (row == 5u)
                     tone = bond >= 0

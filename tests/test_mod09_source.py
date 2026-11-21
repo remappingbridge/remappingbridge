@@ -15,7 +15,7 @@ assert "last_consumer_sent != 0u" in app and "blu2usb_usb_hid_pico_send_consumer
 assert "BLU2USB_BLE_HOGP_EVENT_SAVED_MOUSE_REMOVED" in app
 assert "synchronize_saved_mice(" in app
 assert "BLU2USB_SCREEN_SAVED_DEVICES" in renderer
-assert "row == 1u && connected_name" in renderer
+assert "row <= 4u && connected_status" in renderer
 assert "BLU2USB_UI_TONE_STATIC" in renderer
 assert "if (state->assignments[combo] != 0u) return true;" in mod
 print("MOD-09 app / renderer / cancel guards: PASS")

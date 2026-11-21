@@ -62,7 +62,7 @@ int main(void){
     blu2usb_ux_set_saved_movement(&u,0,(blu2usb_movement_settings_t){3,5,2});
     blu2usb_ui_project(&u,&f);
     blu2usb_ui_enforce_applied_visual_contract(&u,&f);
-    check(&f,3,"DPI: H 0.75 - V 1.25");
+    check(&f,2,"DPI: H 0.75 - V 1.25");
     assert(f.cells[0][0].tone==BLU2USB_UI_TONE_TITLE);
     assert(f.cells[5][1].tone==BLU2USB_UI_TONE_EMPHASIZED);
     return 0;

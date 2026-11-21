@@ -43,7 +43,7 @@ static void assert_colors(const blu2usb_ui_frame_t *frame,
             if (frame->cells[r][c].character == ' ') continue;
             blu2usb_ui_tone_t tone = BLU2USB_UI_TONE_STATIC;
             if (r == 0u) tone = BLU2USB_UI_TONE_TITLE;
-            if (r == 1u && name_connected) tone = BLU2USB_UI_TONE_CURRENT;
+            if (r >= 1u && r <= 4u && name_connected) tone = BLU2USB_UI_TONE_CURRENT;
             if (r == 5u)
                 tone = bond_exists ? BLU2USB_UI_TONE_EMPHASIZED
                                    : BLU2USB_UI_TONE_ACTIONABLE;
@@ -61,8 +61,9 @@ static void assert_colors(const blu2usb_ui_frame_t *frame,
            BLU2USB_COLOR_LIGHT_GRAY);
     assert(blu2usb_renderer_tone_rgb565(frame->cells[8][0].tone) ==
            BLU2USB_COLOR_LIGHT_GRAY);
-    assert(blu2usb_renderer_tone_rgb565(frame->cells[2][0].tone) ==
-           BLU2USB_COLOR_OFF_WHITE_YELLOW);
+    if (bond_exists)
+        assert(blu2usb_renderer_tone_rgb565(frame->cells[2][0].tone) ==
+               (name_connected ? BLU2USB_COLOR_CYAN : BLU2USB_COLOR_OFF_WHITE_YELLOW));
     if (name_connected)
         assert(blu2usb_renderer_tone_rgb565(frame->cells[1][0].tone) ==
                BLU2USB_COLOR_CYAN);
