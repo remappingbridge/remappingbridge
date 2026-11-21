@@ -6,9 +6,9 @@ No special RemappingBridge software to install on a compatible computer. Pair a 
 
 ### Try it. Get it.
 
-[**▶ OPEN THE LIVE SIMULATOR**](https://remappingbridge.github.io/) &nbsp; | &nbsp; [**⬇ DOWNLOAD FIRMWARE v3.2.4 (.UF2)**](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.4/remappingbridge-v3.2.4-pico2w.uf2)
+[**▶ OPEN THE LIVE SIMULATOR**](https://remappingbridge.github.io/) &nbsp; | &nbsp; [**⬇ DOWNLOAD FIRMWARE v3.3.0 (.UF2)**](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/remappingbridge-v3.3.0-pico2w.uf2)
 
-[All releases / latest version](https://github.com/remappingbridge/remappingbridge/releases/latest) · [SHA-256 checksums for v3.2.4](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.4/SHA256SUMS.txt) · [Quick compatibility notes](#what-you-need-to-know-about-compatibility)
+[All releases / latest version](https://github.com/remappingbridge/remappingbridge/releases/latest) · [SHA-256 checksums for v3.3.0](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/SHA256SUMS.txt) · [Quick compatibility notes](#what-you-need-to-know-about-compatibility)
 
 ### Two small boards. Lots of possibilities.
 
@@ -70,8 +70,8 @@ The USB cable carries HID input **to** the host. The firmware does not browse th
 
 - **Two mapping profiles — Passthrough and Custom.** Passthrough keeps ordinary mouse button behavior. Custom maps the five mouse buttons (Left, Right, Middle, Forward and Backward), including the option to designate **one** as a Modifier.
 - **Modifier Shortcuts:** up to **12 combinations** involving Modifier release, other buttons, wheel scrolling and pointer movement; select among **30 keyboard/media actions**. The Modifier's own button combination is unavailable rather than treated as another ordinary click.
-- **Movement Options:** independently set horizontal and vertical movement scaling from **0.25× to 3×** and rotate pointer motion by **0°, 90°, 180° or 270°**.
-- **Saved Devices:** pair, reconnect, inspect and remove saved mice, with applied remapping, shortcuts and movement settings associated with individual mouse identities.
+- **Movement Options:** independently set horizontal and vertical movement scaling from **0.25× to 3×** reverse vertical wheel scrolling per mouse, and rotate pointer motion by **0°, 90°, 180° or 270°**.
+- **Saved Devices:** use left/right to page through numbered mouse names. Profile, DPI, scroll direction and rotation are cyan for the connected mouse on page one and yellow for the other saved mice.
 - **On-device interface:** a 240 × 240 LCD with a 9-line × 21-character layout, joystick and A/B/X/Y controls; Help, navigation, selection markers and LCD Lock.
 
 ### Examples to explore
@@ -92,7 +92,7 @@ Open the **[RemappingBridge interactive simulator](https://remappingbridge.githu
 
 1. **Explore HOME without saving a mouse.** Select **Home Connected** under **Choose a demo state**. The LCD shows the connected HOME structure. This is an isolated visual preview and does not pair anything.
 2. **Create a virtual mouse to edit its settings.** In **Virtual Mouse Lab**, enter a name in **New virtual mouse name**, click **Start Pair New**, then **Complete Successfully** in the pairing card. Select **Home Connected** again if needed. These virtual records belong to this browser only.
-3. **Try Movement.** On the virtual LCD, focus **MOVEMENT OPTIONS** using the HAT joystick **UP/DOWN** (or keyboard arrows); press the joystick inward (**JOY PRESS**, or Enter). Explore the horizontal/vertical movement gains and rotation; select a value and use **KEY A** to apply it. **KEY B** normally goes back. If a real connected virtual mouse is not selected, the app will not persist changes.
+3. **Try Movement.** On the virtual LCD, focus **MOVEMENT OPTIONS** using the HAT joystick **UP/DOWN** (or keyboard arrows); press the joystick inward (**JOY PRESS**, or Enter). Select **SCROLL INVERSE OFF**, press the joystick, then **KEY A** to reverse the wheel. Open **SAVED DEVICES** to check the applied setting. For gains and rotation, select a value and use **KEY A** to apply it. **KEY B** normally goes back. If a real connected virtual mouse is not selected, the app will not persist changes.
 4. **Set a Modifier.** From HOME choose **REMAPPING OPTIONS → CUSTOM REMAPPING**, then the Custom editor and a physical mouse-button source. In its **WILL BECOME** selector, choose **MODIFIER** and apply the target; then **APPLY CUSTOM** to commit the whole Custom profile. A Modifier becomes active only when the **applied** profile is Custom.
 5. **Assign a shortcut.** Return to **REMAPPING OPTIONS → MODIFIER SHORTCUTS**, choose a **COMBINATIONS** slot and one of the **30 SHORTCUTS**, then press **KEY A: APPLY AND BACK**. Try returning to HOME. In the browser, this only saves a simulated shortcut; it does **not** send Ctrl/C/V, media keys or any other HID signal to your host.
 
@@ -149,30 +149,26 @@ The assembly and control diagrams are original illustrations. Product photos com
 - **Input:** the firmware targets compatible **BLE HID-over-GATT mice**. A mouse that works only through a proprietary USB receiver or Bluetooth Classic is not automatically supported. Model-specific behavior may differ; Logitech Lift has targeted handling, not a general compatibility guarantee.
 - **Controller:** this firmware is built for the **Raspberry Pi Pico 2 W**, with Bluetooth LE. A plain Pico 2 without wireless capability is not an equivalent substitute.
 - **Computer:** use a host that accepts the Pico's **USB HID Mouse, Keyboard and Consumer Control** interfaces. You do not pair the mouse separately to the host for this data path.
-- **Shortcuts:** a valid HID keyboard/media signal does not guarantee an action in every OS, browser, terminal or application. For example, **Zoom In** in v3.2.4 uses **Ctrl + Equal without Shift**, which works in the tested Obsidian/browser setup but may not trigger zoom in terminals expecting Ctrl + Shift + Equal. Brightness, Home and media-control behavior also depend on the host.
+- **Shortcuts:** a valid HID keyboard/media signal does not guarantee an action in every OS, browser, terminal or application. For example, **Zoom In** since v3.2.4 uses **Ctrl + Equal without Shift**, which works in the tested Obsidian/browser setup but may not trigger zoom in terminals expecting Ctrl + Shift + Equal. Brightness, Home and media-control behavior also depend on the host.
 - **Boundaries:** this is a mouse-input bridge and remapper, **not a general Bluetooth keyboard pairing utility, USB gamepad emulator or universal accessibility solution**. **LCD Lock only locks the device's on-screen interface**; it does not stop ordinary BLE/USB mouse input.
 
 For the correct components, GPIO controls, connector alignment and mechanical precautions, see [Hardware and safe assembly](#hardware-and-safe-assembly) above. The Pico display accessory is not the 40-pin Raspberry Pi Linux LCD HAT.
 
 ## Download and install on a Raspberry Pi Pico 2 W
 
-**Firmware: [v3.2.4](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.2.4).** See the [release notes](docs/releases/v3.2.4.md) for changes and compatibility notes, or [check for a newer release](https://github.com/remappingbridge/remappingbridge/releases/latest).
+**Firmware: [v3.3.0](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.3.0).** See the [release notes](docs/releases/v3.3.0.md) for changes and compatibility notes, or [check for a newer release](https://github.com/remappingbridge/remappingbridge/releases/latest).
 
 | Download | Verified release asset |
 | --- | --- |
-| **[Download RemappingBridge v3.2.4 (.UF2)](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.4/remappingbridge-v3.2.4-pico2w.uf2)** | `remappingbridge-v3.2.4-pico2w.uf2` — **953,344 bytes** |
-| [Download SHA-256 checksums](https://github.com/remappingbridge/remappingbridge/releases/download/v3.2.4/SHA256SUMS.txt) | `SHA256SUMS.txt` for this same release |
+| **[Download RemappingBridge v3.3.0 (.UF2)](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/remappingbridge-v3.3.0-pico2w.uf2)** | `remappingbridge-v3.3.0-pico2w.uf2` |
+| [Download SHA-256 checksums](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/SHA256SUMS.txt) | `SHA256SUMS.txt` for this same release |
 | **[Find the latest release](https://github.com/remappingbridge/remappingbridge/releases/latest)** | Stable URL that keeps pointing to the newest published release |
 
 **Board requirement:** this UF2 targets the **Raspberry Pi Pico 2 W** (RP2350 + BLE), **not** the original Pico/Pico W or a wireless-free Pico 2. Use a **Micro-USB cable that carries data**, not a charge-only cable.
 
 ### 1. Verify the downloaded file (recommended)
 
-Download the **UF2 and `SHA256SUMS.txt` from the same v3.2.4 release** into one folder. The official GitHub release asset metadata reports this expected **SHA-256 for the UF2**:
-
-```text
-56d2eeaf96b2579e34b85333274a4bf1652b6bf33384d1b275eee36aa06f88f2
-```
+Download the **UF2 and `SHA256SUMS.txt` from the same v3.3.0 release** into one folder.
 
 On **Linux**, open a terminal in the download folder and run:
 
@@ -186,10 +182,10 @@ On **macOS**, run this instead:
 shasum -a 256 -c SHA256SUMS.txt
 ```
 
-On **Windows PowerShell**, calculate the file's hash and compare the result with the 64-character SHA-256 above (or the checksum file):
+On **Windows PowerShell**, calculate the file's hash and compare the result with the SHA-256 in the downloaded checksum file:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\remappingbridge-v3.2.4-pico2w.uf2
+Get-FileHash -Algorithm SHA256 .\remappingbridge-v3.3.0-pico2w.uf2
 ```
 
 **Only proceed if the hash matches.** The official release's `SHA256SUMS.txt` is the authoritative checksum file for the downloaded version; a previous test build's hash is **not** the final release's hash.
@@ -203,7 +199,7 @@ Get-FileHash -Algorithm SHA256 .\remappingbridge-v3.2.4-pico2w.uf2
 ### 3. Copy the UF2 and let the board restart
 
 4. Open the newly mounted **`RP2350`** or **`RPI-RP2`** drive with your file manager.
-5. Copy **`remappingbridge-v3.2.4-pico2w.uf2`** onto that drive. Do **not** copy `SHA256SUMS.txt` instead, unzip it, format the drive, or run an erasure utility.
+5. Copy **`remappingbridge-v3.3.0-pico2w.uf2`** onto that drive. Do **not** copy `SHA256SUMS.txt` instead, unzip it, format the drive, or run an erasure utility.
 6. Allow the copy to finish. The bootloader writes the firmware, **automatically disconnects the temporary drive and reboots the Pico 2 W**. The disappearing bootloader drive is **normal**, not proof that the cable failed.
 7. Let RemappingBridge start. With a correctly attached LCD and supported mouse, continue from the device's on-screen instructions; if the mouse is not connected yet, use its BLE pairing procedure. The Pico bridges BLE input to USB HID only after a supported mouse connects.
 
@@ -214,10 +210,10 @@ The BOOTSEL + UF2 steps and the **`RP2350` / `RPI-RP2`** volume names follow the
 - **Normal updates:** use the same BOOTSEL/UF2 procedure. **Do not run `flash_nuke` or mass-erase the flash for an ordinary firmware update**; erasure can destroy stored BLE bonds and preferences. Note your custom mappings before updating in case of an unexpected problem.
 - **Downgrades:** older v2 firmware does not understand all v3 profile and shortcut records; returning to v2 may reset or lose newer preferences. Consult the [release history](docs/releases/v3.0.0.md) and record settings before changing major versions. Never promise universal bond/profile preservation across incompatible firmware.
 - **Missing BOOTSEL drive:** first verify that the correct **Pico 2 W** is connected, the USB cable is **data-capable**, BOOTSEL was held while plugging in, and your computer can read USB mass-storage devices. Do not fix a cable or enumeration issue by formatting or erasing the board.
-- **Newer versions:** the direct UF2 link above downloads **v3.2.4**. For the newest available firmware and its matching checksum, use the [latest release page](https://github.com/remappingbridge/remappingbridge/releases/latest).
+- **Newer versions:** the direct UF2 link above downloads **v3.3.0**. For the newest available firmware and its matching checksum, use the [latest release page](https://github.com/remappingbridge/remappingbridge/releases/latest).
 
 ## Documentation, support and license
 
-- [Release notes](docs/releases/v3.2.4.md) and [older releases](https://github.com/remappingbridge/remappingbridge/releases).
+- [Release notes](docs/releases/v3.3.0.md) and [older releases](https://github.com/remappingbridge/remappingbridge/releases).
 - [Interactive simulator](https://remappingbridge.github.io/) and [simulator source](https://github.com/remappingbridge/remappingbridge.github.io).
 - [Report an issue](https://github.com/remappingbridge/remappingbridge/issues) · [License](LICENSE).
