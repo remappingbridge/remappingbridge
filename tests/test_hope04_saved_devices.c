@@ -75,11 +75,10 @@ static void test_connected_mouse_is_always_page_one(void)
 
     project(&ux, &frame);
     assert(frame.hint_start_row == 7u);
-    assert_row(&frame, 0u, "1 OF 3");
-    assert_row(&frame, 1u, "LOGITECH LIFT MOUSE");
+    assert_row(&frame, 0u, "1 LOGITECH LIFT MOUSE");
     assert_tone(&frame, 1u, BLU2USB_UI_TONE_CURRENT);
-    assert_row(&frame, 2u, "PROFILE: PASSTHROUGH");
-    assert_row(&frame, 3u, "DPI: H 1 - V 1");
+    assert_row(&frame, 1u, "PROFILE: PASSTHROUGH");
+    assert_row(&frame, 2u, "DPI: H 1 - V 1");
     assert_row(&frame, 4u, "ROTATION: 0 DEGREE");
     assert_row(&frame, 5u, " REMOVE DEVICE");
 }
@@ -102,10 +101,9 @@ static void test_disconnect_keeps_name_and_front_page(void)
     assert(blu2usb_ux_saved_bond_for_page(&ux, 0u) == 1);
 
     project(&ux, &frame);
-    assert_row(&frame, 0u, "1 OF 3");
-    assert_row(&frame, 1u, "LOGITECH LIFT MOUSE");
+    assert_row(&frame, 0u, "1 LOGITECH LIFT MOUSE");
     assert_tone(&frame, 1u, BLU2USB_UI_TONE_STATIC);
-    assert_row(&frame, 2u, "PROFILE: PASSTHROUGH");
+    assert_row(&frame, 1u, "PROFILE: PASSTHROUGH");
 }
 
 static void test_another_connected_mouse_becomes_page_one(void)
@@ -123,20 +121,20 @@ static void test_another_connected_mouse_becomes_page_one(void)
     assert(blu2usb_ux_saved_bond_for_page(&ux, 2u) == 1);
 
     project(&ux, &frame);
-    assert_row(&frame, 1u, "MOUSE GAMMA");
-    assert_row(&frame, 2u, "PROFILE: PASSTHROUGH");
+    assert_row(&frame, 0u, "1 MOUSE GAMMA");
+    assert_row(&frame, 1u, "PROFILE: PASSTHROUGH");
 
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
     assert(ux.saved_page == 1u);
     project(&ux, &frame);
-    assert_row(&frame, 1u, "MOUSE ALPHA");
-    assert_row(&frame, 2u, "PROFILE: PASSTHROUGH");
+    assert_row(&frame, 0u, "2 MOUSE ALPHA");
+    assert_row(&frame, 1u, "PROFILE: PASSTHROUGH");
 
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
     assert(ux.saved_page == 2u);
     project(&ux, &frame);
-    assert_row(&frame, 1u, "LOGITECH LIFT MOUSE");
-    assert_row(&frame, 2u, "PROFILE: PASSTHROUGH");
+    assert_row(&frame, 0u, "3 LOGITECH LIFT MOUSE");
+    assert_row(&frame, 1u, "PROFILE: PASSTHROUGH");
 }
 
 static void test_navigation_access_back_and_lock_contract(void)

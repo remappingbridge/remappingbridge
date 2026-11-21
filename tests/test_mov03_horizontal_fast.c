@@ -169,25 +169,18 @@ static void assert_page_tones(const blu2usb_ux_model_t *ux, bool mouse_active)
     blu2usb_ui_frame_t frame;
     blu2usb_ui_project(ux, &frame);
     blu2usb_ui_enforce_applied_visual_contract(ux, &frame);
-    for (unsigned row = 0; row < BLU2USB_RENDERER_TEXT_ROWS; ++row) {
-        for (unsigned col = 0; col < BLU2USB_RENDERER_TEXT_COLS; ++col) {
-            if (frame.cells[row][col].character == ' ') continue;
-            const blu2usb_ui_tone_t required =
-                row == 1u && mouse_active ? BLU2USB_UI_TONE_CURRENT :
-                    BLU2USB_UI_TONE_STATIC;
-            assert(frame.cells[row][col].tone == required);
-        }
-    }
-    assert(frame.cells[0][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame.cells[2][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame.cells[3][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame.cells[4][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame.cells[5][1].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame.cells[7][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame.cells[8][0].tone == BLU2USB_UI_TONE_STATIC);
+    for (unsigned row = 1; row <= 4; ++row)
+        for (unsigned col = 0; col < BLU2USB_RENDERER_TEXT_COLS; ++col)
+            if (frame.cells[row][col].character != ' ')
+                assert(frame.cells[row][col].tone ==
+                       (mouse_active ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC));
+    assert(frame.cells[0][0].tone == BLU2USB_UI_TONE_TITLE);
+    assert(frame.cells[5][1].tone == BLU2USB_UI_TONE_EMPHASIZED);
+    assert(frame.cells[7][0].tone == BLU2USB_UI_TONE_ACTIONABLE);
+    assert(frame.cells[8][0].tone == BLU2USB_UI_TONE_ACTIONABLE);
 }
 
-static void test_saved_devices_identity_only_cyan_on_every_page(void)
+static void test_saved_devices_status_colors_on_every_page(void)
 {
     blu2usb_ux_model_t ux;
     connected_home(&ux);
@@ -207,19 +200,19 @@ static void test_saved_devices_identity_only_cyan_on_every_page(void)
     assert_page_tones(&ux, true);
 
     /* No matter which navigation control is physically pressed, the
-     * selected item/hints must remain the standard yellow. */
+     * selected item/hints must remain their standard colors. */
     (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_RIGHT, true);
     assert_page_tones(&ux, true);
     (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_RIGHT, false);
 
-    /* After disconnection the former connected mouse name loses cyan. */
+    /* After disconnection the former connected status loses cyan. */
     blu2usb_ux_set_mouse_connected(false);
     blu2usb_ux_set_saved_connected_bond(&ux, -1);
     assert_page_tones(&ux, false);
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
     assert_page_tones(&ux, false);
 
-    /* Reconnection of another bonded mouse moves the sole cyan name. */
+    /* Reconnection of another bonded mouse moves the cyan status. */
     blu2usb_ux_set_mouse_connected(true);
     blu2usb_ux_set_saved_connected_bond(&ux, 1);
     assert(ux.saved_page == 0u);
@@ -232,6 +225,6 @@ int main(void)
 {
     test_grid_wrap_help_and_cancel();
     test_fast_gains_and_independent_axis();
-    test_saved_devices_identity_only_cyan_on_every_page();
+    test_saved_devices_status_colors_on_every_page();
     return 0;
 }

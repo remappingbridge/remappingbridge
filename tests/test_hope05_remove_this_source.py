@@ -25,7 +25,7 @@ assert "KEY X: HELP" in ux
 
 assert "project_remove_this" in renderer
 assert "ux->remove_target_bond >= 0" in renderer
-assert "home_title(saved_name, name);" in renderer
+assert "home_title(saved_name, BLU2USB_RENDERER_TEXT_COLS, name);" in renderer
 assert "current ? BLU2USB_UI_TONE_CURRENT : BLU2USB_UI_TONE_STATIC" in renderer
 
 assert "BLU2USB_BLE_HOGP_MESSAGE_SAVED_MOUSE_REMOVED" in ble_h

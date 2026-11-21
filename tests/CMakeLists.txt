@@ -361,6 +361,7 @@ target_link_libraries(blu2usb_test_mov08_saved_devices PRIVATE
     blu2usb_renderer
     blu2usb_ux_model
 )
+target_compile_options(blu2usb_test_mov08_saved_devices PRIVATE -UNDEBUG)
 add_test(NAME mov08_saved_devices_identity_and_values COMMAND blu2usb_test_mov08_saved_devices)
 
 add_executable(blu2usb_test_mov09_remove_this test_mov09_remove_this.c)

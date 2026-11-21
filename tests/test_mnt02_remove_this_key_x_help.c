@@ -48,7 +48,7 @@ static void setup(blu2usb_ux_model_t *ux)
     assert(ux->selection==2u);
     tap(ux,BLU2USB_CONTROL_JOY_PRESS);
     assert(ux->screen==BLU2USB_SCREEN_SAVED_DEVICES);
-    screen_row(ux,0,"1 OF 3");
+    screen_row(ux,0,"1 LOGITECH LIFT MOUSE");
     tap(ux,BLU2USB_CONTROL_JOY_RIGHT);
     assert(ux->saved_page==1u);
     assert(blu2usb_ux_saved_bond_for_page(ux,1u)==0);
