@@ -164,7 +164,8 @@ static void test_rotation_help_exact_copy_and_current_selection(void)
     open_movement(&ux);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
-    assert(ux.selection == 2u);
+    tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
+    assert(ux.selection == 3u);
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_ROTATION);
     tap(&ux, BLU2USB_CONTROL_JOY_UP);

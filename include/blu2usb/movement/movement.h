@@ -8,6 +8,7 @@ typedef struct {
     uint8_t horizontal_quarters; /* 1,2,3,4,5,6,8,12 */
     uint8_t vertical_quarters;   /* 1,2,3,4,5,6,8,12 */
     uint8_t rotation_quadrants;  /* counterclockwise: 0,90,180,270 */
+    bool scroll_inverse;
 } blu2usb_movement_settings_t;
 
 typedef struct {

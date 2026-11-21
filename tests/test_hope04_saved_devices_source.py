@@ -8,7 +8,7 @@ ble_h = (root / "include/blu2usb/ble_hogp/ble_hogp.h").read_text(encoding="utf-8
 ble = (root / "src/ble_hogp/ble_hogp_pico.c").read_text(encoding="utf-8")
 app = (root / "src/app/main.c").read_text(encoding="utf-8")
 
-assert '"0 OF 0","UNKNOWN MOUSE","PROFILE: PASSTHROUGH","DPI: H 1 - V 1","ROTATION: 0 DEGREE"," REMOVE DEVICE"' in ux
+assert '"NO SAVED MOUSE",EMPTY,EMPTY,EMPTY,EMPTY," REMOVE DEVICE"' in ux
 assert '"JOY RIGHT/LEFT: PAGE","JOY PRESS: ACCESS"' in ux
 assert "case BLU2USB_SCREEN_SAVED_DEVICES: return BLU2USB_SCREEN_HOME;" in ux
 assert "case BLU2USB_SCREEN_SAVED_DEVICES: return 0;" in ux

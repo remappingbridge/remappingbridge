@@ -40,7 +40,7 @@ static void expect_tones(const blu2usb_ui_frame_t *frame,
             blu2usb_ui_tone_t tone = BLU2USB_UI_TONE_STATIC;
             if (row == 0u)
                 tone = BLU2USB_UI_TONE_TITLE;
-            else if (row == 1u && connected_name)
+            else if (row <= 4u && connected_name)
                 tone = BLU2USB_UI_TONE_CURRENT;
             else if (row == 5u)
                 tone = removable ? BLU2USB_UI_TONE_EMPHASIZED
@@ -50,14 +50,9 @@ static void expect_tones(const blu2usb_ui_frame_t *frame,
             assert(frame->cells[row][col].tone == tone);
         }
     }
-    /* MNT-01 restores system magenta for first-row TITLE and changes
-     * only action/hints; profile/DPI/rotation remain yellow. */
     assert(frame->cells[0][0].tone == BLU2USB_UI_TONE_TITLE);
     assert(blu2usb_renderer_tone_rgb565(frame->cells[0][0].tone) ==
            BLU2USB_COLOR_MAGENTA);
-    assert(frame->cells[2][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame->cells[3][0].tone == BLU2USB_UI_TONE_STATIC);
-    assert(frame->cells[4][0].tone == BLU2USB_UI_TONE_STATIC);
     assert(frame->cells[5][1].tone ==
            (removable ? BLU2USB_UI_TONE_EMPHASIZED : BLU2USB_UI_TONE_ACTIONABLE));
     assert(frame->cells[7][0].tone == BLU2USB_UI_TONE_ACTIONABLE);
@@ -83,7 +78,7 @@ static void init_three_saved(blu2usb_ux_model_t *ux)
     blu2usb_ux_set_saved_movement(
         ux, 2u, (blu2usb_movement_settings_t){5u,6u,2u});
     blu2usb_ux_set_movement(
-        ux, (blu2usb_movement_settings_t){8u,3u,3u}); /* active bond 1 */
+        ux, (blu2usb_movement_settings_t){8u,3u,3u,true}); /* active bond 1 */
     ux->active_profile = BLU2USB_MOUSE_PROFILE_DEFAULT_REMAP;
     ux->screen = BLU2USB_SCREEN_HOME;
 }
@@ -100,7 +95,7 @@ static void open_from_connected_home(blu2usb_ux_model_t *ux)
 
 static void verify_page(const blu2usb_ux_model_t *ux, unsigned page,
                         int logical_bond, const char *title,
-                        const char *name, const char *dpi,
+                        const char *dpi,
                         const char *rotation, bool connected_name)
 {
     blu2usb_ui_frame_t frame;
@@ -109,13 +104,13 @@ static void verify_page(const blu2usb_ux_model_t *ux, unsigned page,
     assert(blu2usb_ux_saved_bond_for_page(ux, page) == logical_bond);
     project(ux, &frame);
     expect_row(&frame, 0u, title);
-    expect_row(&frame, 1u, name);
-    expect_row(&frame, 2u, "PROFILE: PASSTHROUGH");
-    expect_row(&frame, 3u, dpi);
+    expect_row(&frame, 1u, "PROFILE: PASSTHROUGH");
+    expect_row(&frame, 2u, dpi);
+    expect_row(&frame, 3u, logical_bond == 1 ? "SCROLL INVERSE: ON" : "SCROLL INVERSE: OFF");
     expect_row(&frame, 4u, rotation);
     expect_row(&frame, 5u, " REMOVE DEVICE");
     expect_row(&frame, 6u, "");
-    expect_row(&frame, 7u, "JOY RIGHT\\LEFT: PAGE");
+    expect_row(&frame, 7u, "JOY RIGHT/LEFT: PAGE");
     expect_row(&frame, 8u, "JOY PRESS: ACCESS");
     expect_tones(&frame, connected_name, true);
 }
@@ -128,19 +123,19 @@ static void test_full_page_navigation_and_unique_saved_settings(void)
     open_from_connected_home(&ux);
     assert(ux.saved_page == 0u);
     assert(ux.saved_pages == 3u);
-    verify_page(&ux, 0u, 1, "1 OF 3", "LOGITECH LIFT MOUSE",
+    verify_page(&ux, 0u, 1, "1 LOGITECH LIFT MOUSE",
                 "DPI: H 2 - V 0.75", "ROTATION: 270 DEGREE", true);
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
-    verify_page(&ux, 1u, 0, "2 OF 3", "MOUSE ALPHA",
+    verify_page(&ux, 1u, 0, "2 MOUSE ALPHA",
                 "DPI: H 0.5 - V 3", "ROTATION: 90 DEGREE", false);
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
-    verify_page(&ux, 2u, 2, "3 OF 3", "MOUSE GAMMA",
+    verify_page(&ux, 2u, 2, "3 MOUSE GAMMA",
                 "DPI: H 1.25 - V 1.5", "ROTATION: 180 DEGREE", false);
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
-    verify_page(&ux, 0u, 1, "1 OF 3", "LOGITECH LIFT MOUSE",
+    verify_page(&ux, 0u, 1, "1 LOGITECH LIFT MOUSE",
                 "DPI: H 2 - V 0.75", "ROTATION: 270 DEGREE", true);
     tap(&ux, BLU2USB_CONTROL_JOY_LEFT);
-    verify_page(&ux, 2u, 2, "3 OF 3", "MOUSE GAMMA",
+    verify_page(&ux, 2u, 2, "3 MOUSE GAMMA",
                 "DPI: H 1.25 - V 1.5", "ROTATION: 180 DEGREE", false);
 
     /* Pressing a button must never change page, or turn any hint white. */
@@ -151,7 +146,7 @@ static void test_full_page_navigation_and_unique_saved_settings(void)
     expect_tones(&frame, false, true);
     (void)blu2usb_ux_input(&ux, BLU2USB_CONTROL_JOY_LEFT, false);
     assert(ux.saved_page == 1u);
-    verify_page(&ux, 1u, 0, "2 OF 3", "MOUSE ALPHA",
+    verify_page(&ux, 1u, 0, "2 MOUSE ALPHA",
                 "DPI: H 0.5 - V 3", "ROTATION: 90 DEGREE", false);
 
     /* Identity pinned for Remove This is logical bond, not visible page.
@@ -161,7 +156,7 @@ static void test_full_page_navigation_and_unique_saved_settings(void)
     assert(ux.screen == BLU2USB_SCREEN_REMOVE_THIS);
     assert(ux.remove_target_bond == 0);
     tap(&ux, BLU2USB_CONTROL_KEY_B);
-    verify_page(&ux, 1u, 0, "2 OF 3", "MOUSE ALPHA",
+    verify_page(&ux, 1u, 0, "2 MOUSE ALPHA",
                 "DPI: H 0.5 - V 3", "ROTATION: 90 DEGREE", false);
 
     tap(&ux, BLU2USB_CONTROL_KEY_B);
@@ -180,10 +175,10 @@ static void test_reconnect_changes_front_bond_not_saved_values(void)
     blu2usb_ux_set_current_mouse_name(&ux, NULL);
     blu2usb_ux_set_saved_connected_bond(&ux, -1);
     assert(ux.saved_front_bond == 1); /* stable page order when disconnected */
-    verify_page(&ux, 0u, 1, "1 OF 3", "LOGITECH LIFT MOUSE",
+    verify_page(&ux, 0u, 1, "1 LOGITECH LIFT MOUSE",
                 "DPI: H 2 - V 0.75", "ROTATION: 270 DEGREE", false);
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
-    verify_page(&ux, 1u, 0, "2 OF 3", "MOUSE ALPHA",
+    verify_page(&ux, 1u, 0, "2 MOUSE ALPHA",
                 "DPI: H 0.5 - V 3", "ROTATION: 90 DEGREE", false);
 
     /* Simulate main.c restoring connected identity and its TLV payload. */
@@ -193,24 +188,23 @@ static void test_reconnect_changes_front_bond_not_saved_values(void)
     blu2usb_ux_set_movement(
         &ux, (blu2usb_movement_settings_t){5u,6u,2u});
     assert(ux.saved_page == 0u);
-    verify_page(&ux, 0u, 2, "1 OF 3", "MOUSE GAMMA",
+    verify_page(&ux, 0u, 2, "1 MOUSE GAMMA",
                 "DPI: H 1.25 - V 1.5", "ROTATION: 180 DEGREE", true);
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
-    verify_page(&ux, 1u, 0, "2 OF 3", "MOUSE ALPHA",
+    verify_page(&ux, 1u, 0, "2 MOUSE ALPHA",
                 "DPI: H 0.5 - V 3", "ROTATION: 90 DEGREE", false);
     tap(&ux, BLU2USB_CONTROL_JOY_RIGHT);
-    verify_page(&ux, 2u, 1, "3 OF 3", "LOGITECH LIFT MOUSE",
+    verify_page(&ux, 2u, 1, "3 LOGITECH LIFT MOUSE",
                 "DPI: H 2 - V 0.75", "ROTATION: 270 DEGREE", false);
     assert(ux.movement_current.horizontal_quarters == 5u);
     assert(ux.movement_current.vertical_quarters == 6u);
     assert(ux.movement_current.rotation_quadrants == 2u);
 
-    /* Global remapping profile isn't historical per-bond state: one current
-       runtime value is displayed on every saved page, as in v1.0. */
+    /* Changing the runtime profile must not overwrite another bond. */
     ux.active_profile = BLU2USB_MOUSE_PROFILE_ESCAPE_REMAP;
     blu2usb_ui_frame_t frame;
     project(&ux, &frame);
-    expect_row(&frame, 2u, "PROFILE: PASSTHROUGH");
+    expect_row(&frame, 1u, "PROFILE: PASSTHROUGH");
     expect_tones(&frame, false, true);
 }
 
@@ -237,10 +231,9 @@ static void test_long_names_boundaries_and_zero_saved(void)
     blu2usb_ux_set_saved_device_count(&ux, 0u);
     ux.saved_page = 0u;
     project(&ux, &frame);
-    expect_row(&frame, 0u, "0 OF 0");
-    expect_row(&frame, 1u, "UNKNOWN MOUSE");
-    expect_row(&frame, 3u, "DPI: H 1 - V 1");
-    expect_row(&frame, 4u, "ROTATION: 0 DEGREE");
+    expect_row(&frame, 0u, "NO SAVED MOUSE");
+    for (unsigned row = 1; row <= 4; ++row)
+        expect_row(&frame, row, "");
     expect_tones(&frame, false, false);
     assert(blu2usb_ux_saved_bond_for_page(&ux, 0u) == -1);
     assert(tap(&ux, BLU2USB_CONTROL_JOY_PRESS).kind ==

@@ -166,6 +166,7 @@ static void test_rotation_hint_and_release_semantics(void)
     tap(&ux, BLU2USB_CONTROL_KEY_B);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
+    tap(&ux, BLU2USB_CONTROL_JOY_DOWN);
     tap(&ux, BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen == BLU2USB_SCREEN_ROTATION);
 

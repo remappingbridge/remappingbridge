@@ -4,7 +4,7 @@
 
 blu2usb_movement_settings_t blu2usb_movement_defaults(void)
 {
-    return (blu2usb_movement_settings_t){4u, 4u, 0u};
+    return (blu2usb_movement_settings_t){4u, 4u, 0u, false};
 }
 
 static bool allowed_gain(uint8_t value)

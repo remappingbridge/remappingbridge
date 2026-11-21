@@ -63,7 +63,7 @@ int main(void)
     assert(cmd.movement.vertical_quarters==6);
     blu2usb_ux_set_movement(&ux,cmd.movement);
     ux.screen=BLU2USB_SCREEN_MOVEMENT_OPTIONS;
-    ux.selection=2;
+    ux.selection=3;
 
     tap(&ux,BLU2USB_CONTROL_JOY_PRESS);
     assert(ux.screen==BLU2USB_SCREEN_ROTATION);
@@ -78,14 +78,14 @@ int main(void)
     assert(cmd.movement.rotation_quadrants==3);
     blu2usb_ux_set_movement(&ux,cmd.movement);
     ux.screen=BLU2USB_SCREEN_MOVEMENT_OPTIONS;
-    ux.selection=2;
+    ux.selection=3;
 
     blu2usb_ui_frame_t frame;
     blu2usb_ui_project(&ux,&frame);
     assert(frame.cells[1][16].tone==BLU2USB_UI_TONE_CURRENT);
     assert(frame.cells[2][14].tone==BLU2USB_UI_TONE_CURRENT);
     assert(frame.cells[4][10].tone==BLU2USB_UI_TONE_EMPHASIZED);
-    assert(frame.cells[3][1].tone==BLU2USB_UI_TONE_EMPHASIZED);
+    assert(frame.cells[3][1].tone==BLU2USB_UI_TONE_ACTIONABLE);
 
     cmd=tap(&ux,BLU2USB_CONTROL_KEY_A);
     assert(cmd.kind==BLU2USB_UX_COMMAND_APPLY_MOVEMENT);

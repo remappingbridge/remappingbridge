@@ -34,7 +34,7 @@ static void check_layout(void)
     };
     assert(BLU2USB_MOUSE_TARGET_ESCAPE == 5); /* historical v2 numeric ID */
     assert(BLU2USB_MOUSE_TARGET_MODIFIER == 6); /* new v3, never aliased */
-    assert(BLU2USB_SCREEN_COUNT == 45);
+    assert(BLU2USB_SCREEN_COUNT == 48);
     for (unsigned page=0;page<5;++page) {
         const blu2usb_screen_template_t *screen = blu2usb_ux_screen_template(pages[page]);
         assert(screen != NULL);
