@@ -5,6 +5,7 @@
 #include <string.h>
 #include "blu2usb/modifier_shortcuts/modifier_shortcuts.h"
 #include "blu2usb/usb_hid/usb_hid.h"
+#include "blu2usb/remap/remap.h"
 
 static blu2usb_canonical_mouse_event_t button(unsigned b, bool pressed)
 {
@@ -123,7 +124,20 @@ static void test_copy_consumes_down_up_without_tap(void)
     assigned[3]=1; /* physical RIGHT */
     blu2usb_modifier_shortcuts_init(&s);
     blu2usb_hid_aggregator_init(&agg);
-    configure(&s,&agg,BLU2USB_MOUSE_SOURCE_LEFT,assigned);
+    blu2usb_remap_t remap;
+    blu2usb_remap_init(&remap);
+    remap.profile.kind = BLU2USB_MOUSE_PROFILE_CUSTOM_REMAP;
+    remap.profile.targets[BLU2USB_MOUSE_SOURCE_LEFT] = BLU2USB_MOUSE_TARGET_MODIFIER;
+    remap.profile.targets[BLU2USB_MOUSE_SOURCE_RIGHT] = BLU2USB_MOUSE_TARGET_NO_ACTION;
+    blu2usb_modifier_shortcuts_configure(&s, &remap.profile, assigned, &agg);
+    for (unsigned edge = 0; edge < 2; ++edge) {
+        blu2usb_canonical_mouse_event_t event = button(BLU2USB_MOUSE_BUTTON_RIGHT, edge == 0);
+        blu2usb_remap_result_t result;
+        assert(blu2usb_modifier_shortcuts_process(&s, &event));
+        assert(blu2usb_remap_process_mouse(&remap, &event, &result));
+        assert(!result.has_mouse && !result.has_keyboard);
+    }
+    assert(s.queue_size == 0u);
     assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_LEFT,true));
     assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_RIGHT,true));
     assert(!send_button(&s,BLU2USB_MOUSE_BUTTON_RIGHT,true)); /* repeated down */

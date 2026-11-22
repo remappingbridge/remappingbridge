@@ -30,7 +30,7 @@ static void check_layout(void)
         BLU2USB_SCREEN_BACKWARD_WILL_BECOME
     };
     static const char *const labels[6] = {
-        " LEFT", " RIGHT", " MIDDLE", " FORWARD", " BACKWARD", " MODIFIER"
+        " LEFT CLICK", " RIGHT CLICK", " FORWARD", " BACKWARD", " MODIFIER", " NO ACTION"
     };
     assert(BLU2USB_MOUSE_TARGET_ESCAPE == 5); /* historical v2 numeric ID */
     assert(BLU2USB_MOUSE_TARGET_MODIFIER == 6); /* new v3, never aliased */
@@ -45,7 +45,7 @@ static void check_layout(void)
         blu2usb_ux_init(&ux);
         ux.screen = pages[page];
         assert(blu2usb_ux_option_count(&ux) == 6u);
-        ux.selection=5;
+        ux.selection=4;
         blu2usb_ux_command_t cmd=tap(&ux,BLU2USB_CONTROL_KEY_A);
         assert(cmd.kind==BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET);
         assert(cmd.target==BLU2USB_MOUSE_TARGET_MODIFIER);
@@ -86,6 +86,12 @@ static void test_exclusive_draft_and_restore(void)
     assert(blu2usb_profiles_is_shortcut_unavailable(&profiles,1));
     assert(profiles.shortcuts[2]==1 && profiles.shortcuts[1]==7);
 
+    assert(blu2usb_profiles_draft_set(&profiles, BLU2USB_MOUSE_SOURCE_RIGHT,
+                                      BLU2USB_MOUSE_TARGET_NO_ACTION));
+    assert(blu2usb_profiles_custom_candidate(&profiles, &applied));
+    blu2usb_profiles_activate(&profiles, &applied);
+    assert(blu2usb_profiles_draft_set(&profiles, BLU2USB_MOUSE_SOURCE_FORWARD,
+                                      BLU2USB_MOUSE_TARGET_NO_ACTION));
     uint8_t encoded[BLU2USB_PROFILE_V3_SERIALIZED_SIZE];
     assert(blu2usb_profiles_serialize_v3(&profiles,encoded));
     assert(encoded[0]==3u && encoded[3+BLU2USB_MOUSE_SOURCE_MIDDLE]==6u);
@@ -93,6 +99,9 @@ static void test_exclusive_draft_and_restore(void)
     bool migrated=true;
     assert(blu2usb_profiles_restore_any(&rebooted,encoded,sizeof(encoded),&migrated));
     assert(!migrated);
+    assert(rebooted.custom_targets[BLU2USB_MOUSE_SOURCE_RIGHT] == BLU2USB_MOUSE_TARGET_NO_ACTION);
+    assert(rebooted.custom_targets[BLU2USB_MOUSE_SOURCE_FORWARD] == BLU2USB_MOUSE_TARGET_FORWARD);
+    assert(rebooted.draft_targets[BLU2USB_MOUSE_SOURCE_FORWARD] == BLU2USB_MOUSE_TARGET_NO_ACTION);
     assert(blu2usb_profiles_is_shortcut_unavailable(&rebooted,1));
     assert(rebooted.shortcuts[1]==7 && rebooted.shortcuts[2]==1);
     assert(rebooted.custom_targets[BLU2USB_MOUSE_SOURCE_LEFT]==BLU2USB_MOUSE_TARGET_LEFT);
@@ -211,6 +220,9 @@ static void test_home_connected_to_modifier_and_mask(void)
     assert(ux.screen == BLU2USB_SCREEN_LEFT_WILL_BECOME);
     tap(&ux, BLU2USB_CONTROL_JOY_UP); /* wrap first to sixth */
     assert(ux.selection == 5u);
+    assert(tap(&ux, BLU2USB_CONTROL_KEY_A).target == BLU2USB_MOUSE_TARGET_NO_ACTION);
+    tap(&ux, BLU2USB_CONTROL_JOY_UP);
+    assert(ux.selection == 4u);
     blu2usb_ux_command_t cmd = tap(&ux, BLU2USB_CONTROL_KEY_A);
     assert(cmd.kind == BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET);
     assert(cmd.source == BLU2USB_MOUSE_SOURCE_LEFT);

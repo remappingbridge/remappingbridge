@@ -56,20 +56,6 @@ static const char *custom_source_name(unsigned source)
     return source < BLU2USB_MOUSE_SOURCE_COUNT ? names[source] : "LEFT";
 }
 
-static uint8_t custom_target_row(blu2usb_mouse_target_t target)
-{
-    /* WILL BECOME display order is NOT the persisted target enum order. */
-    switch (target) {
-    case BLU2USB_MOUSE_TARGET_LEFT: return 1u;
-    case BLU2USB_MOUSE_TARGET_RIGHT: return 2u;
-    case BLU2USB_MOUSE_TARGET_MIDDLE: return 3u;
-    case BLU2USB_MOUSE_TARGET_FORWARD: return 4u;
-    case BLU2USB_MOUSE_TARGET_BACKWARD: return 5u;
-    case BLU2USB_MOUSE_TARGET_MODIFIER: return 6u;
-    default: return 0u; /* Retired ESCAPE has no WILL BECOME choice. */
-    }
-}
-
 static const char *custom_target_name(blu2usb_mouse_target_t target)
 {
     switch (target) {
@@ -79,6 +65,7 @@ static const char *custom_target_name(blu2usb_mouse_target_t target)
     case BLU2USB_MOUSE_TARGET_FORWARD: return "FORWARD";
     case BLU2USB_MOUSE_TARGET_BACKWARD: return "BACKWARD";
     case BLU2USB_MOUSE_TARGET_MODIFIER: return "MODIFIER";
+    case BLU2USB_MOUSE_TARGET_NO_ACTION: return "NO ACTION";
     case BLU2USB_MOUSE_TARGET_ESCAPE: return "ESCAPE"; /* legacy decoder */
     default: return "?";
     }
@@ -163,7 +150,7 @@ void blu2usb_ui_enforce_applied_visual_contract(const blu2usb_ux_model_t *ux,
         for (uint8_t row = 1u; row <= 6u; ++row)
             set_row_tone(frame, row, BLU2USB_UI_TONE_ACTIONABLE);
         const uint8_t current_row =
-            custom_target_row(ux->custom_targets[ux->custom_source]);
+            blu2usb_ux_custom_target_row(ux->custom_targets[ux->custom_source]);
         if (current_row != 0u)
             set_row_tone(frame, current_row, BLU2USB_UI_TONE_CURRENT);
         if (ux->selection < 6u) {

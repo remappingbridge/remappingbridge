@@ -84,6 +84,8 @@ The USB cable carries HID input **to** the host. The firmware does not browse th
 
 These are descriptions of current firmware capabilities; they are not claims that every mouse, application or host has been tested.
 
+In each **WILL BECOME** selector, the choices are **LEFT CLICK**, **RIGHT CLICK**, **FORWARD**, **BACKWARD**, **MODIFIER**, and **NO ACTION**. NO ACTION silences both press and release when the button is used alone. A configured Modifier shortcut still uses the physical button. Existing middle-click mappings continue to work until edited.
+
 ## Try it in your browser
 
 Open the **[RemappingBridge interactive simulator](https://remappingbridge.github.io/)** to explore the LCD and nine HAT controls before assembling hardware. The live application opens on GitHub Pages; it does **not** run inside the README.
