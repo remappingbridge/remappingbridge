@@ -189,8 +189,23 @@ static void test_single_cyan_only_for_current_target(void)
     expect_tone(&frame,4u,BLU2USB_UI_TONE_ACTIONABLE);
     expect_tone(&frame,5u,BLU2USB_UI_TONE_CURRENT);
 }
+static void test_disabled_fits_selected_backward_row(void)
+{
+    blu2usb_ux_model_t ux;
+    blu2usb_ui_frame_t frame;
+    blu2usb_ux_init(&ux);
+    ux.screen = BLU2USB_SCREEN_EDIT_CUSTOM;
+    ux.selection = BLU2USB_MOUSE_SOURCE_BACKWARD;
+    blu2usb_ux_set_custom_target(&ux, BLU2USB_MOUSE_SOURCE_BACKWARD,
+                                BLU2USB_MOUSE_TARGET_NO_ACTION);
+    project(&ux, &frame);
+    blu2usb_ui_apply_selection_marker(&ux, &frame);
+    expected_text(&frame, 5u, "|BACKWARD IS DISABLED");
+}
+
 int main(void)
 {
+    test_disabled_fits_selected_backward_row();
     test_modifier_summary_all_five_sources();
     test_will_become_buttons_only_key_a_applies();
     test_applied_custom_both_hints_visible();

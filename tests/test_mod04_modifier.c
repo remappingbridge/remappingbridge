@@ -30,7 +30,7 @@ static void check_layout(void)
         BLU2USB_SCREEN_BACKWARD_WILL_BECOME
     };
     static const char *const labels[6] = {
-        " LEFT CLICK", " RIGHT CLICK", " FORWARD", " BACKWARD", " MODIFIER", " NO ACTION"
+        " LEFT CLICK", " RIGHT CLICK", " FORWARD", " BACKWARD", " MODIFIER", " DISABLED"
     };
     assert(BLU2USB_MOUSE_TARGET_ESCAPE == 5); /* historical v2 numeric ID */
     assert(BLU2USB_MOUSE_TARGET_MODIFIER == 6); /* new v3, never aliased */

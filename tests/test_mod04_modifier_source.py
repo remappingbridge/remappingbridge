@@ -17,7 +17,7 @@ assert "blu2usb_ux_custom_target_committed" in app
 assert "blu2usb_ux_combination_unavailable" in ux
 assert '?"UNAVAILABLE"' not in renderer or "UNAVAILABLE" in renderer
 assert "BLU2USB_UI_TONE_STATIC" in renderer
-expected='" LEFT CLICK"," RIGHT CLICK"," FORWARD"," BACKWARD"," MODIFIER"," NO ACTION",EMPTY,"KEY A: APPLY AND BACK"'
+expected='" LEFT CLICK"," RIGHT CLICK"," FORWARD"," BACKWARD"," MODIFIER"," DISABLED",EMPTY,"KEY A: APPLY AND BACK"'
 assert ux.count(expected)==5
 feedback=(root/"src/renderer/profile_feedback.c").read_text()
 assert 'case BLU2USB_MOUSE_TARGET_MODIFIER: return "MODIFIER";' in feedback

@@ -84,7 +84,7 @@ The USB cable carries HID input **to** the host. The firmware does not browse th
 
 These are descriptions of current firmware capabilities; they are not claims that every mouse, application or host has been tested.
 
-In each **WILL BECOME** selector, the choices are **LEFT CLICK**, **RIGHT CLICK**, **FORWARD**, **BACKWARD**, **MODIFIER**, and **NO ACTION**. NO ACTION silences both press and release when the button is used alone. A configured Modifier shortcut still uses the physical button. Existing middle-click mappings continue to work until edited.
+In each **WILL BECOME** selector, the choices are **LEFT CLICK**, **RIGHT CLICK**, **FORWARD**, **BACKWARD**, **MODIFIER**, and **DISABLED**. DISABLED silences both press and release when the button is used alone. A configured Modifier shortcut still uses the physical button. Existing middle-click mappings continue to work until edited.
 
 ## Try it in your browser
 

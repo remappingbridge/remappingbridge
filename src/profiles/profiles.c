@@ -411,7 +411,7 @@ const char *blu2usb_profiles_target_name(blu2usb_mouse_target_t target)
     case BLU2USB_MOUSE_TARGET_FORWARD: return "FORWARD";
     case BLU2USB_MOUSE_TARGET_ESCAPE: return "ESCAPE"; /* legacy */
     case BLU2USB_MOUSE_TARGET_MODIFIER: return "MODIFIER";
-    case BLU2USB_MOUSE_TARGET_NO_ACTION: return "NO ACTION";
+    case BLU2USB_MOUSE_TARGET_NO_ACTION: return "DISABLED";
     default: return "?";
     }
 }

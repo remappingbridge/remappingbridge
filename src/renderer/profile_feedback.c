@@ -65,7 +65,7 @@ static const char *custom_target_name(blu2usb_mouse_target_t target)
     case BLU2USB_MOUSE_TARGET_FORWARD: return "FORWARD";
     case BLU2USB_MOUSE_TARGET_BACKWARD: return "BACKWARD";
     case BLU2USB_MOUSE_TARGET_MODIFIER: return "MODIFIER";
-    case BLU2USB_MOUSE_TARGET_NO_ACTION: return "NO ACTION";
+    case BLU2USB_MOUSE_TARGET_NO_ACTION: return "DISABLED";
     case BLU2USB_MOUSE_TARGET_ESCAPE: return "ESCAPE"; /* legacy decoder */
     default: return "?";
     }
