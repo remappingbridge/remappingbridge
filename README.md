@@ -6,9 +6,9 @@ No special RemappingBridge software to install on a compatible computer. Pair a 
 
 ### Try it. Get it.
 
-[**▶ OPEN THE LIVE SIMULATOR**](https://remappingbridge.github.io/) &nbsp; | &nbsp; [**⬇ DOWNLOAD FIRMWARE v3.3.0 (.UF2)**](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/remappingbridge-v3.3.0-pico2w.uf2)
+[**▶ OPEN THE LIVE SIMULATOR**](https://remappingbridge.github.io/) &nbsp; | &nbsp; [**⬇ DOWNLOAD FIRMWARE v3.4.0 (.UF2)**](https://github.com/remappingbridge/remappingbridge/releases/download/v3.4.0/remappingbridge-v3.4.0-pico2w.uf2)
 
-[All releases / latest version](https://github.com/remappingbridge/remappingbridge/releases/latest) · [SHA-256 checksums for v3.3.0](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/SHA256SUMS.txt) · [Quick compatibility notes](#what-you-need-to-know-about-compatibility)
+[All releases / latest version](https://github.com/remappingbridge/remappingbridge/releases/latest) · [SHA-256 checksums for v3.4.0](https://github.com/remappingbridge/remappingbridge/releases/download/v3.4.0/SHA256SUMS.txt) · [Quick compatibility notes](#what-you-need-to-know-about-compatibility)
 
 ### Two small boards. Lots of possibilities.
 
@@ -158,19 +158,19 @@ For the correct components, GPIO controls, connector alignment and mechanical pr
 
 ## Download and install on a Raspberry Pi Pico 2 W
 
-**Firmware: [v3.3.0](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.3.0).** See the [release notes](docs/releases/v3.3.0.md) for changes and compatibility notes, or [check for a newer release](https://github.com/remappingbridge/remappingbridge/releases/latest).
+**Firmware: [v3.4.0](https://github.com/remappingbridge/remappingbridge/releases/tag/v3.4.0).** See the [release notes](docs/releases/v3.4.0.md) for changes and compatibility notes, or [check for a newer release](https://github.com/remappingbridge/remappingbridge/releases/latest).
 
 | Download | Verified release asset |
 | --- | --- |
-| **[Download RemappingBridge v3.3.0 (.UF2)](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/remappingbridge-v3.3.0-pico2w.uf2)** | `remappingbridge-v3.3.0-pico2w.uf2` — **955,392 bytes** |
-| [Download SHA-256 checksums](https://github.com/remappingbridge/remappingbridge/releases/download/v3.3.0/SHA256SUMS.txt) | `SHA256SUMS.txt` for this same release |
+| **[Download RemappingBridge v3.4.0 (.UF2)](https://github.com/remappingbridge/remappingbridge/releases/download/v3.4.0/remappingbridge-v3.4.0-pico2w.uf2)** | `remappingbridge-v3.4.0-pico2w.uf2` |
+| [Download SHA-256 checksums](https://github.com/remappingbridge/remappingbridge/releases/download/v3.4.0/SHA256SUMS.txt) | `SHA256SUMS.txt` for this same release |
 | **[Find the latest release](https://github.com/remappingbridge/remappingbridge/releases/latest)** | Stable URL that keeps pointing to the newest published release |
 
 **Board requirement:** this UF2 targets the **Raspberry Pi Pico 2 W** (RP2350 + BLE), **not** the original Pico/Pico W or a wireless-free Pico 2. Use a **Micro-USB cable that carries data**, not a charge-only cable.
 
 ### 1. Verify the downloaded file (recommended)
 
-Download the **UF2 and `SHA256SUMS.txt` from the same v3.3.0 release** into one folder. The published UF2 has SHA-256 `463298b41fab33f5f07f68a3aa4a2d4b43d0fc44cd3661aa38f5d98f3c4d4cd0`.
+Download the **UF2 and `SHA256SUMS.txt` from the same v3.4.0 release** into one folder.
 
 On **Linux**, open a terminal in the download folder and run:
 
@@ -187,7 +187,7 @@ shasum -a 256 -c SHA256SUMS.txt
 On **Windows PowerShell**, calculate the file's hash and compare the result with the SHA-256 in the downloaded checksum file:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\remappingbridge-v3.3.0-pico2w.uf2
+Get-FileHash -Algorithm SHA256 .\remappingbridge-v3.4.0-pico2w.uf2
 ```
 
 **Only proceed if the hash matches.** The official release's `SHA256SUMS.txt` is the authoritative checksum file for the downloaded version; a previous test build's hash is **not** the final release's hash.
@@ -201,7 +201,7 @@ Get-FileHash -Algorithm SHA256 .\remappingbridge-v3.3.0-pico2w.uf2
 ### 3. Copy the UF2 and let the board restart
 
 4. Open the newly mounted **`RP2350`** or **`RPI-RP2`** drive with your file manager.
-5. Copy **`remappingbridge-v3.3.0-pico2w.uf2`** onto that drive. Do **not** copy `SHA256SUMS.txt` instead, unzip it, format the drive, or run an erasure utility.
+5. Copy **`remappingbridge-v3.4.0-pico2w.uf2`** onto that drive. Do **not** copy `SHA256SUMS.txt` instead, unzip it, format the drive, or run an erasure utility.
 6. Allow the copy to finish. The bootloader writes the firmware, **automatically disconnects the temporary drive and reboots the Pico 2 W**. The disappearing bootloader drive is **normal**, not proof that the cable failed.
 7. Let RemappingBridge start. With a correctly attached LCD and supported mouse, continue from the device's on-screen instructions; if the mouse is not connected yet, use its BLE pairing procedure. The Pico bridges BLE input to USB HID only after a supported mouse connects.
 
@@ -212,10 +212,10 @@ The BOOTSEL + UF2 steps and the **`RP2350` / `RPI-RP2`** volume names follow the
 - **Normal updates:** use the same BOOTSEL/UF2 procedure. **Do not run `flash_nuke` or mass-erase the flash for an ordinary firmware update**; erasure can destroy stored BLE bonds and preferences. Note your custom mappings before updating in case of an unexpected problem.
 - **Downgrades:** older v2 firmware does not understand all v3 profile and shortcut records; returning to v2 may reset or lose newer preferences. Consult the [release history](docs/releases/v3.0.0.md) and record settings before changing major versions. Never promise universal bond/profile preservation across incompatible firmware.
 - **Missing BOOTSEL drive:** first verify that the correct **Pico 2 W** is connected, the USB cable is **data-capable**, BOOTSEL was held while plugging in, and your computer can read USB mass-storage devices. Do not fix a cable or enumeration issue by formatting or erasing the board.
-- **Newer versions:** the direct UF2 link above downloads **v3.3.0**. For the newest available firmware and its matching checksum, use the [latest release page](https://github.com/remappingbridge/remappingbridge/releases/latest).
+- **Newer versions:** the direct UF2 link above downloads **v3.4.0**. For the newest available firmware and its matching checksum, use the [latest release page](https://github.com/remappingbridge/remappingbridge/releases/latest).
 
 ## Documentation, support and license
 
-- [Release notes](docs/releases/v3.3.0.md) and [older releases](https://github.com/remappingbridge/remappingbridge/releases).
+- [Release notes](docs/releases/v3.4.0.md) and [older releases](https://github.com/remappingbridge/remappingbridge/releases).
 - [Interactive simulator](https://remappingbridge.github.io/) and [simulator source](https://github.com/remappingbridge/remappingbridge.github.io).
 - [Report an issue](https://github.com/remappingbridge/remappingbridge/issues) · [License](LICENSE).
