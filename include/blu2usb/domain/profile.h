@@ -26,6 +26,7 @@ typedef enum {
     BLU2USB_MOUSE_TARGET_FORWARD,
     BLU2USB_MOUSE_TARGET_ESCAPE, /* legacy v2 ID 5: never reinterpret */
     BLU2USB_MOUSE_TARGET_MODIFIER, /* new explicit v3 ID 6 */
+    BLU2USB_MOUSE_TARGET_NO_ACTION = 7,
     BLU2USB_MOUSE_TARGET_COUNT,
 } blu2usb_mouse_target_t;
 

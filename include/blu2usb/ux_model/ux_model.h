@@ -155,6 +155,7 @@ void blu2usb_ux_set_saved_movement(blu2usb_ux_model_t *ux, unsigned logical_bond
                                    blu2usb_movement_settings_t settings);
 void blu2usb_ux_set_saved_profile(blu2usb_ux_model_t *ux, unsigned logical_bond,
                                   blu2usb_mouse_profile_kind_t kind);
+unsigned blu2usb_ux_custom_target_row(blu2usb_mouse_target_t target);
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target);
 void blu2usb_ux_profile_applied(blu2usb_ux_model_t *ux, blu2usb_mouse_profile_kind_t active_profile);
 void blu2usb_ux_restore_profile_state(

@@ -79,6 +79,8 @@ bool blu2usb_remap_process_mouse(const blu2usb_remap_t *remap,
     if (remap->profile.kind == BLU2USB_MOUSE_PROFILE_PASSTHROUGH)
         target = identity_target(source);
 
+    if (target == BLU2USB_MOUSE_TARGET_NO_ACTION) return true;
+
     if (target == BLU2USB_MOUSE_TARGET_ESCAPE) {
         result->has_keyboard = true;
         result->keyboard.source = blu2usb_hid_source_make(

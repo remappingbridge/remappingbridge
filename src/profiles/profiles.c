@@ -236,7 +236,8 @@ bool blu2usb_profiles_serialize(const blu2usb_profiles_t *profiles,
         const blu2usb_mouse_target_t custom = profiles->custom_targets[i];
         const blu2usb_mouse_target_t draft =
             profiles->draft_valid ? profiles->draft_targets[i] : custom;
-        if (!target_valid(custom) || !target_valid(draft)) return false;
+        if ((unsigned)custom > BLU2USB_MOUSE_TARGET_ESCAPE ||
+            (unsigned)draft > BLU2USB_MOUSE_TARGET_ESCAPE) return false;
         out[PROFILE_CUSTOM_OFFSET + i] = (uint8_t)custom;
         out[PROFILE_DRAFT_OFFSET + i] = (uint8_t)draft;
     }
@@ -410,6 +411,7 @@ const char *blu2usb_profiles_target_name(blu2usb_mouse_target_t target)
     case BLU2USB_MOUSE_TARGET_FORWARD: return "FORWARD";
     case BLU2USB_MOUSE_TARGET_ESCAPE: return "ESCAPE"; /* legacy */
     case BLU2USB_MOUSE_TARGET_MODIFIER: return "MODIFIER";
+    case BLU2USB_MOUSE_TARGET_NO_ACTION: return "DISABLED";
     default: return "?";
     }
 }

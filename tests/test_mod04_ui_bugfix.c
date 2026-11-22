@@ -61,7 +61,7 @@ static void test_modifier_summary_all_five_sources(void)
         blu2usb_ux_init(&ux);
         ux.screen=will_become[src];
         ux.custom_source=(blu2usb_mouse_source_t)src;
-        ux.selection=5u; /* MODIFIER last */
+        ux.selection=4u; /* MODIFIER */
         const blu2usb_ux_command_t cmd=tap(&ux,BLU2USB_CONTROL_KEY_A);
         assert(cmd.kind==BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET);
         assert(cmd.target==BLU2USB_MOUSE_TARGET_MODIFIER);
@@ -96,14 +96,14 @@ static void test_will_become_buttons_only_key_a_applies(void)
         blu2usb_ux_init(&ux);
         ux.screen=will_become[src];
         ux.custom_source=(blu2usb_mouse_source_t)src;
-        ux.selection=3u; /* FORWARD */
+        ux.selection=2u; /* FORWARD */
 
         for (unsigned i=0;i<3;++i) {
             const blu2usb_control_t key=i==0u ? BLU2USB_CONTROL_JOY_PRESS :
                 (i==1u ? BLU2USB_CONTROL_KEY_X : BLU2USB_CONTROL_JOY_RIGHT);
             assert(tap(&ux,key).kind==BLU2USB_UX_COMMAND_NONE);
             assert(ux.screen==will_become[src]);
-            assert(ux.selection==3u);
+            assert(ux.selection==2u);
         }
         assert(ux.custom_targets[src] != BLU2USB_MOUSE_TARGET_MODIFIER);
         assert(tap(&ux,BLU2USB_CONTROL_KEY_B).kind==BLU2USB_UX_COMMAND_NONE);
@@ -161,8 +161,8 @@ static void test_single_cyan_only_for_current_target(void)
     ux.selection=0u;
     project(&ux,&frame);
     expect_tone(&frame,1u,BLU2USB_UI_TONE_EMPHASIZED);
-    expect_tone(&frame,4u,BLU2USB_UI_TONE_CURRENT); /* FORWARD */
-    expect_tone(&frame,5u,BLU2USB_UI_TONE_ACTIONABLE); /* BACKWARD */
+    expect_tone(&frame,3u,BLU2USB_UI_TONE_CURRENT); /* FORWARD */
+    expect_tone(&frame,4u,BLU2USB_UI_TONE_ACTIONABLE); /* BACKWARD */
 
     blu2usb_mouse_target_t committed[BLU2USB_MOUSE_SOURCE_COUNT];
     memcpy(committed,ux.custom_targets,sizeof(committed));
@@ -171,26 +171,41 @@ static void test_single_cyan_only_for_current_target(void)
     ux.screen=BLU2USB_SCREEN_MIDDLE_WILL_BECOME;
     ux.selection=0u;
     project(&ux,&frame);
-    expect_tone(&frame,4u,BLU2USB_UI_TONE_ACTIONABLE); /* old FORWARD not cyan */
-    expect_tone(&frame,5u,BLU2USB_UI_TONE_CURRENT); /* only BACKWARD cyan */
-    expect_tone(&frame,6u,BLU2USB_UI_TONE_ACTIONABLE);
+    expect_tone(&frame,3u,BLU2USB_UI_TONE_ACTIONABLE); /* old FORWARD not cyan */
+    expect_tone(&frame,4u,BLU2USB_UI_TONE_CURRENT); /* only BACKWARD cyan */
+    expect_tone(&frame,5u,BLU2USB_UI_TONE_ACTIONABLE);
 
-    ux.selection=4u; /* Focus on current value changes pale cyan to standard cyan. */
+    ux.selection=3u; /* Focus on current value changes pale cyan to standard cyan. */
     project(&ux,&frame);
-    expect_tone(&frame,4u,BLU2USB_UI_TONE_ACTIONABLE);
-    expect_tone(&frame,5u,BLU2USB_UI_TONE_SELECTED_CURRENT);
+    expect_tone(&frame,3u,BLU2USB_UI_TONE_ACTIONABLE);
+    expect_tone(&frame,4u,BLU2USB_UI_TONE_SELECTED_CURRENT);
 
     committed[BLU2USB_MOUSE_SOURCE_MIDDLE]=BLU2USB_MOUSE_TARGET_MODIFIER;
     blu2usb_ux_custom_target_committed(&ux,BLU2USB_MOUSE_SOURCE_MIDDLE,committed);
     ux.screen=BLU2USB_SCREEN_MIDDLE_WILL_BECOME;
     ux.selection=0u;
     project(&ux,&frame);
+    expect_tone(&frame,3u,BLU2USB_UI_TONE_ACTIONABLE);
     expect_tone(&frame,4u,BLU2USB_UI_TONE_ACTIONABLE);
-    expect_tone(&frame,5u,BLU2USB_UI_TONE_ACTIONABLE);
-    expect_tone(&frame,6u,BLU2USB_UI_TONE_CURRENT);
+    expect_tone(&frame,5u,BLU2USB_UI_TONE_CURRENT);
 }
+static void test_disabled_fits_selected_backward_row(void)
+{
+    blu2usb_ux_model_t ux;
+    blu2usb_ui_frame_t frame;
+    blu2usb_ux_init(&ux);
+    ux.screen = BLU2USB_SCREEN_EDIT_CUSTOM;
+    ux.selection = BLU2USB_MOUSE_SOURCE_BACKWARD;
+    blu2usb_ux_set_custom_target(&ux, BLU2USB_MOUSE_SOURCE_BACKWARD,
+                                BLU2USB_MOUSE_TARGET_NO_ACTION);
+    project(&ux, &frame);
+    blu2usb_ui_apply_selection_marker(&ux, &frame);
+    expected_text(&frame, 5u, "|BACKWARD IS DISABLED");
+}
+
 int main(void)
 {
+    test_disabled_fits_selected_backward_row();
     test_modifier_summary_all_five_sources();
     test_will_become_buttons_only_key_a_applies();
     test_applied_custom_both_hints_visible();

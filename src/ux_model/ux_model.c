@@ -22,11 +22,11 @@ static const blu2usb_screen_template_t screens[BLU2USB_SCREEN_COUNT] = {
     [BLU2USB_SCREEN_APPLY_PASSTHROUGH] = {{"APPLY PASSTHROUGH","ORIGINAL MOUSE","BUTTONS POSITION","ARE NOT ACTIVE",EMPTY,EMPTY,"KEY A: APPLY","KEY B: CANCEL","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_PASSTHROUGH_APPLIED] = {{"PASSTHROUGH ACTIVE","ORIGINAL MOUSE","BUTTONS POSITION","ARE ACTIVE NOW",EMPTY,EMPTY,EMPTY,"KEY B: BACK","KEY Y: LOCK"},0},
     [BLU2USB_SCREEN_EDIT_CUSTOM] = {{"EDIT CUSTOM REMAP"," LEFT IS LEFT"," RIGHT IS RIGHT"," MIDDLE IS MIDDLE"," FORWARD IS FORWARD"," BACKWARD IS BACKWARD",EMPTY,"JOY PRESS: ACCESS","KEY A: APPLY CUSTOM"},DYN(1)|DYN(2)|DYN(3)|DYN(4)|DYN(5)},
-    [BLU2USB_SCREEN_LEFT_WILL_BECOME] = {{"LEFT WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," FORWARD"," BACKWARD"," MODIFIER",EMPTY,"KEY A: APPLY AND BACK"},0},
-    [BLU2USB_SCREEN_RIGHT_WILL_BECOME] = {{"RIGHT WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," FORWARD"," BACKWARD"," MODIFIER",EMPTY,"KEY A: APPLY AND BACK"},0},
-    [BLU2USB_SCREEN_MIDDLE_WILL_BECOME] = {{"MIDDLE WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," FORWARD"," BACKWARD"," MODIFIER",EMPTY,"KEY A: APPLY AND BACK"},0},
-    [BLU2USB_SCREEN_FORWARD_WILL_BECOME] = {{"FORWARD WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," FORWARD"," BACKWARD"," MODIFIER",EMPTY,"KEY A: APPLY AND BACK"},0},
-    [BLU2USB_SCREEN_BACKWARD_WILL_BECOME] = {{"BACKWARD WILL BECOME"," LEFT"," RIGHT"," MIDDLE"," FORWARD"," BACKWARD"," MODIFIER",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_LEFT_WILL_BECOME] = {{"LEFT WILL BECOME"," LEFT CLICK"," RIGHT CLICK"," FORWARD"," BACKWARD"," MODIFIER"," DISABLED",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_RIGHT_WILL_BECOME] = {{"RIGHT WILL BECOME"," LEFT CLICK"," RIGHT CLICK"," FORWARD"," BACKWARD"," MODIFIER"," DISABLED",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_MIDDLE_WILL_BECOME] = {{"MIDDLE WILL BECOME"," LEFT CLICK"," RIGHT CLICK"," FORWARD"," BACKWARD"," MODIFIER"," DISABLED",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_FORWARD_WILL_BECOME] = {{"FORWARD WILL BECOME"," LEFT CLICK"," RIGHT CLICK"," FORWARD"," BACKWARD"," MODIFIER"," DISABLED",EMPTY,"KEY A: APPLY AND BACK"},0},
+    [BLU2USB_SCREEN_BACKWARD_WILL_BECOME] = {{"BACKWARD WILL BECOME"," LEFT CLICK"," RIGHT CLICK"," FORWARD"," BACKWARD"," MODIFIER"," DISABLED",EMPTY,"KEY A: APPLY AND BACK"},0},
     [BLU2USB_SCREEN_SAVED_DEVICES] = {{"NO SAVED MOUSE",EMPTY,EMPTY,EMPTY,EMPTY," REMOVE DEVICE",EMPTY,"JOY RIGHT/LEFT: PAGE","JOY PRESS: ACCESS"},DYN(0)|DYN(1)|DYN(2)|DYN(3)|DYN(4)},
     [BLU2USB_SCREEN_REMOVE_THIS] = {{"REMOVE THIS MOUSE","UNKNOWN MOUSE","SAVED PAIRING AND","PREFERENCES WILL","BE DELETED.",EMPTY,"KEY A: REMOVE","KEY B: CANCEL","KEY X: HELP"},DYN(1)},
     [BLU2USB_SCREEN_HELP_REMOVE_THIS] = {{"REMOVE MOUSE HELP","COMPLETELY REMOVE THE","AUTOMATIC CONNECTION","WHEN TURNING ON THE","DEVICE AND DELETE ITS","BUTTON REMAPPING AND","CUSTOM MOVEMENTS",EMPTY,"KEY B: BACK"},0},
@@ -445,21 +445,36 @@ void blu2usb_ux_set_saved_profile(blu2usb_ux_model_t *ux,
             : BLU2USB_MOUSE_PROFILE_PASSTHROUGH;
 }
 
+static const blu2usb_mouse_target_t custom_menu_targets[] = {
+    BLU2USB_MOUSE_TARGET_LEFT,
+    BLU2USB_MOUSE_TARGET_RIGHT,
+    BLU2USB_MOUSE_TARGET_FORWARD,
+    BLU2USB_MOUSE_TARGET_BACKWARD,
+    BLU2USB_MOUSE_TARGET_MODIFIER,
+    BLU2USB_MOUSE_TARGET_NO_ACTION,
+};
+
+/* Row zero means a saved target has no selectable row (legacy MIDDLE). */
+unsigned blu2usb_ux_custom_target_row(blu2usb_mouse_target_t target)
+{
+    for (unsigned i = 0; i < sizeof(custom_menu_targets) / sizeof(custom_menu_targets[0]); ++i)
+        if (custom_menu_targets[i] == target) return i + 1u;
+    return 0u;
+}
+
+static unsigned custom_selection_for_target(blu2usb_mouse_target_t target)
+{
+    const unsigned row = blu2usb_ux_custom_target_row(target);
+    return row ? row - 1u : 0u;
+}
+
 void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t source, blu2usb_mouse_target_t target) {
     if ((unsigned)source < BLU2USB_MOUSE_SOURCE_COUNT && (unsigned)target < BLU2USB_MOUSE_TARGET_COUNT) {
         if (ux->custom_targets[source] != target) ux->custom_dirty = true;
         ux->custom_targets[source] = target;
         /* The menu order differs from persisted target numeric IDs. */
         if (is_will_become(ux->screen) && ux->custom_source == source) {
-            switch (target) {
-            case BLU2USB_MOUSE_TARGET_LEFT: ux->selection = 0u; break;
-            case BLU2USB_MOUSE_TARGET_RIGHT: ux->selection = 1u; break;
-            case BLU2USB_MOUSE_TARGET_MIDDLE: ux->selection = 2u; break;
-            case BLU2USB_MOUSE_TARGET_FORWARD: ux->selection = 3u; break;
-            case BLU2USB_MOUSE_TARGET_BACKWARD: ux->selection = 4u; break;
-            case BLU2USB_MOUSE_TARGET_MODIFIER: ux->selection = 5u; break;
-            default: ux->selection = 0u; break;
-            }
+            ux->selection = custom_selection_for_target(target);
         }
     }
 }
@@ -467,31 +482,6 @@ void blu2usb_ux_set_custom_target(blu2usb_ux_model_t *ux, blu2usb_mouse_source_t
 const blu2usb_screen_template_t *blu2usb_ux_screen_template(blu2usb_screen_id_t screen) {
     if ((unsigned)screen >= BLU2USB_SCREEN_COUNT) return 0;
     return &screens[screen];
-}
-
-static blu2usb_mouse_target_t custom_target_for_selection(unsigned selection) {
-    static const blu2usb_mouse_target_t targets[6] = {
-        BLU2USB_MOUSE_TARGET_LEFT,
-        BLU2USB_MOUSE_TARGET_RIGHT,
-        BLU2USB_MOUSE_TARGET_MIDDLE,
-        BLU2USB_MOUSE_TARGET_FORWARD,
-        BLU2USB_MOUSE_TARGET_BACKWARD,
-        BLU2USB_MOUSE_TARGET_MODIFIER,
-    };
-    return selection < 6u ?
-        targets[selection] : BLU2USB_MOUSE_TARGET_LEFT;
-}
-
-static unsigned custom_selection_for_target(blu2usb_mouse_target_t target) {
-    switch (target) {
-    case BLU2USB_MOUSE_TARGET_LEFT: return 0u;
-    case BLU2USB_MOUSE_TARGET_RIGHT: return 1u;
-    case BLU2USB_MOUSE_TARGET_MIDDLE: return 2u;
-    case BLU2USB_MOUSE_TARGET_FORWARD: return 3u;
-    case BLU2USB_MOUSE_TARGET_BACKWARD: return 4u;
-    case BLU2USB_MOUSE_TARGET_MODIFIER: return 5u;
-    default: return 0u;
-    }
 }
 
 static blu2usb_screen_id_t custom_screen_for(unsigned selection) {
@@ -935,7 +925,7 @@ blu2usb_ux_command_t blu2usb_ux_input(blu2usb_ux_model_t *ux, blu2usb_control_t 
         const unsigned source = (unsigned)ux->custom_source;
         cmd.kind = BLU2USB_UX_COMMAND_CUSTOM_SET_TARGET;
         cmd.source = ux->custom_source;
-        cmd.target = custom_target_for_selection(ux->selection);
+        cmd.target = custom_menu_targets[ux->selection < 6u ? ux->selection : 0u];
         /* Stay in WILL BECOME until the persisted draft write succeeds;
          * the command handler calls blu2usb_ux_custom_target_committed. */
         return cmd;
